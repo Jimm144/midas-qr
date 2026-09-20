@@ -1,0 +1,70 @@
+{
+  "id": "./index.html",
+  "name": "QR Code Studio",
+  "short_name": "QR Studio",
+  "description": "A powerful, offline, privacy-first QR code generator and scanner.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#1b1b1b",
+  "theme_color": "#1b1b1b",
+  "lang": "en",
+  "dir": "ltr",
+  "orientation": "any",
+  "categories": ["utilities", "productivity", "graphics"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "_screenshot_placeholder": "REPLACE-ME: no screenshots ship yet — add a real 1280x720 UI screenshot at this path plus a screenshots[] entry before deploy.",
+  "_site_url_placeholder": "https://qr-code-studio.example/ — REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors __SITE_URL__ in index.html, 404.html, sitemap.xml, robots.txt, serve.json)",
+  "shortcuts": [
+    {
+      "name": "Generate QR",
+      "short_name": "Generate",
+      "url": "./#generator",
+      "icons": [{ "src": "icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Scan QR",
+      "short_name": "Scan",
+      "url": "./#scanner",
+      "icons": [{ "src": "icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "History",
+      "short_name": "History",
+      "url": "./#history",
+      "icons": [{ "src": "icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

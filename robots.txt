@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# __SITE_URL__ REPLACE-ME: "https://qr-code-studio.example/" is a placeholder. Replace it with the production domain before deploying.
+Sitemap: https://qr-code-studio.example/sitemap.xml

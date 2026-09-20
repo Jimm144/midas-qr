@@ -1,0 +1,171 @@
+/* ==========================================================================
+   Searchable select (.ss-) and date/time picker (.dt-) component styles.
+   Scoped under the component class prefixes; only design tokens are used.
+   ========================================================================== */
+
+.ss-field,
+.dt-field {
+  position: relative;
+}
+
+/* ---- Shared trigger surface ---- */
+.ss-trigger,
+.dt-trigger {
+  display: inline-flex; align-items: center; justify-content: space-between;
+  gap: 8px; width: 100%; min-height: var(--size-element-lg); padding: 6px 12px;
+  background: var(--inset); border: 1px solid var(--border);
+  border-radius: var(--btn-radius, var(--radius-element)); color: var(--text);
+  font-family: var(--font-family-body); font-size: 14px; font-weight: 500;
+  text-align: left; cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+.ss-trigger::after {
+  content: ""; flex: 0 0 auto; width: 6px; height: 6px;
+  border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.ss-trigger:hover,
+.dt-trigger:hover {
+  border-color: var(--border-strong);
+}
+
+/* ---- Popovers ---- */
+.ss-popover,
+.dt-popover {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; padding: 12px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-container); box-shadow: var(--shadow-high, var(--shadow-pop));
+}
+.ss-popover.hidden,
+.dt-popover.hidden {
+  display: none !important;
+}
+.ss-popover {
+  width: 100%; min-width: 220px;
+}
+
+/* ---- Searchable select ---- */
+.ss-search {
+  margin-bottom: 8px;
+}
+.ss-list {
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 224px; overflow-y: auto;
+}
+.ss-option {
+  padding: 8px 10px; border-radius: var(--radius-inner);
+  color: var(--text); font-family: var(--font-family-body); font-size: 13px;
+  cursor: pointer; transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.ss-option:hover,
+.ss-option.active {
+  background: var(--accent-soft);
+}
+.ss-option.selected {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.ss-option[aria-disabled="true"] {
+  opacity: 0.5; pointer-events: none;
+}
+.ss-empty {
+  padding: 12px 8px; color: var(--muted); font-size: 13px; text-align: center;
+}
+
+/* ---- Date/time picker ---- */
+/* Date + time side by side, like the native pair: the date gets the extra
+   room since it carries the longer label. */
+.dt-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.dt-trigger {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.dt-trigger-icon {
+  display: inline-flex; flex: 0 0 auto; color: var(--muted);
+}
+.dt-trigger-label {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dt-trigger-label.is-placeholder {
+  color: var(--muted);
+}
+.dt-popover {
+  width: 268px;
+  /* Landscape phones and short viewports: scroll the calendar instead of
+     letting it clip below the fold. */
+  max-height: min(460px, calc(100dvh - 24px));
+  overflow-y: auto;
+}
+/* Typed time field: clock icon inside the input, like the native pickers. */
+.dt-time-field {
+  position: relative;
+}
+.dt-time-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; color: var(--muted); pointer-events: none;
+}
+.dt-time-input {
+  padding-left: 34px !important;
+}
+.dt-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 8px;
+}
+.dt-month {
+  color: var(--text); font-size: 14px; font-weight: 600;
+}
+.dt-prev,
+.dt-next {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--size-element-sm); height: var(--size-element-sm); min-height: var(--size-element-sm);
+  padding: 0; background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius-inner); color: var(--muted); font-size: 16px; line-height: 1;
+  cursor: pointer; transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.dt-prev:hover,
+.dt-next:hover {
+  background: var(--accent-soft); color: var(--text);
+}
+.dt-weekdays,
+.dt-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+}
+.dt-weekdays {
+  margin-bottom: 4px;
+}
+.dt-weekday {
+  color: var(--muted); font-size: 11px; font-weight: 500; text-align: center;
+}
+.dt-grid {
+  gap: 2px;
+}
+.dt-day {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--size-element-md); height: var(--size-element-md); min-height: var(--size-element-md);
+  padding: 0; background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius-inner); color: var(--text);
+  font-family: var(--font-family-body); font-size: 13px; cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+.dt-day:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.dt-day.today:not(.selected) {
+  border-color: var(--accent);
+}
+.dt-day.selected {
+  background: var(--accent); border-color: var(--accent);
+  color: var(--accent-contrast); font-weight: 600;
+}
+.dt-day:disabled {
+  opacity: 0.25;
+}
+/* Adjacent-month days: visible and clickable, but grayed. */
+.dt-day.outside {
+  color: var(--muted); opacity: 0.55;
+}

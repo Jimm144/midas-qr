@@ -1,0 +1,55 @@
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    environment: "jsdom",
+    globals: true,
+    include: ["tests/**/*.test.js"],
+    // The geometry/matrix suites sweep thousands of rendered SVG nodes and run
+    // well past the 5s default when the machine is loaded; 20s still catches
+    // genuine hangs without flagging heavy-but-healthy work.
+    testTimeout: 20_000,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: [
+        "src/js/constants.js",
+        "src/js/utils.js",
+        "src/js/lib-loader.js",
+        "src/js/themes.ts",
+        "src/js/frames.ts",
+        "src/js/state.ts",
+        "src/js/share.js",
+        "src/js/theme-runtime.js",
+        "src/js/pwa.js",
+        "src/js/generator/formatters.js",
+        "src/js/generator/qr-instance.js",
+        "src/js/generator/generator.js",
+        "src/js/generator/mask.js",
+        "src/js/generator/background.js",
+        "src/js/generator/frame.js",
+        "src/js/generator/encoder.js",
+        "src/js/generator/render-info.js",
+        "src/js/generator/readability.js",
+        "src/js/generator/export.js",
+        "src/js/generator/history.js",
+        "src/js/generator/inputs.js",
+        "src/js/generator/controls.js",
+        "src/js/scanner/scanner.js",
+        "src/js/scanner/history.js",
+        "src/js/scanner/result.js",
+        "src/js/scanner/worker.js",
+        "src/js/ui/dom.js",
+        "src/js/ui/color-picker.js",
+        "src/js/ui/components.js",
+        "src/js/ui/searchable-select.js",
+        "src/js/ui/datetime-picker.js",
+        "src/js/ui/tabs.js",
+        "src/js/ui/modal.js",
+        "src/js/ui/toast.js",
+        "src/js/ui/announce.js",
+        "src/js/ui/shell.js",
+      ],
+    },
+  },
+});

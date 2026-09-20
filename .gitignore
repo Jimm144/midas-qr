@@ -1,0 +1,13 @@
+node_modules/
+dist/
+src/css/output.css
+*.log
+.DS_Store
+.vscode/
+.idea/
+coverage/
+scratch/
+.openchamber/
+.chrome-tmp*/
+swtest/
+shot-*.png

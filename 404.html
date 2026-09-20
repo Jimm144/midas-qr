@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- __SITE_URL__ REPLACE-ME: "https://qr-code-studio.example/" is a placeholder. Replace it with the production domain before deploying. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="robots" content="noindex,follow">
+  <meta name="description" content="Page not found. QR Code Studio — free offline QR code generator and scanner.">
+  <meta name="theme-color" content="#10161A">
+  <meta name="color-scheme" content="dark light">
+  <title>404 — Page Not Found | QR Code Studio</title>
+  <link rel="canonical" href="https://qr-code-studio.example/404.html">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/icon-192x192.png">
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    :root {
+      --bg: #10161A;
+      --accent: #5B9BEE;
+      --text: #CED9E0;
+      --border: rgba(206, 217, 224, 0.15);
+      --muted: #9daab4;
+    }
+    /* Light-scheme fallback for the no-/pre-JS case; the inline script only
+       overrides --bg and --accent (it validates localStorage before use). */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #F5F6F7;
+        --accent: #1F5AA8;
+        --text: #1F2933;
+        --border: rgba(16, 22, 26, 0.15);
+        --muted: #52606D;
+      }
+    }
+    html,
+    body {
+      margin: 0;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      -webkit-font-smoothing: antialiased;
+    }
+    .box {
+      border: 1px solid var(--border);
+      padding: clamp(24px, 8vw, 48px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 24px;
+      max-width: 32rem;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      font-size: clamp(40px, 14vw, 60px);
+      margin: 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+    p {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    p.hint {
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      text-transform: none;
+      line-height: 1.6;
+      max-width: 26rem;
+    }
+    a {
+      display: inline-block;
+      margin-top: 32px;
+      border: 1px solid var(--accent);
+      padding: 16px 32px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      text-decoration: none;
+      transition: background-color 0.1s ease-out, color 0.1s ease-out;
+    }
+    a:hover {
+      background-color: var(--accent);
+      color: var(--bg);
+    }
+    a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      a {
+        transition: none;
+      }
+    }
+  </style>
+  <script>
+    (function() {
+      try {
+        var bg = localStorage.getItem('qr-bg');
+        var accent = localStorage.getItem('qr-accent');
+        if (!bg || !accent) {
+          var d = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          bg = d ? '#10161A' : '#F5F6F7';
+          accent = d ? '#2D72D2' : '#2D72D2';
+        }
+        document.documentElement.style.setProperty('--bg', bg);
+        document.documentElement.style.setProperty('--accent', accent);
+        var tc = document.querySelector('meta[name="theme-color"]');
+        if (tc) tc.setAttribute('content', bg);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div class="box">
+    <h1>404</h1>
+    <p>RESOURCE NOT FOUND</p>
+    <p class="hint">The address may be wrong — or you're offline and this page was never saved for offline use.</p>
+    <a href="/">RETURN TO STUDIO</a>
+  </div>
+</body>
+</html>

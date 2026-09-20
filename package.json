@@ -1,0 +1,46 @@
+{
+  "name": "qr-code-studio",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Premium offline QR Code Generator and Scanner",
+  "main": "index.html",
+  "scripts": {
+    "build:js": "esbuild src/js/main.js --bundle --outfile=dist/bundle.js --minify --target=es2020",
+    "build:css": "esbuild src/css/style.css --bundle --external:*.woff2 --minify --outfile=src/css/style.min.css",
+    "build": "node tools/check-sw.mjs && npm run build:js && npm run build:css",
+    "check:sw": "node tools/check-sw.mjs",
+    "start": "npx -y serve -l 5000 .",
+    "dev": "npm run build && npx -y serve -l 5000 .",
+    "lint": "eslint src/js",
+    "lint:fix": "eslint src/js --fix",
+    "format": "prettier --write \"src/js/**/*.js\" \"src/js/**/*.ts\" \"*.{js,json,md}\"",
+    "format:check": "prettier --check \"src/js/**/*.js\" \"src/js/**/*.ts\" \"*.{js,json,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "qr-code",
+    "offline",
+    "foss",
+    "scanner",
+    "generator"
+  ],
+  "author": "QR Code Studio contributors",
+  "license": "GPL-3.0",
+  "homepage": "./",
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^4.1.9",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.7.0",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

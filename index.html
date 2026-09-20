@@ -1,0 +1,1126 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1b1b1b">
+    <script>(function(){try{var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var bg=localStorage.getItem('qr-bg')||(d?'#1b1b1b':'#f1f1f1');var accent=localStorage.getItem('qr-accent')||(d?'#ebebeb':'#262626');var s=document.documentElement.style;s.setProperty('--bg',bg);s.setProperty('--accent',accent);s.setProperty('--text',d?'#fafafa':'#171717');s.setProperty('--surface',d?'#262626':'#ffffff');s.setProperty('--bg-elevated',d?'#363636':'#ebebeb');s.setProperty('--inset',d?'#212121':'#fafafa');s.setProperty('--border',d?'rgba(255, 255, 255, 0.10)':'rgba(0, 0, 0, 0.08)');s.setProperty('--border-strong',d?'#525252':'#d4d4d4');s.setProperty('--muted',d?'#a3a3a3':'#525252');s.setProperty('--accent-contrast',d?'#171717':'#ffffff');s.setProperty('--accent-soft',d?'rgba(255, 255, 255, 0.06)':'rgba(0, 0, 0, 0.05)');s.setProperty('--danger',d?'#ffc6c1':'#a50c25');s.setProperty('--success',d?'#9fe59b':'#007004');s.setProperty('--warning',d?'#fdcf4f':'#745b00');var tc=document.querySelector('meta[name="theme-color"]');if(tc){tc.setAttribute('content',bg);}}catch(e){}})();</script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-qNWtRLpDAOEVrZdrWSHP2raUXvzD9jJi2/sboigaIBg=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-Q6lkIEPazp2H+5y6RukosHaO7/B+zh9+ivP9cgkh6N8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <meta name="description" content="Free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no data collection.">
+    <meta name="color-scheme" content="dark light">
+    <meta name="robots" content="index,follow">
+    <!-- __SITE_URL__ REPLACE-ME: "https://qr-code-studio.example/" is a placeholder. Replace every occurrence (canonical, og:url, og:image, twitter:image, JSON-LD) with the production domain before deploying. -->
+    <link rel="canonical" href="https://qr-code-studio.example/">
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="sitemap.xml">
+    <title>QR Code Studio — Free Offline QR Code Generator &amp; Scanner</title>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://qr-code-studio.example/">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="QR Code Studio">
+    <meta property="og:title" content="QR Code Studio — Free Offline QR Code Generator &amp; Scanner">
+    <meta property="og:description" content="Free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no data collection.">
+    <meta property="og:image" content="https://qr-code-studio.example/icon-512x512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="QR Code Studio app icon">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="QR Code Studio — Free Offline QR Code Generator &amp; Scanner">
+    <meta name="twitter:description" content="Free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no data collection.">
+    <meta name="twitter:image" content="https://qr-code-studio.example/icon-512x512.png">
+    <meta name="twitter:image:alt" content="QR Code Studio app icon">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=7">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="QR Studio">
+    <link rel="preload" href="dist/bundle.js" as="script">
+    <link rel="preload" href="src/lib/qr-code-styling.min.js" as="script">
+    <link rel="preload" href="src/lib/jsqr.min.js" as="script">
+    <link rel="preload" href="src/lib/qrcode.min.js" as="script">
+    <link rel="preload" href="src/fonts/figtree-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="src/css/style.min.css?v=111">
+    <style>
+      :root {
+        --bg: #1b1b1b;
+        --accent: #ebebeb;
+        --text: #fafafa;
+      }
+      body {
+        background-color: var(--bg) !important;
+        color: var(--text) !important;
+      }
+    </style>
+    </head>
+  <body>
+    <noscript>
+      <div role="alert" class="border border-red-500 text-red-500 m-4 p-4 text-center font-semibold">JavaScript is required to run QR Code Studio. Please enable JavaScript in your browser to generate or scan QR codes.</div>
+      <div class="max-w-[1400px] mx-auto p-4 text-xs leading-relaxed opacity-70">
+        <p class="mb-2">QR Code Studio is a free, offline-first QR code generator and scanner. Create custom QR codes for URLs, text, Wi-Fi networks, contacts, crypto addresses, geolocation, events, SMS, and phone numbers.</p>
+        <p class="mb-2">Customize your QR codes with different colors, gradient fills, dot shapes, corner styles, overall masks, frame styles, background images, and logo overlays. Choose from multiple error correction levels (L, M, Q, H) to ensure scannability even when partially damaged.</p>
+        <p class="mb-2">Export finished codes as PNG, SVG, JPEG, WebP, or text, download your whole generator history at once, or batch-generate one QR code per row from a CSV file.</p>
+        <p>Scan QR codes using your webcam or by uploading an image file. Works entirely offline — no data collection, no ads, no tracking.</p>
+      </div>
+    </noscript>
+
+    <a href="#main-content" id="skip-link" class="skip-link">Skip to content</a>
+    <div id="announcements" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="color-picker-popup" class="hidden absolute z-50 bg-black border border-white px-3 w-[300px] flex-col gap-2 shadow-lg transition-all duration-200 transform opacity-0 scale-95" role="dialog" aria-label="Color picker" aria-modal="true">
+      
+      <div class="flex items-center justify-between border-b border-white pb-2 select-none">
+        <span class="tracking-wider">Color</span>
+        <button id="btn-close-cp" aria-label="Close color picker" class="w-6 h-6 flex items-center justify-center font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">✕</button>
+      </div>
+
+      
+          <div class="flex flex-col gap-3 p-1">
+            
+            <div class="relative border border-white w-full h-[150px] overflow-hidden">
+              <canvas id="cp-spectrum" class="w-full h-full cursor-crosshair block" role="img" aria-label="Saturation and brightness color field" tabindex="0"></canvas>
+            </div>
+
+            <div class="cp-hue">
+              <label for="cp-hue">Hue</label>
+              <input type="range" id="cp-hue" min="0" max="360" value="0">
+            </div>
+            <div class="cp-gradient cp-section flex flex-col gap-2">
+              <div class="cp-mode" role="group" aria-label="Color mode">
+                <button type="button" id="cp-mode-solid" class="cp-mode-btn is-active" aria-pressed="true">Solid</button>
+                <button type="button" id="cp-mode-gradient" class="cp-mode-btn" aria-pressed="false">Gradient</button>
+              </div>
+              <div id="cp-gradient-controls" class="hidden flex-col gap-2">
+                <div class="cp-stops flex items-center gap-2">
+                  <button type="button" id="cp-stop-0" class="cp-stop is-active" aria-label="Start color" aria-pressed="true"></button>
+                  <svg class="cp-stop-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+                  <button type="button" id="cp-stop-1" class="cp-stop" aria-label="End color" aria-pressed="false"></button>
+                <div class="custom-select-wrapper flex-1 min-w-0 h-[40px]"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">Linear</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0">Linear</div><div class="custom-select-option" data-index="1">Radial</div></div><select id="cp-gradient-type" aria-label="Gradient type" class="hidden">
+                    <option value="linear" selected="">Linear</option>
+                    <option value="radial">Radial</option>
+                  </select></div>
+</div>
+                <div class="flex flex-col gap-2">
+                  
+                  <div class="cp-angle">
+                    <label for="cp-gradient-angle">Angle</label>
+                    <input type="range" id="cp-gradient-angle" min="0" max="360" value="45">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+        
+        <div class="flex items-center justify-between mt-1" id="cp-presets" role="group" aria-label="Color presets">
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #FFFFFF" data-hex="#FFFFFF" aria-label="White"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #C0C0C0" data-hex="#C0C0C0" aria-label="Silver"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #808080" data-hex="#808080" aria-label="Gray"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #000000" data-hex="#000000" aria-label="Black"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #FF0000" data-hex="#FF0000" aria-label="Red"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #00FF00" data-hex="#00FF00" aria-label="Green"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #0000FF" data-hex="#0000FF" aria-label="Blue"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #FFFF00" data-hex="#FFFF00" aria-label="Yellow"></button>
+        </div>
+
+        
+        <div class="flex items-center justify-between tracking-wider mt-1 w-full gap-1">
+          <label class="sr-only" for="cp-input-hex">Hex color</label>
+          <input type="text" id="cp-input-hex" placeholder="#FFFFFF" aria-label="Hex color value" class="bg-black border border-white text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white uppercase w-20 min-w-0 h-[32px]">
+          <button id="cp-reset-btn" class="h-8 px-3 bg-black text-white border border-white hover:bg-white hover:text-black transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white flex-shrink-0">
+            Reset
+          </button>
+          <button id="cp-ok-btn" class="h-8 px-4 bg-black text-white border border-white hover:bg-white hover:text-black transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white flex-shrink-0">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <h1 class="wordmark">
+          <svg class="wordmark-glyph" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.6" y="1.6" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="2"/>
+            <rect x="3.9" y="3.9" width="2.4" height="2.4" fill="currentColor"/>
+            <rect x="15.4" y="1.6" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="2"/>
+            <rect x="17.7" y="3.9" width="2.4" height="2.4" fill="currentColor"/>
+            <rect x="1.6" y="15.4" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="2"/>
+            <rect x="3.9" y="17.7" width="2.4" height="2.4" fill="currentColor"/>
+            <rect x="15.8" y="15.8" width="4.6" height="4.6" rx="1.1" fill="var(--accent)"/>
+          </svg>
+          <span>QR Code Studio</span>
+        </h1>
+        <div class="header-console" role="group" aria-label="Theme and view settings">
+          <div class="custom-select-wrapper min-w-[115px]"><div class="custom-select-trigger flex items-center justify-between px-3 h-full" tabindex="0">Medium</div><div class="custom-select-options"><div class="custom-select-option" data-index="0">Simple</div><div class="custom-select-option selected" data-index="1">Medium</div><div class="custom-select-option" data-index="2">Full</div></div>          <select id="complexity-select" aria-label="Interface complexity" title="Choose how many options are shown" class="bg-black text-accent outline-none cursor-pointer min-w-[115px] border border-white p-1 px-3 h-[40px]">
+            <option value="simple">Simple</option>
+            <option value="medium" selected="">Medium</option>
+            <option value="full">Full</option>
+          </select></div>
+          <button id="btn-theme-toggle" type="button" class="header-icon-btn" aria-label="Toggle dark or light mode" title="Toggle dark/light mode">
+            <svg id="icon-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            <svg id="icon-theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          </button>
+          <select id="mode-select" aria-label="Color mode (auto, dark, light)" class="hidden" tabindex="-1">
+            <option value="auto">Auto</option>
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+          <div class="custom-select-wrapper min-w-[124px]"><div class="custom-select-trigger flex items-center justify-between px-3 h-full" tabindex="0"><span class="trigger-content flex items-center gap-2 overflow-hidden text-ellipsis"><span class="theme-dot" style="background: #EBEBEB; border: 1px solid rgba(255,255,255,0.2)"></span><span class="truncate">Neutral</span></span></div><div class="custom-select-options"><div class="custom-select-option selected" data-index="0"><span class="theme-dot" style="background: #EBEBEB; border: 1px solid rgba(255,255,255,0.2)"></span><span>Neutral</span></div><div class="custom-select-option" data-index="1"><span class="theme-dot" style="background: #97979D; border: 1px solid rgba(255,255,255,0.2)"></span><span>Stone</span></div><div class="custom-select-option" data-index="2"><span class="theme-dot" style="background: #C0CBA9; border: 1px solid rgba(255,255,255,0.2)"></span><span>Matcha</span></div><div class="custom-select-option" data-index="3"><span class="theme-dot" style="background: #E8F1F6; border: 1px solid rgba(255,255,255,0.2)"></span><span>Gothic</span></div><div class="custom-select-option" data-index="4"><span class="theme-dot" style="background: #CCCFFA; border: 1px solid rgba(255,255,255,0.2)"></span><span>Y2K</span></div><div class="custom-select-option" data-index="5"><span class="theme-dot" style="background: #FDEE8C; border: 1px solid rgba(0,0,0,0.15)"></span><span>Butter</span></div><div class="custom-select-option" data-index="6"><span class="theme-dot" style="background: #D4A06A; border: 1px solid rgba(255,255,255,0.2)"></span><span>Chocolate</span></div></div><select id="theme-select" aria-label="Theme" class="bg-black text-accent outline-none cursor-pointer min-w-[124px] border border-white p-1 px-3 h-[40px]">
+            <option value="neutral">Neutral</option>
+            <option value="stone">Stone</option>
+            <option value="matcha">Matcha</option>
+            <option value="gothic">Gothic</option>
+            <option value="y2k">Y2K</option>
+            <option value="butter">Butter</option>
+            <option value="chocolate">Chocolate</option>
+          </select></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="workspace" role="main" tabindex="-1" aria-label="QR Code Studio main content">
+      <div class="sr-only" aria-hidden="false" role="article">
+        <p>QR Code Studio is a free offline QR code generator and scanner supporting URL, text, Wi-Fi, vCard contact, cryptocurrency, geolocation, calendar event, SMS, and phone number QR codes. Features include customizable colors and gradients, dot shapes, corner styles, overall masks, frame styles, background images, logo overlays, PNG/SVG/JPEG/WebP/TXT export, batch CSV/TSV/TXT generation, and error correction levels.</p>
+      </div>
+      <nav aria-label="QR Code Studio sections" class="tab-nav">
+      <div class="tab-rail" role="tablist" aria-label="QR Code Studio sections" aria-orientation="horizontal">
+        <button id="tab-btn-generator" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="panel-generator">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><path d="M14 14h3v3h-3z"></path><path d="M18 18h3v3h-3z"></path></svg>
+          <span>Generate</span>
+        </button>
+        <button id="tab-btn-scanner" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-scanner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></svg>
+          <span>Scan</span>
+        </button>
+        <button id="tab-btn-history" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-history">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.2 1.9"></path></svg>
+          <span>History</span>
+        </button>
+      </div>
+      </nav>
+
+      <section id="panel-generator" class="panel-grid" tabindex="-1" role="tabpanel" aria-labelledby="tab-btn-generator" aria-hidden="false">
+        <div class="qr-card panel-card">
+          <div class="flex flex-col gap-4">
+            <div class="card-head">
+              <div class="card-title">
+                <h2 id="panel-generator-heading" tabindex="-1">Content</h2>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="file" id="batch-csv" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain" aria-label="Choose a CSV, TSV or TXT file for batch generation" class="hidden">
+                <button id="btn-batch" type="button" class="h-[40px] px-3 bg-black text-white border border-white hover:bg-white hover:text-black flex items-center gap-2 font-mono text-xs tracking-wider uppercase transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white whitespace-nowrap cursor-pointer shrink-0" title="Batch generate from CSV, TSV or TXT — one code per line (first column for CSV/TSV), saved as the selected format. Your browser may ask to allow multiple downloads.">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                  </svg>
+                  <span>Batch</span>
+                </button>
+                <span id="batch-status" class="text-xs font-mono text-accent empty:hidden whitespace-nowrap" role="status" aria-live="polite"></span>
+                <div class="custom-select-wrapper min-w-[155px] w-auto"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">URL</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>URL</span></div><div class="custom-select-option" data-index="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/></svg><span>Text</span></div><div class="custom-select-option" data-index="2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Wi-Fi</span></div><div class="custom-select-option" data-index="3"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Contact</span></div><div class="custom-select-option" data-index="4"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><line x1="9.5" x2="9.5" y1="8" y2="16"/><path d="M9.5 8h4a2 2 0 0 1 0 4h-4"/><path d="M9.5 12h4.5a2 2 0 0 1 0 4h-4.5"/></svg><span>Crypto</span></div><div class="custom-select-option" data-index="5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span>Geolocation</span></div><div class="custom-select-option" data-index="6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg><span>Event</span></div><div class="custom-select-option" data-index="7"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>SMS</span></div><div class="custom-select-option" data-index="8"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Phone</span></div><div class="custom-select-option" data-index="9"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>Email</span></div></div><select id="data-type" aria-label="Data type to encode" class="bg-black text-white border border-white p-1 outline-none min-w-[155px] w-auto px-3 h-[40px]">
+                <option value="url" selected="">URL</option>
+                <option value="text">Text</option>
+                <option value="wifi">Wi-Fi</option>
+                <option value="contact">Contact</option>
+                <option value="crypto">Crypto</option>
+                <option value="geo">Geolocation</option>
+                <option value="event">Event</option>
+                <option value="sms">SMS</option>
+                <option value="phone">Phone</option>
+                <option value="email">Email</option>
+              </select></div>
+              </div>
+            </div>
+
+            <div id="input-container-text" class="hidden flex flex-col gap-2 relative">
+              <textarea id="input-text" placeholder="Enter text or raw data" aria-label="Text or raw data to encode" class="w-full h-32 bg-black border border-white px-3 text-white focus:outline-none resize-none"></textarea>
+            </div>
+
+            <div id="input-container-url" class="flex flex-col gap-2 relative">
+              <input type="search" id="input-url" placeholder="https://..." value="https://example.com" aria-label="URL to encode" aria-describedby="url-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+              <span id="url-warning" role="alert" class="field-warning hidden">Invalid URL format</span>
+            </div>
+
+            <div id="input-container-wifi" class="hidden flex flex-col gap-2">
+              <input type="search" id="wifi-ssid" placeholder="Network name (SSID)" aria-label="Wi-Fi network name (SSID)" aria-required="true" aria-describedby="wifi-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+              <div class="w-full relative">
+                <input type="password" id="wifi-pass" placeholder="Password" aria-label="Wi-Fi password" class="w-full bg-black border border-white px-3 pr-10 text-white focus:outline-none h-[40px]">
+                <button id="btn-toggle-pass" type="button" aria-label="Show or hide password" aria-pressed="false" class="absolute right-2 top-1/2 -translate-y-1/2 text-current opacity-70 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white p-1">
+                  
+                  <svg id="icon-eye" width="20" height="20" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 120 120" fill="currentColor">
+                    <path d="M60,19.089C22.382,19.089,0.053,60,0.053,60S22.382,100.91,60,100.91S119.947,60,119.947,60S97.618,19.089,60,19.089z M59.999,84.409C46.54,84.409,35.59,73.459,35.59,60c0-13.459,10.95-24.409,24.409-24.409c13.459,0,24.409,10.95,24.409,24.409 C84.408,73.459,73.458,84.409,59.999,84.409z"></path>
+                    <circle cx="60" cy="60.583" r="14.409"></circle>
+                  </svg>
+                  
+                  <svg id="icon-eye-off" width="20" height="20" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" viewBox="0 0 120 120" fill="currentColor">
+                    <path d="M60,19.089C22.382,19.089,0.053,60,0.053,60S22.382,100.91,60,100.91S119.947,60,119.947,60S97.618,19.089,60,19.089z M59.999,84.409C46.54,84.409,35.59,73.459,35.59,60c0-13.459,10.95-24.409,24.409-24.409c13.459,0,24.409,10.95,24.409,24.409 C84.408,73.459,73.458,84.409,59.999,84.409z"></path>
+                    <circle cx="60" cy="60.583" r="14.409"></circle>
+                    <line x1="20" y1="20" x2="100" y2="100" stroke="currentColor" stroke-width="12" stroke-linecap="round"></line>
+                  </svg>
+                </button>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="custom-select-wrapper flex-1"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">WPA/WPA2</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0">WPA/WPA2</div><div class="custom-select-option" data-index="1">WEP</div><div class="custom-select-option" data-index="2">Unsecured</div></div><select id="wifi-enc" aria-label="Wi-Fi encryption type" class="flex-1 bg-black border border-white px-3 text-white focus:outline-none h-[40px]">
+                  <option value="WPA">WPA/WPA2</option>
+                  <option value="WEP">WEP</option>
+                  <option value="nopass">Unsecured</option>
+                </select></div>
+                <label for="wifi-hidden" class="custom-checkbox-label cursor-pointer select-none">
+                  <input type="checkbox" id="wifi-hidden" aria-label="Hidden network" class="custom-checkbox-input sr-only">
+                  <span class="custom-checkbox-box" aria-hidden="true">
+                    <svg class="custom-checkbox-check" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M8.5 2.5L4 7.5L1.5 5"></path>
+                    </svg>
+                  </span>
+                  <span id="wifi-hidden-label">Hidden network</span>
+                </label>
+              </div>
+              <span id="wifi-warning" role="alert" class="field-warning hidden">Enter a network name</span>
+              <button id="btn-generate-wifi" class="w-full border border-white mt-1 hover:bg-white hover:text-black h-[40px] px-4">
+                Generate Wi-Fi QR
+              </button>
+            </div>
+
+            <div id="input-container-contact" class="hidden flex flex-col gap-4 relative">
+              <!-- Name & Organization -->
+              <div class="flex flex-col gap-2">
+                <span class="text-xs font-semibold text-gray-400">Name &amp; Organization</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input type="search" id="contact-first" aria-label="First name" placeholder="First name" aria-describedby="contact-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+                  <input type="search" id="contact-last" aria-label="Last name" placeholder="Last name" aria-describedby="contact-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+                  <input type="search" id="contact-org" aria-label="Company name" placeholder="Company name" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:col-span-2 h-[40px] appearance-none">
+                  <input type="search" id="contact-title" aria-label="Work title" placeholder="Work title" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:col-span-2 h-[40px] appearance-none">
+                </div>
+              </div>
+
+              <!-- Contact Methods -->
+              <div class="flex flex-col gap-2">
+                <span class="text-xs font-semibold text-gray-400">Contact details</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input type="tel" id="contact-phone" aria-label="Mobile phone" placeholder="Mobile phone" aria-describedby="contact-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px]">
+                  <input type="tel" id="contact-work" aria-label="Work phone" placeholder="Work phone" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px]">
+                  <input type="email" id="contact-email" aria-label="Email" placeholder="Email" aria-describedby="contact-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px]">
+                  <input type="tel" id="contact-fax" aria-label="Fax" placeholder="Fax" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px]">
+                  <input type="search" id="contact-url" aria-label="Website" placeholder="Website" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:col-span-2 h-[40px] appearance-none">
+                </div>
+              </div>
+
+              <!-- Address -->
+              <div class="flex flex-col gap-2">
+                <span class="text-xs font-semibold text-gray-400">Address</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input type="search" id="contact-street" aria-label="Street" placeholder="Street" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:col-span-2 h-[40px] appearance-none">
+                  <input type="search" id="contact-city" aria-label="City" placeholder="City" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+                  <input type="search" id="contact-state" aria-label="State" placeholder="State / Province" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+                  <input type="search" id="contact-zip" aria-label="ZIP code" placeholder="Zip" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+                  <input type="search" id="contact-country" aria-label="Country" placeholder="Country" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+                </div>
+              </div>
+
+              <span id="contact-warning" role="alert" class="field-warning hidden">Add a name, email, or phone number</span>
+              <button id="btn-generate-contact" class="w-full border border-white mt-1 hover:bg-white hover:text-black h-[40px] px-4">
+                Generate Contact QR
+              </button>
+            </div>
+
+            
+            <div id="input-container-crypto" class="hidden flex flex-col gap-2 relative">
+              <div class="flex gap-2">
+                <div class="custom-select-wrapper w-1/3"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">Bitcoin</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0">Bitcoin</div><div class="custom-select-option" data-index="1">Ethereum</div><div class="custom-select-option" data-index="2">Litecoin</div><div class="custom-select-option" data-index="3">BCH</div><div class="custom-select-option" data-index="4">Dash</div><div class="custom-select-option" data-index="5">Monero (XMR)</div></div><select id="crypto-coin" aria-label="Cryptocurrency" class="w-1/3 bg-black border border-white px-3 text-white outline-none h-[40px]">
+                  <option value="bitcoin">Bitcoin</option>
+                  <option value="ethereum">Ethereum</option>
+                  <option value="litecoin">Litecoin</option>
+                  <option value="bitcoincash">BCH</option>
+                  <option value="dash">Dash</option>
+                  <option value="monero">Monero (XMR)</option>
+                </select></div>
+                <input type="search" id="crypto-address" aria-label="Wallet address" placeholder="Wallet address" aria-describedby="crypto-warning" class="w-2/3 bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+              </div>
+              <input type="search" id="crypto-amount" aria-label="Amount (optional)" placeholder="Amount (optional)" class="w-full bg-black border border-white px-3 text-white focus:outline-none h-[40px] appearance-none">
+              <span id="crypto-warning" role="alert" class="field-warning hidden">Enter a wallet address</span>
+              <button id="btn-generate-crypto" class="w-full border border-white mt-1 hover:bg-white hover:text-black h-[40px] px-4">Generate Crypto QR</button>
+            </div>
+
+            
+            <div id="input-container-geo" class="hidden flex flex-col gap-2 relative">
+              <div class="grid grid-cols-2 gap-2">
+                <div class="flex flex-col gap-1">
+                  <label for="geo-lat" class="text-xs text-gray-400">Latitude (-90 to 90)</label>
+                  <input type="number" id="geo-lat" aria-label="Latitude (-90 to 90)" placeholder="e.g. 37.7749" step="any" min="-90" max="90" aria-required="true" aria-describedby="geo-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px]">
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label for="geo-lon" class="text-xs text-gray-400">Longitude (-180 to 180)</label>
+                  <input type="number" id="geo-lon" aria-label="Longitude (-180 to 180)" placeholder="e.g. -122.4194" step="any" min="-180" max="180" aria-required="true" aria-describedby="geo-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px]">
+                </div>
+              </div>
+              <span id="geo-warning" role="alert" class="field-warning hidden">Enter a latitude and longitude</span>
+              <button id="btn-generate-geo" class="w-full border border-white mt-1 hover:bg-white hover:text-black h-[40px] px-4">Generate Location QR</button>
+            </div>
+
+            
+            <div id="input-container-event" class="hidden flex flex-col gap-2 relative">
+              <input type="search" id="event-title" aria-label="Event title" placeholder="Event title" aria-required="true" aria-describedby="event-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <div class="flex-1">
+                  <label class="text-xs text-gray-400 block mb-1">Start Time</label>
+                  <div class="dt-field" data-datetime-field>
+                    <input type="datetime-local" id="event-start" aria-label="Event start time" aria-required="true" aria-describedby="event-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] hidden">
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <label class="text-xs text-gray-400 block mb-1">End Time</label>
+                  <div class="dt-field" data-datetime-field>
+                    <input type="datetime-local" id="event-end" aria-label="Event end time" class="w-full bg-black border border-white px-3 text-white focus:outline-none h-[40px] hidden">
+                  </div>
+                </div>
+              </div>
+              <input type="search" id="event-location" aria-label="Event location" placeholder="Location" class="w-full bg-black border border-white px-3 text-white focus:outline-none h-[40px] appearance-none">
+              <textarea id="event-desc" aria-label="Event description" placeholder="Description" class="w-full h-20 bg-black border border-white px-3 text-white focus:outline-none resize-none"></textarea>
+              <span id="event-warning" role="alert" class="field-warning hidden">Enter a title and start time</span>
+              <button id="btn-generate-event" class="w-full border border-white mt-1 hover:bg-white hover:text-black h-[40px] px-4">Generate Event QR</button>
+            </div>
+
+            
+            <div id="input-container-sms" class="hidden flex flex-col gap-2 relative">
+              <input type="search" id="sms-phone" aria-label="Phone number" placeholder="Phone number" aria-required="true" aria-describedby="sms-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+              <textarea id="sms-msg" aria-label="SMS message" placeholder="Message" class="w-full h-20 bg-black border border-white px-3 text-white focus:outline-none resize-none"></textarea>
+              <span id="sms-warning" role="alert" class="field-warning hidden">Enter a phone number</span>
+            </div>
+
+            
+            <div id="input-container-phone" class="hidden flex flex-col gap-2 relative">
+              <input type="search" id="phone-number" aria-label="Phone number" placeholder="Phone number" aria-required="true" aria-describedby="phone-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+              <span id="phone-warning" role="alert" class="field-warning hidden">Enter a phone number</span>
+            </div>
+
+            
+            <div id="input-container-email" class="hidden flex flex-col gap-2 relative">
+              <input type="email" id="email-to" aria-label="Email address" placeholder="Email address" aria-required="true" aria-describedby="email-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px]">
+              <input type="search" id="email-subject" aria-label="Email subject" placeholder="Subject" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
+              <textarea id="email-body" aria-label="Email body" placeholder="Message body" class="w-full h-20 bg-black border border-white px-3 text-white focus:outline-none resize-none"></textarea>
+              <span id="email-warning" role="alert" class="field-warning hidden">Enter an email address</span>
+            </div>
+
+          </div>
+
+          <div id="config-panel" class="flex flex-col mt-2">
+          <button class="btn-toggle-section" data-target="section-colors" aria-controls="section-colors" aria-expanded="true" aria-label="Colors section, currently expanded">
+            <span>Colors</span>
+            <span class="toggle-icon" aria-hidden="true">[-]</span>
+          </button>
+          <div id="section-colors" class="section-body grid-2">
+              
+              <div class="color-field">
+                <label for="qr-bg-transparent" class="custom-checkbox-label cursor-pointer select-none" title="Toggle background">
+                  <input type="checkbox" id="qr-bg-transparent" aria-label="Background" class="custom-checkbox-input sr-only" checked>
+                  <span class="custom-checkbox-box" aria-hidden="true">
+                    <svg class="custom-checkbox-check" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M8.5 2.5L4 7.5L1.5 5"></path>
+                    </svg>
+                  </span>
+                  <span>Background</span>
+                </label>
+                <div class="swatch-cluster" id="bg-color-picker-group">
+                  <button type="button" class="btn-custom-color" data-target="bg" aria-label="Pick background color">
+                    <div id="swatch-bg-bg" class="w-full h-full pointer-events-none" style="background: #ffffff"></div>
+                  </button>
+                  <input type="text" id="color-bg-text" aria-label="Background hex color" value="#ffffff" class="w-24 h-10 bg-black border border-white px-2 text-center text-white focus:outline-none uppercase">
+                </div>
+              </div>
+              
+              <div class="color-field full-only">
+                <span>Background image</span>
+                <div class="swatch-cluster">
+                  <input type="file" id="bg-image-file" accept="image/*" aria-label="Choose background image" class="hidden">
+                  <button type="button" id="btn-pick-bg-image" class="sm-btn">Choose image</button>
+                  <button type="button" id="btn-clear-bg-image" class="sm-btn hidden" aria-label="Clear background image">Clear</button>
+                </div>
+                <span id="bg-image-warning" role="alert" class="field-warning hidden"></span>
+              </div>
+              
+              <div id="medium-color-fg" class="color-field hidden">
+                <span class="text-xs">Body</span>
+                <div class="swatch-cluster">
+                  <button type="button" class="btn-custom-color" data-target="dots" aria-label="Pick body color">
+                    <div id="swatch-bg-fg-medium" class="w-full h-full pointer-events-none" style="background: #000000"></div>
+                  </button>
+                  <input type="text" id="color-fg-medium-text" aria-label="Body hex color" value="#000000" class="w-24 h-10 bg-black border border-white px-2 text-center text-white focus:outline-none uppercase">
+                </div>
+              </div>
+              
+              <div class="color-field full-only">
+                <span class="text-xs">Dots color</span>
+                <div class="swatch-cluster">
+                  <button type="button" class="btn-custom-color" data-target="dots" aria-label="Pick dots color">
+                    <div id="swatch-bg-dots" class="w-full h-full pointer-events-none" style="background: #000000"></div>
+                  </button>
+                  <input type="text" id="color-dots-text" aria-label="Dots hex color" value="#000000" class="w-24 h-10 bg-black border border-white px-2 text-center text-white focus:outline-none uppercase">
+                </div>
+              </div>
+              
+              <div class="color-field">
+                <span class="text-xs">Corners square</span>
+                <div class="swatch-cluster">
+                  <button type="button" class="btn-custom-color" data-target="cornersSquare" aria-label="Pick corner square color">
+                    <div id="swatch-bg-cornersSquare" class="w-full h-full pointer-events-none" style="background: #000000"></div>
+                  </button>
+                  <input type="text" id="color-cornersSquare-text" aria-label="Corners square hex color" value="#000000" class="w-24 h-10 bg-black border border-white px-2 text-center text-white focus:outline-none uppercase">
+                </div>
+              </div>
+              
+              <div class="color-field">
+                <span class="text-xs">Corners dot</span>
+                <div class="swatch-cluster">
+                  <button type="button" class="btn-custom-color" data-target="cornersDot" aria-label="Pick corner dot color">
+                    <div id="swatch-bg-cornersDot" class="w-full h-full pointer-events-none" style="background: #000000"></div>
+                  </button>
+                  <input type="text" id="color-cornersDot-text" aria-label="Corners dot hex color" value="#000000" class="w-24 h-10 bg-black border border-white px-2 text-center text-white focus:outline-none uppercase">
+                </div>
+              </div>
+              
+
+              </div>
+
+            
+            <button class="btn-toggle-section" data-target="section-shapes" aria-controls="section-shapes" aria-expanded="false" aria-label="Shapes section, currently collapsed">
+              <span>Shapes</span>
+              <span class="toggle-icon" aria-hidden="true">[+]</span>
+            </button>
+            <div id="section-shapes" class="section-body hidden">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1">Body</label>
+                  <div class="custom-select-wrapper h-[40px] w-full"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">Square</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="6" height="6"/><rect x="10" y="2" width="6" height="6"/><rect x="2" y="10" width="6" height="6"/><rect x="10" y="10" width="6" height="6"/></svg><span>Square</span></div><div class="custom-select-option" data-index="1"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.5"/><rect x="10" y="2" width="6" height="6" rx="1.5"/><rect x="2" y="10" width="6" height="6" rx="1.5"/><rect x="10" y="10" width="6" height="6" rx="1.5"/></svg><span>Rounded</span></div><div class="custom-select-option" data-index="2"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="3"/><rect x="10" y="2" width="6" height="6" rx="3"/><rect x="2" y="10" width="6" height="6" rx="3"/><rect x="10" y="10" width="6" height="6" rx="3"/></svg><span>Extra rounded</span></div><div class="custom-select-option" data-index="3"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="M5 2h3v6H2V5a3 3 0 0 1 3-3z"/><path d="M13 2h3v6h-6V5a3 3 0 0 1 3-3z"/><path d="M5 10h3v6H2v-3a3 3 0 0 1 3-3z"/><path d="M13 10h3v6h-6v-3a3 3 0 0 1 3-3z"/></svg><span>Classy rounded</span></div><div class="custom-select-option" data-index="4"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="M2 4l2-2h4v6H2V4z"/><path d="M10 4l2-2h4v6h-6V4z"/><path d="M2 12l2-2h4v6H2v-4z"/><path d="M10 12l2-2h4v6h-6v-4z"/></svg><span>Classy</span></div><div class="custom-select-option" data-index="5"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="3"/><circle cx="13" cy="5" r="3"/><circle cx="5" cy="13" r="3"/><circle cx="13" cy="13" r="3"/></svg><span>Dots</span></div></div><select id="qr-shape-body" aria-label="Body dot shape" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                    <option value="square" selected="">Square</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="extra-rounded">Extra rounded</option>
+                    <option value="classy-rounded">Classy rounded</option>
+                    <option value="classy">Classy</option>
+                    <option value="dots">Dots</option>
+                  </select></div>
+                </div>
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1">Outer corner</label>
+                  <div class="custom-select-wrapper h-[40px] w-full"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">Square</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="2.5" y="2.5" width="13" height="13"/></svg><span>Square</span></div><div class="custom-select-option" data-index="1"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="2.5" y="2.5" width="13" height="13" rx="2.5"/></svg><span>Rounded</span></div><div class="custom-select-option" data-index="2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="2.5" y="2.5" width="13" height="13" rx="4.5"/></svg><span>Extra rounded</span></div><div class="custom-select-option" data-index="3"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M2.5 7.1A4.6 4.6 0 0 1 7.1 2.5h6.7a1.7 1.7 0 0 1 1.7 1.7v6.7A4.6 4.6 0 0 1 10.9 15.5H4.2a1.7 1.7 0 0 1-1.7-1.7z"/></svg><span>Classy rounded</span></div><div class="custom-select-option" data-index="4"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M2.5 7.1A4.6 4.6 0 0 1 7.1 2.5h8.4v8.4A4.6 4.6 0 0 1 10.9 15.5H2.5z"/></svg><span>Classy</span></div><div class="custom-select-option" data-index="5"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/></svg><span>Dot</span></div></div><select id="qr-shape-corner-outer" aria-label="Outer corner shape" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                    <option value="square" selected="">Square</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="extra-rounded">Extra rounded</option>
+                    <option value="classy-rounded">Classy rounded</option>
+                    <option value="classy">Classy</option>
+                    <option value="dot">Dot</option>
+                  </select></div>
+                </div>
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1">Inner corner</label>
+                  <div class="custom-select-wrapper h-[40px] w-full"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">Square</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="10" height="10"/></svg><span>Square</span></div><div class="custom-select-option" data-index="1"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="10" height="10" rx="2"/></svg><span>Rounded</span></div><div class="custom-select-option" data-index="2"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="10" height="10" rx="4"/></svg><span>Extra rounded</span></div><div class="custom-select-option" data-index="3"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="M4 9A5 5 0 0 1 9 4h3.5A1.5 1.5 0 0 1 14 5.5V9a5 5 0 0 1-5 5H5.5A1.5 1.5 0 0 1 4 12.5z"/></svg><span>Classy rounded</span></div><div class="custom-select-option" data-index="4"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="M4 9A5 5 0 0 1 9 4h5v5a5 5 0 0 1-5 5H4z"/></svg><span>Classy</span></div><div class="custom-select-option" data-index="5"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><circle cx="9" cy="9" r="5"/></svg><span>Dot</span></div></div>
+                  <select id="qr-shape-corner-inner" aria-label="Inner corner shape" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                    <option value="square" selected="">Square</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="extra-rounded">Extra rounded</option>
+                    <option value="classy-rounded">Classy rounded</option>
+                    <option value="classy">Classy</option>
+                    <option value="dot">Dot</option>
+                  </select></div>
+                </div>
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1">Overall shape</label>
+                  <div class="custom-select-wrapper h-[40px] w-full"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">None (square)</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/></svg><span>None (square)</span></div><div class="custom-select-option" data-index="1"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6"/></svg><span>Circle</span></div><div class="custom-select-option" data-index="2"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5S3.5 10.5 3.5 7.3A2.5 2.5 0 0 1 6 4.9c.9 0 1.6.5 2 1.2.4-.7 1.1-1.2 2-1.2a2.5 2.5 0 0 1 2.5 2.4C12.5 10.5 8 13.5 8 13.5z"/></svg><span>Heart</span></div><div class="custom-select-option" data-index="3"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 3.5 13.5 12.5h-11z"/></svg><span>Triangle</span></div><div class="custom-select-option" data-index="4"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 2l1.8 3.9 4.2.5-3.1 2.9.8 4.2L8 11.4 4.3 13.5l.8-4.2L2 6.4l4.2-.5z"/></svg><span>Star</span></div><div class="custom-select-option" data-index="5"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 2l6 6-6 6-6-6z"/></svg><span>Diamond</span></div><div class="custom-select-option" data-index="6"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 2l5 3v6l-5 3-5-3V5z"/></svg><span>Hexagon</span></div><div class="custom-select-option" data-index="7"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 2l5.5 2v4.5c0 3.2-2.3 5.5-5.5 6.5-3.2-1-5.5-3.3-5.5-6.5V4z"/></svg><span>Shield</span></div><div class="custom-select-option full-only" data-index="8"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5 11.5 5l1.5 1.5L5.5 14z"/></svg><span>Custom SVG path</span></div></div>
+                  <select id="qr-mask-type" aria-label="Overall QR shape mask" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                    <option value="none" selected="">None (square)</option>
+                    <option value="circle">Circle</option>
+                    <option value="heart">Heart</option>
+                    <option value="triangle">Triangle</option>
+                    <option value="star">Star</option>
+                    <option value="diamond">Diamond</option>
+                    <option value="hexagon">Hexagon</option>
+                    <option value="shield">Shield</option>
+                    <option value="custom" class="full-only">Custom SVG path</option>
+                  </select></div>
+                </div>
+                <div id="mask-custom-container" class="hidden flex-col sm:col-span-2 lg:col-span-4">
+                  <label class="text-xs mb-1">SVG path (24x24 viewBox)</label>
+                  <input type="search" id="qr-mask-custom" aria-label="Custom SVG path (24x24 viewBox)" placeholder="e.g. M12 2L22 20H2L12 2Z" class="w-full h-[40px] bg-black border border-white px-2 text-white focus:outline-none px-3 appearance-none">
+                </div>
+              </div>
+            </div>
+
+            
+            <button class="btn-toggle-section" data-target="section-frames" aria-controls="section-frames" aria-expanded="false" aria-label="Frames section, currently collapsed">
+              <span>Frames</span>
+              <span class="toggle-icon" aria-hidden="true">[+]</span>
+            </button>
+            <div id="section-frames" class="section-body hidden">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1">Style</label>
+                  <div class="custom-select-wrapper h-[40px] w-full"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">None</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/></svg><span>None</span></div><div class="custom-select-option" data-index="1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg><span>Scanner</span></div><div class="custom-select-option" data-index="2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/><path d="M21 19a2 2 0 0 1-2 2"/><path d="M5 21a2 2 0 0 1-2-2"/><path d="M9 3h1"/><path d="M9 21h1"/><path d="M14 3h1"/><path d="M14 21h1"/><path d="M3 9v1"/><path d="M21 9v1"/><path d="M3 14v1"/><path d="M21 14v1"/></svg><span>Dashed</span></div><div class="custom-select-option" data-index="3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/></svg><span>Rounded</span></div><div class="custom-select-option" data-index="4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><rect x="5" y="14.5" width="14" height="4" rx="1" fill="currentColor" stroke="none"/></svg><span>Bottom bar</span></div><div class="custom-select-option" data-index="5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><rect x="5" y="5.5" width="14" height="4" rx="1" fill="currentColor" stroke="none"/></svg><span>Top bar</span></div></div><select id="qr-frame-style" aria-label="Frame style" class="bg-black border border-white h-[40px] text-white w-full focus:outline-none px-3">
+                    <option value="none" selected="">None</option>
+                    <option value="scan">Scanner</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="label">Bottom bar</option>
+                    <option value="badge">Top bar</option>
+                  </select></div>
+                </div>
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1" for="qr-frame-text">Text</label>
+                  <div class="flex items-center gap-3">
+                    <input type="search" id="qr-frame-text" aria-label="Frame text" title="Text shown in the frame - up to 15 characters" value="Scan me!" class="flex-1 min-w-0 h-[40px] bg-black border border-white text-white focus:outline-none px-3 appearance-none" maxlength="15">
+                    <label for="qr-frame-text-enabled" class="custom-checkbox-label cursor-pointer select-none shrink-0" title="Show the frame text">
+                      <input type="checkbox" id="qr-frame-text-enabled" aria-label="Show frame text" class="custom-checkbox-input sr-only" checked>
+                      <span class="custom-checkbox-box" aria-hidden="true">
+                        <svg class="custom-checkbox-check" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M8.5 2.5L4 7.5L1.5 5"></path>
+                        </svg>
+                      </span>
+                      <span class="text-xs">Show text</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1">Text size</label>
+                  <input type="number" id="qr-frame-size" aria-label="Frame text size" title="Frame text size as a percentage (60-200)" inputmode="decimal" min="60" max="200" step="5" value="115" class="w-full h-[40px] bg-black border border-white px-2 text-white focus:outline-none px-3 appearance-none">
+                </div>
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1">Font</label>
+                  <div class="searchable-select" data-searchable-select>
+                    <select id="qr-frame-font" aria-label="Frame text font" class="hidden">
+                      <option value="theme" selected="">Theme font</option>
+                      <option value="figtree" data-font="Figtree">Figtree</option>
+                      <option value="montserrat" data-font="Montserrat">Montserrat</option>
+                      <option value="dmsans" data-font="DM Sans">DM Sans</option>
+                      <option value="playwrite" data-font="Playwrite US Trad">Playwrite US Trad</option>
+                      <option value="fustat" data-font="Fustat">Fustat</option>
+                      <option value="poppins" data-font="Poppins">Poppins</option>
+                      <option value="outfit" data-font="Outfit">Outfit</option>
+                      <option value="albertsans" data-font="Albert Sans">Albert Sans</option>
+                      <option value="fraunces" data-font="Fraunces">Fraunces</option>
+                      <option value="jetbrains" data-font="JetBrains Mono">JetBrains Mono</option>
+                      <option value="unifraktur" data-font="UnifrakturMaguntia">UnifrakturMaguntia</option>
+                      <option value="inter" data-font="Inter">Inter</option>
+                      <option value="spacegrotesk" data-font="Space Grotesk">Space Grotesk</option>
+                      <option value="bebasneue" data-font="Bebas Neue">Bebas Neue</option>
+                      <option value="anton" data-font="Anton">Anton</option>
+                      <option value="archivoblack" data-font="Archivo Black">Archivo Black</option>
+                      <option value="merriweather" data-font="Merriweather">Merriweather</option>
+                      <option value="lora" data-font="Lora">Lora</option>
+                      <option value="spacemono" data-font="Space Mono">Space Mono</option>
+                      <option value="serif" data-font="Georgia, serif">Serif (system)</option>
+                      <option value="cursive" data-font="'Segoe Script', cursive">Cursive (system)</option>
+                      <option value="fantasy" data-font="Impact, fantasy">Fantasy (system)</option>
+                      <option value="system" data-font="system-ui">System sans</option>
+                      <option value="mono" data-font="ui-monospace, monospace">Monospace</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="color-field">
+                  <span class="text-xs">Frame color</span>
+                  <div class="swatch-cluster">
+                    <button type="button" class="btn-custom-color" data-target="frame" aria-label="Pick frame color">
+                      <div id="swatch-bg-frame" class="w-full h-full pointer-events-none" style="background: #000000"></div>
+                    </button>
+                    <input type="text" id="color-frame-text" aria-label="Frame hex color" value="#000000" class="w-24 h-10 bg-black border border-white px-2 text-center text-white focus:outline-none uppercase">
+                  </div>
+                </div>
+                <div class="color-field">
+                  <span class="text-xs">Frame text color</span>
+                  <div class="swatch-cluster">
+                    <button type="button" class="btn-custom-color" data-target="frameText" aria-label="Pick frame text color">
+                      <div id="swatch-bg-frame-text" class="w-full h-full pointer-events-none" style="background: #000000"></div>
+                    </button>
+                    <input type="text" id="color-frame-text-color" aria-label="Frame text hex color" value="#000000" class="w-24 h-10 bg-black border border-white px-2 text-center text-white focus:outline-none uppercase">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            
+            <button class="btn-toggle-section" data-target="section-parameters" aria-controls="section-parameters" aria-expanded="true" aria-label="Parameters section, currently expanded">
+              <span>Parameters</span>
+              <span class="toggle-icon" aria-hidden="true">[-]</span>
+            </button>
+            <div id="section-parameters" class="section-body">
+              
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div id="medium-parameters" class="flex flex-col hidden">
+                  <label class="text-xs mb-1">Size</label>
+                  <div class="custom-select-wrapper h-[40px] w-full"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">Low (300px)</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0">Low (300px)</div><div class="custom-select-option" data-index="1">Standard (600px)</div><div class="custom-select-option" data-index="2">High (1000px)</div><div class="custom-select-option" data-index="3">Very High (1500px)</div><div class="custom-select-option" data-index="4">Ultra (2000px)</div></div><select id="qr-size-medium" aria-label="Size" class="bg-black border border-white h-[40px] text-white w-full focus:outline-none px-3">
+                    <option value="300" selected="">Low (300px)</option>
+                    <option value="600">Standard (600px)</option>
+                    <option value="1000">High (1000px)</option>
+                    <option value="1500">Very High (1500px)</option>
+                    <option value="2000">Ultra (2000px)</option>
+                  </select></div>
+                </div>
+                <div class="full-only flex flex-col">
+                  <label class="text-xs mb-1">Width (px)</label>
+                  <input type="number" id="qr-width" aria-label="Width in pixels" title="Output size in pixels (50–2000)" value="300" min="50" max="2000" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                </div>
+                <div class="full-only flex flex-col">
+                  <label class="text-xs mb-1">Height (px)</label>
+                  <input type="number" id="qr-height" aria-label="Height in pixels" title="Output size in pixels (50–2000)" value="300" min="50" max="2000" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                </div>
+                <div class="full-only flex flex-col">
+                  <label class="text-xs mb-1">Border radius</label>
+                  <input type="number" id="qr-radius" aria-label="Border radius" title="Rounds the corners of the QR image" value="0" min="0" max="1000" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                </div>
+                <div class="flex flex-col">
+                  <label class="text-xs mb-1">Margin (px)</label>
+                  <input type="number" id="qr-margin" aria-label="Margin in pixels" title="Quiet zone around the code — at least 4 px scans best" value="4" min="0" max="100" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                  <span id="margin-warning" role="alert" class="text-red-500 mt-1 hidden">Margin is too large for this size</span>
+                </div>
+                <div class="flex flex-col">
+                  <div class="flex items-center gap-2 mb-1">
+                    <label class="text-xs">Error correction</label>
+                    <span id="tooltip-trigger-ecc" tabindex="0" role="button" aria-label="Error correction level help" aria-describedby="tooltip-content-ecc" class="tooltip-trigger relative inline-block cursor-help leading-none" style="top: -1px; color: var(--muted);">
+                      [?]
+                      <div id="tooltip-content-ecc" role="tooltip" class="tooltip-content hidden">
+                        <div class="px-3 bg-black border border-white text-white normal-case leading-tight text-center shadow-[4px_4px_0_var(--accent)]">
+                          Allows a QR code to remain readable even when it is partially damaged or obscured.
+                        </div>
+                      </div>
+                    </span>
+                  </div>
+                  <div class="custom-select-wrapper h-[40px] w-full"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">Highest (30%)</div><div class="custom-select-options text-white"><div class="custom-select-option" data-index="0">Low (7%)</div><div class="custom-select-option" data-index="1">Medium (15%)</div><div class="custom-select-option" data-index="2">High (25%)</div><div class="custom-select-option selected" data-index="3">Highest (30%)</div></div><select id="qr-ecc" aria-label="Error correction level" class="bg-black border border-white h-[40px] px-2 text-white w-full focus:outline-none px-3">
+                    <option value="L">Low (7%)</option>
+                    <option value="M">Medium (15%)</option>
+                    <option value="Q">High (25%)</option>
+                    <option value="H" selected="">Highest (30%)</option>
+                  </select></div>
+                </div>
+              </div>
+            </div>
+
+            
+            <button class="btn-toggle-section" data-target="section-logo" aria-controls="section-logo" aria-expanded="false" aria-label="Logo overlay section, currently collapsed">
+              <span>Logo overlay</span>
+              <span class="toggle-icon" aria-hidden="true">[+]</span>
+            </button>
+            <div id="section-logo" class="section-body hidden">
+              
+              <div class="flex gap-2 items-stretch h-[40px]">
+                <button type="button" id="btn-pick-logo">Upload</button>
+                <input type="file" id="logo-file" aria-label="Upload logo image" accept="image/*" class="hidden px-3 h-[40px]">
+                <input type="search" id="logo-url" aria-label="Logo image URL" placeholder="Logo image URL" class="flex-1 bg-black border border-white px-2 text-white focus:outline-none min-w-0 px-3 h-[40px] appearance-none">
+                <button id="btn-clear-logo" class="hidden" aria-label="Clear logo">✕</button>
+              </div>
+              <span id="logo-warning" role="alert" class="field-warning hidden text-red-500 text-xs mt-1 block"></span>
+              
+              <div id="logo-options" class="opacity-50 pointer-events-none mt-1">
+                
+                <div id="medium-logo-options" class="flex flex-col hidden">
+                  <label class="text-xs mb-1">Logo size</label>
+                  <input type="range" id="logo-size-medium" aria-label="Logo size" title="Logo size relative to the QR code" value="30" min="10" max="40" class="w-full">
+                </div>
+                
+                <div class="full-only grid grid-cols-2 gap-2">
+                  <div class="flex flex-col">
+                    <label class="text-xs mb-1">Image margin (px)</label>
+                    <input type="number" id="logo-margin" aria-label="Image margin in pixels" value="0" min="0" max="100" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                  </div>
+                  <div class="flex flex-col">
+                    <label class="text-xs mb-1">Image size (ratio)</label>
+                    <input type="number" id="logo-size" aria-label="Image size ratio" title="Logo size relative to the QR code (0.1–0.5)" value="0.4" min="0.1" max="0.5" step="0.05" class="bg-black border border-white h-[40px] px-2 text-white w-full px-3">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qr-card preview-card">
+          <div class="card-head">
+            <div class="card-title">
+              <h2>Preview</h2>
+            </div>
+            <span id="qr-readability-badge" class="hidden" role="status" aria-live="polite" aria-atomic="true"></span>
+          </div>
+          <div class="plate-frame w-full max-w-sm mx-auto flex-shrink-0">
+            <div id="qr-preview-container">
+              <div id="qr-canvas-container" role="img" aria-label="Generated QR code" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center;"></div>
+              <div id="empty-state-qr" class="absolute inset-0 z-10 hidden" aria-live="polite"></div>
+              <div id="qr-loading" class="absolute inset-0 z-20 hidden" aria-hidden="true">
+                <div class="qr-skeleton" role="presentation">
+                  <span></span><span></span><span></span>
+                  <span></span><span></span><span></span>
+                  <span></span><span></span><span></span>
+                </div>
+                <span class="qr-skeleton-label">Rendering…</span>
+              </div>
+            </div>
+          </div>
+          <div class="export-block">
+            <input type="search" id="export-filename" aria-label="File name" title="Leave empty to use the suggested file name" placeholder="File name" class="w-full text-center appearance-none">
+            <div class="export-row-main">
+              <div class="custom-select-wrapper open-up"><div class="custom-select-trigger flex items-center justify-center" tabindex="0">PNG</div><div class="custom-select-options text-center"><div class="custom-select-option selected" data-index="0">PNG</div><div class="custom-select-option" data-index="1">SVG</div><div class="custom-select-option" data-index="2">JPEG</div><div class="custom-select-option" data-index="3">WEBP</div><div class="custom-select-option" data-index="4">TXT</div></div>              <select id="export-format" aria-label="Export format" title="File format used by Download and Copy" class="flex-1 text-center outline-none open-up">
+                <option value="png">PNG</option>
+                <option value="svg">SVG</option>
+                <option value="jpeg">JPEG</option>
+                <option value="webp">WEBP</option>
+                <option value="txt">TXT</option>
+              </select></div>
+              <button id="btn-download" disabled="" title="Download the QR code in the selected format" class="btn-primary">
+                Download
+              </button>
+            </div>
+            <div class="export-row-sub">
+              <button id="btn-copy" disabled="" aria-keyshortcuts="Control+C Meta+C" title="Copy the QR code to the clipboard (Ctrl/⌘+C)">
+                Copy
+              </button>
+              <button id="btn-save" disabled="" aria-keyshortcuts="Control+S Meta+S" title="Save this design to history (Ctrl/⌘+S)">
+                Save
+              </button>
+              <button id="btn-share-link" disabled="" title="Copy a link that reopens this exact design">
+                Share link
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      
+      <section id="panel-scanner" class="hidden panel-grid" role="tabpanel" aria-labelledby="tab-btn-scanner" aria-hidden="true">
+        <div class="qr-card panel-card">
+          <div class="card-head">
+            <div class="card-title">
+              <h2>Source</h2>
+            </div>
+          </div>
+          <div class="scanner-source-row">
+            <div class="seg-control" role="group" aria-label="Scanner source">
+              <button id="btn-scan-upload" class="tab-btn is-active">
+                Upload
+              </button>
+              <button id="btn-scan-webcam" class="tab-btn">
+                Webcam
+              </button>
+            </div>
+            <button id="btn-scan-paste" type="button" class="sm-btn">Paste</button>
+          </div>
+
+          <div id="scanner-view-upload" class="flex flex-col gap-4">
+            <div id="drop-zone" role="button" tabindex="0" aria-label="Drag and drop an image, or press Enter to browse for a QR code to decode" class="aspect-video flex flex-col items-center justify-center text-center cursor-pointer">
+              <input type="file" id="scan-file-input" accept="image/*" aria-label="Choose a QR code image file to decode" class="hidden">
+              <svg class="dropzone-glyph" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" rx="3"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="M4.5 17.5 9 13.5l3.5 3 3-2.5 4 3.5"></path></svg>
+              <p class="dropzone-title">Drag &amp; drop an image</p>
+              <p class="dropzone-hint">or click to browse</p>
+            </div>
+            <div id="uploaded-preview-container" class="hidden flex flex-col gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex-1 min-w-0 flex flex-col gap-1">
+                  <span id="uploaded-filename" class="truncate">File</span>
+                  <span id="uploaded-filesize" class="opacity-70">0 KB</span>
+                </div>
+                <button id="btn-clear-upload" aria-label="Remove uploaded image">✕</button>
+              </div>
+              <img id="uploaded-preview" class="w-full max-h-48 object-contain" alt="Uploaded image preview">
+            </div>
+          </div>
+
+          <div id="scanner-view-camera" class="hidden flex flex-col gap-4">
+            <div class="camera-shell">
+              <video id="webcam-video" class="scale-x-[-1]" playsinline="" aria-label="Live camera preview"></video>
+
+              <div id="scanner-reticle" class="opacity-50"></div>
+
+              <div id="camera-loading-state" class="hidden" role="status" aria-live="polite" aria-atomic="true">
+                <span>Starting camera…</span>
+              </div>
+              <div id="camera-error-state" class="hidden" role="alert">
+                <span id="camera-error-msg">Camera unavailable</span>
+              </div>
+            </div>
+            
+            <div class="flex gap-2">
+              <button id="btn-toggle-camera" aria-pressed="false" class="flex-1">Start</button>
+              <div class="custom-select-wrapper flex-1">
+                <div class="custom-select-trigger" tabindex="0">Front</div>
+                <div class="custom-select-options">
+                  <div class="custom-select-option selected" data-index="0">Front</div>
+                  <div class="custom-select-option" data-index="1">Back</div>
+                </div>
+                <select id="camera-select" aria-label="Camera selection" class="hidden">
+                  <option value="user" selected="">Front</option>
+                  <option value="environment">Back</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qr-card panel-card">
+          <div class="card-head">
+            <div class="card-title">
+              <h2 id="panel-scanner-heading" tabindex="-1">Scanner output</h2>
+            </div>
+            <span id="scan-status-badge" class="hidden" role="status" aria-live="polite"></span>
+          </div>
+          <div class="relative min-h-[100px]">
+            <div id="empty-state-scan" class="absolute inset-0 flex items-center justify-center text-center px-3">Waiting for a scan…</div>
+            <textarea id="scan-result" readonly aria-label="Scanned QR code result" class="hidden w-full min-h-[100px]" aria-live="polite"></textarea>
+          </div>
+          <div class="flex gap-2">
+            <button id="btn-copy-result" disabled class="flex-1">Copy</button>
+            <button id="btn-save-scan" disabled class="flex-1">Save</button>
+            <a id="btn-visit-result" aria-disabled="true" class="flex-1 flex items-center justify-center opacity-50 pointer-events-none border border-white h-[40px]" target="_blank" rel="noopener noreferrer">Open</a>
+          </div>
+        </div>
+        <canvas id="scanner-buffer-canvas" class="hidden" aria-hidden="true"></canvas>
+      </section>
+      <section id="panel-history" class="hidden panel-grid" role="tabpanel" aria-labelledby="tab-btn-history" tabindex="-1" aria-hidden="true">
+        <div class="qr-card panel-card">
+          <div class="history-head">
+            <h2 id="panel-history-gen-heading" tabindex="-1">Generated</h2>
+            <div class="flex items-center gap-2">
+              <button id="btn-export-history-all" class="sm-btn" disabled title="Export every saved design as a PNG"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>Export</button>
+              <button id="btn-clear-generator-history" class="sm-btn" aria-label="Clear generated history" title="Remove all saved designs">Clear</button>
+            </div>
+          </div>
+          <div id="generator-history-list" class="history-list">
+            <p class="history-empty">No saved codes yet.</p>
+          </div>
+        </div>
+
+        <div class="qr-card panel-card">
+          <div class="history-head">
+            <h2 id="panel-history-scan-heading">Scanned</h2>
+            <button id="btn-clear-history" class="sm-btn" aria-label="Clear scanned history" title="Remove all scanned codes">Clear</button>
+          </div>
+          <div id="history-list" class="history-list">
+            <p id="history-empty" class="history-empty">No scans yet.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>QR Code Studio <span class="footer-sep">·</span> GPL-3.0 <span class="footer-sep">·</span> <button id="btn-credits" aria-haspopup="dialog">Credits</button> <span class="footer-sep">·</span> <span id="build-version" title="Service-worker cache version">v197</span></span>
+        <button id="btn-install" class="hidden">Install app</button>
+        <span>No data collection</span>
+      </div>
+    </footer>
+
+    <div
+      id="credits-modal"
+      class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-black border border-white w-full max-w-2xl max-h-[85vh] flex flex-col p-4 md:p-6 shadow-lg"
+      >
+        <div class="flex items-center justify-between border-b border-white pb-3 mb-4">
+          <h2 class="md:text-base tracking-wider">Third-party notices</h2>
+          <button
+            id="btn-close-credits"
+            type="button"
+            aria-label="Close credits dialog"
+            class="w-6 h-6 flex items-center justify-center font-bold transition-colors cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="flex-grow overflow-y-auto pr-2 space-y-4 normal-case">
+          <h3 class="credit-subhead">Libraries</h3>
+
+          <div class="credit-grid">
+            <div class="credit-card">
+              <div class="credit-head">
+                <span class="credit-name">Tailwind CSS</span>
+                <span class="credit-chip">MIT</span>
+              </div>
+              <p class="credit-copy">Copyright (c) Tailwind Labs, Inc.</p>
+              <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" class="credit-link">Website ↗</a>
+            </div>
+            <div class="credit-card">
+              <div class="credit-head">
+                <span class="credit-name">jsQR</span>
+                <span class="credit-chip">Apache 2.0</span>
+              </div>
+              <p class="credit-copy">Copyright (c) 2017 Cosmo Wolfe</p>
+              <a href="https://github.com/cozmo/jsQR" target="_blank" rel="noopener noreferrer" class="credit-link">Website ↗</a>
+            </div>
+            <div class="credit-card">
+              <div class="credit-head">
+                <span class="credit-name">QR Code Styling</span>
+                <span class="credit-chip">MIT</span>
+              </div>
+              <p class="credit-copy">Copyright (c) 2021 Denys Kozak</p>
+              <a href="https://github.com/kozakdenys/qr-code-styling" target="_blank" rel="noopener noreferrer" class="credit-link">Website ↗</a>
+            </div>
+            <div class="credit-card">
+              <div class="credit-head">
+                <span class="credit-name">Lucide Icons</span>
+                <span class="credit-chip">ISC</span>
+              </div>
+              <p class="credit-copy">Copyright (c) Lucide Contributors</p>
+              <p class="credit-note">The frame-style picker icons use Lucide artwork verbatim.</p>
+              <a href="https://lucide.dev" target="_blank" rel="noopener noreferrer" class="credit-link">Website ↗</a>
+            </div>
+            <div class="credit-card">
+              <div class="credit-head">
+                <span class="credit-name">Wikipedia — QR code</span>
+                <span class="credit-chip">CC BY-SA 4.0</span>
+              </div>
+              <p class="credit-copy">Wikipedia Contributors</p>
+              <p class="credit-note">Text regarding error correction was adapted from the Wikipedia article "QR code".</p>
+              <a href="https://en.wikipedia.org/wiki/QR_code" target="_blank" rel="noopener noreferrer" class="credit-link">Website ↗</a>
+            </div>
+          </div>
+          <h3 class="credit-subhead">Typefaces</h3>
+          <div class="credit-fonts">
+            <span class="credit-font">Figtree</span>
+            <span class="credit-font">Montserrat</span>
+            <span class="credit-font">DM Sans</span>
+            <span class="credit-font">Playwrite US Trad</span>
+            <span class="credit-font">Fustat</span>
+            <span class="credit-font">Poppins</span>
+            <span class="credit-font">Outfit</span>
+            <span class="credit-font">Albert Sans</span>
+            <span class="credit-font">Fraunces</span>
+            <span class="credit-font">JetBrains Mono</span>
+            <span class="credit-font">UnifrakturMaguntia</span>
+            <span class="credit-font">Inter</span>
+            <span class="credit-font">Space Grotesk</span>
+            <span class="credit-font">Bebas Neue</span>
+            <span class="credit-font">Anton</span>
+            <span class="credit-font">Archivo Black</span>
+            <span class="credit-font">Merriweather</span>
+            <span class="credit-font">Lora</span>
+            <span class="credit-font">Space Mono</span>
+          </div>
+          <p class="credit-note">All bundled typefaces are licensed under the SIL Open Font License 1.1.</p>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="error-modal"
+      data-modal-role="alertdialog"
+      class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-black border border-white max-w-sm w-full flex flex-col p-6 shadow-lg text-center gap-6"
+      >
+        <span class="text-lg font-bold tracking-widest text-red-500" id="error-modal-msg" data-modal-label>Something went wrong</span>
+        <button id="btn-close-error" type="button" aria-label="Dismiss error dialog" class="w-full border border-white hover:bg-white hover:text-black transition-colors h-[40px] px-4">OK</button>
+      </div>
+    </div>
+
+    <div id="lib-fatal-banner" role="alert" class="hidden fixed inset-x-0 top-0 z-[100] bg-red-500 text-white text-center p-3 font-semibold"></div>
+
+    <script>
+      // Offline-first library loader: all libs are bundled locally — no CDN,
+      // since the whole app is supposed to work without network access, and
+      // loading from cdn.jsdelivr.net on every cold load breaks that promise.
+      (function () {
+        var banner = document.getElementById('lib-fatal-banner');
+        function fail(message) {
+          if (banner) {
+            banner.textContent = message;
+            banner.classList.remove('hidden');
+          }
+        }
+        function loadScript(src) {
+          return new Promise(function (resolve, reject) {
+            var s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = function () { reject(new Error('Failed to load ' + src)); };
+            document.body.appendChild(s);
+          });
+        }
+        // P13 perf: the styling library and the app bundle are independent
+        // downloads and load concurrently (Promise.all). The bundle only touches
+        // the QRCodeStyling global at runtime, and initApp() is deferred until
+        // __qrLibsLoaded resolves, so execution order is irrelevant. The ~20KB
+        // qrcode encoder is NOT loaded here: it lazy-loads on demand (masks,
+        // frames and TXT export), keeping the cold-start payload smaller.
+        // jsQR is loaded eagerly so the post-render readability badge can scan
+        // the generated QR immediately without waiting for the Scanner tab.
+        window.__qrLibsLoaded = Promise.all([
+          loadScript('src/lib/qr-code-styling.min.js'),
+          loadScript('src/lib/jsqr.min.js'),
+          loadScript('dist/bundle.js'),
+        ])
+          .then(function () {})
+          .catch(function (err) {
+            console.error('[QR] Library load failed:', err);
+            fail('Required libraries failed to load. Please reload or check your connection.');
+          });
+      })();
+    </script>
+  <!-- __SITE_URL__ REPLACE-ME: the "screenshot" URL below must point to a real 1280x720 app screenshot (screenshot-generator.png) on the production domain before deploy. -->
+  <script type="application/ld+json">
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "QR Code Studio",
+        "url": "https://qr-code-studio.example/",
+        "description": "Free offline QR code generator and scanner. Create custom QR codes for URLs, text, Wi-Fi, contacts, crypto, geolocation, events, SMS, and phone numbers. Customize colors, shapes, frames, and logos. Scan QR codes via webcam or image upload. No data collection, no ads, no tracking.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any (Web browser)",
+        "browserRequirements": "Requires JavaScript and HTML5 Canvas",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "QR code generation for URLs, text, Wi-Fi, contacts, crypto, geolocation, events, SMS, phone",
+          "QR code scanning via webcam and image upload",
+          "Custom colors, dot shapes, and corner styles",
+          "Frame styles and logo overlay support",
+          "Multiple error correction levels (L, M, Q, H)",
+          "Export to PNG, SVG, JPEG, WebP, and TXT",
+          "Offline-first: works without internet",
+          "Privacy-first: no data collection or tracking"
+        ],
+        "screenshot": "https://qr-code-studio.example/"
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "QR Code Studio", "item": "https://qr-code-studio.example/" }
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is QR Code Studio free to use?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes, QR Code Studio is completely free and open source under the GPL-3.0 license." }
+          },
+          {
+            "@type": "Question",
+            "name": "Does QR Code Studio work offline?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes, once loaded, QR Code Studio works entirely offline. All QR code generation and scanning happens in your browser with no server requests." }
+          },
+          {
+            "@type": "Question",
+            "name": "Does QR Code Studio collect my data?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No. QR Code Studio collects no data. All processing happens locally in your browser. Nothing is sent to any server." }
+          },
+          {
+            "@type": "Question",
+            "name": "What types of QR codes can I generate?",
+            "acceptedAnswer": { "@type": "Answer", "text": "You can generate QR codes for URLs, plain text, Wi-Fi network credentials, vCard contacts, cryptocurrency addresses (Bitcoin, Ethereum, Litecoin, Bitcoin Cash, Dash, Monero), geolocation coordinates, calendar events, SMS messages, and phone numbers." }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I customize the look of my QR code?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes, you can customize colors (dots, corners, background), dot shapes (square, rounded, classy, dots), corner styles, frame styles (scanner, dashed, bubble), and add a logo overlay image." }
+          },
+          {
+            "@type": "Question",
+            "name": "What file formats can I export QR codes in?",
+            "acceptedAnswer": { "@type": "Answer", "text": "QR Code Studio supports export to PNG, SVG, JPEG, WebP, and plain text (Unicode block art) formats." }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I scan QR codes from an image file?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes, you can upload an image file containing a QR code for scanning, or use your device's webcam to scan QR codes in real time." }
+          }
+        ]
+      }
+    ]
+    </script>
+  </body>
+</html>

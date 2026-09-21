@@ -3034,6 +3034,17 @@ body[data-complexity="medium"] #section-parameters > .grid {
 .footer-sep {
   color: var(--border-strong);
 }
+.footer-link {
+  color: var(--muted);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+.footer-link:hover,
+.footer-link:focus-visible {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
 /* ---------- A11y / banners ---------- */
 .sr-only,
 #announcements {

@@ -8,7 +8,7 @@
       "headers": [
         {
           "key": "X-Site-Url-Placeholder",
-          "value": "__SITE_URL__ = https://jimm144.github.io/midas-qr/ - REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors markers in index.html, 404.html, sitemap.xml, robots.txt, manifest.json). This route is never served."
+          "value": "__SITE_URL__ = https://midasqr.is-local.org/ - REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors markers in index.html, 404.html, sitemap.xml, robots.txt, manifest.json). This route is never served."
         }
       ]
     },
@@ -35,7 +35,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-qNWtRLpDAOEVrZdrWSHP2raUXvzD9jJi2/sboigaIBg=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-nlD6w5imyPAqH41yUrmfdXIvw4pFBvN++ti5Gce1aOs=' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-qNWtRLpDAOEVrZdrWSHP2raUXvzD9jJi2/sboigaIBg=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-kBtsljcOgaRwy3TG4tw2523IByp4Hd3YSX1Pwnv+B3w=' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         },
         {
           "key": "X-Content-Type-Options",

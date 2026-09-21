@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-# __SITE_URL__ REPLACE-ME: "https://jimm144.github.io/midas-qr/" is a placeholder. Replace it with the production domain before deploying.
-Sitemap: https://jimm144.github.io/midas-qr/sitemap.xml
+# __SITE_URL__ REPLACE-ME: "https://midasqr.is-local.org/" is a placeholder. Replace it with the production domain before deploying.
+Sitemap: https://midasqr.is-local.org/sitemap.xml

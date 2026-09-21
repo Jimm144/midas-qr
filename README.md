@@ -2,7 +2,7 @@
 
 A QR code generator and scanner that runs entirely in the browser. It works offline and sends nothing to a server.
 
-### [Open the app](https://jimm144.github.io/midas-qr/)
+### [Open the app](https://midasqr.is-local.org/)
 
 | Desktop | Mobile |
 | --- | --- |

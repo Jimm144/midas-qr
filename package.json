@@ -7,7 +7,7 @@
   "scripts": {
     "build:js": "esbuild src/js/main.js --bundle --outfile=dist/bundle.js --minify --target=es2020",
     "build:css": "esbuild src/css/style.css --bundle --external:*.woff2 --minify --outfile=src/css/style.min.css",
-    "build": "node tools/check-sw.mjs && npm run build:js && npm run build:css",
+    "build": "npm run build:js && npm run build:css && node tools/check-sw.mjs",
     "check:sw": "node tools/check-sw.mjs",
     "start": "npx -y serve -l 5000 .",
     "dev": "npm run build && npx -y serve -l 5000 .",

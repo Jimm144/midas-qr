@@ -1,73 +1,51 @@
 # Midas QR
 
-[![Deploy to GitHub Pages](https://github.com/Jimm144/midas-qr/actions/workflows/pages.yml/badge.svg)](https://github.com/Jimm144/midas-qr/actions/workflows/pages.yml)
-[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](./LICENSE)
+A QR code generator and scanner that runs entirely in the browser. It works offline and sends nothing to a server.
 
-**A free QR code generator and scanner that runs entirely in your browser.** No account, no ads, no tracking — nothing you type or scan ever leaves your device, and it keeps working with no internet connection.
-
-### [Open Midas QR →](https://jimm144.github.io/midas-qr/)
+### [Open the app](https://jimm144.github.io/midas-qr/)
 
 | Desktop | Mobile |
 | --- | --- |
-| <img src="docs/screenshots/generator-desktop.png" width="620" alt="Midas QR on desktop: content options on the left, live preview on the right"> | <img src="docs/screenshots/generator-mobile.png" width="230" alt="Midas QR on a phone"> |
+| <img src="docs/screenshots/generator-desktop.png" width="620" alt="Generator view with content options on the left and the live preview on the right"> | <img src="docs/screenshots/generator-mobile.png" width="230" alt="The same app on a phone"> |
 
-## Make a code for anything
+## Features
 
-URLs, plain text, Wi‑Fi logins, contact cards (vCard), crypto addresses, locations, calendar events, SMS, phone numbers, and email.
+**Content types** — URL, text, Wi-Fi, contact (vCard), crypto address, geolocation, calendar event, SMS, phone number, email.
 
-## Design it your way
+**Styling** — dot shapes (square, rounded, extra rounded, classy, dots); corner styles for the finder squares and their centres; solid colors or linear/radial gradients; overall shapes (circle, heart, triangle, star, diamond, hexagon, shield, or a custom SVG path); frames (label, badge, dashed, rounded) with captions; background images; logo overlays.
 
-- **Dot shapes** — square, rounded, extra rounded, classy, or dots
-- **Corner styles** — pick how the three finder squares and their centres are shaped
-- **Colors** — solid colors or smooth linear/radial gradients, with presets and a hue slider
-- **Overall shapes** — circle, heart, triangle, star, diamond, hexagon, shield, or your own SVG path
-- **Frames** — label, badge, dashed, or rounded, with a caption of your choice
-- **Background images** and **logo overlays** that keep the code scannable
+**Output** — PNG, SVG, JPEG, WebP, and TXT (Unicode block art); copy to clipboard; batch generation from a CSV, TSV, or TXT file, one code per row.
 
-## Get it out
+**Scanning** — webcam or image upload, decoded in a Web Worker. Results can be opened, copied, or searched, and scanned codes are kept in a local history.
 
-Download as **PNG, SVG, JPEG, WebP**, or **TXT** (Unicode block art), copy it straight to the clipboard, or make hundreds at once from a **CSV / TSV / TXT** file — one code per row.
-
-## Scan as easily as you generate
-
-Point your camera at a code or drop in an image. Scanning runs in the background, so the app stays smooth, and results appear with quick actions (open, copy, search). Your recent scans and designs live in a local history you can search and re-run.
-
-## Nice touches
-
-- Seven color themes, in light, dark, or auto
-- Simple, Medium, and Full layouts — show only as many options as you want
-- Share links that reopen the exact same design
-- Keyboard shortcuts: `Ctrl/⌘+S` save, `Ctrl/⌘+C` copy, `R` re-render
-- Installable as an app and fully offline after the first visit
+**App** — seven color themes (light, dark, or auto); Simple, Medium, and Full layout modes; share links that reopen the current configuration; keyboard shortcuts (`Ctrl/⌘+S` save, `Ctrl/⌘+C` copy, `R` re-render); installable PWA that works offline.
 
 ## Privacy
 
-No accounts, no analytics, no third-party CDNs, and no network requests. Your text, Wi‑Fi passwords, addresses, logos, and scans stay in your browser; history is kept in local storage and is never uploaded anywhere.
+No accounts, no analytics, no third-party CDNs, no network requests. Text, Wi-Fi passwords, addresses, logos, and scans stay in the browser; history is stored in local storage.
 
-## Install it like an app
+## Install
 
-Open [the app](https://jimm144.github.io/midas-qr/) in a modern browser and choose **Install** / **Add to Home Screen**. On desktop, look for the install icon in the address bar. After that it opens like any other app and works offline.
+Open the app in a browser and choose **Install** / **Add to Home Screen**. Camera scanning requires a secure (`https`) connection.
 
-Camera scanning needs a secure (`https`) connection — the hosted app provides one.
-
-## Run it yourself
+## Development
 
 ```bash
 npm install
-npm run build   # bundles the app and checks the offline layer
-npm start       # serves it at http://localhost:5000
+npm run build   # bundles JS and CSS, validates the offline layer
+npm start       # serves the app on http://localhost:5000
 ```
 
-| Command                 | What it does                                         |
-| ----------------------- | ---------------------------------------------------- |
-| `npm start`             | Serve the built app on port 5000                     |
-| `npm run dev`           | Build, then serve                                    |
-| `npm run build`         | Bundle JS/CSS and validate the offline layer         |
-| `npm test`              | Run the test suite                                   |
-| `npm run lint`          | Lint the source                                      |
-| `npm run typecheck`     | Type-check the typed modules                         |
+| Command             | Description                                 |
+| ------------------- | ------------------------------------------- |
+| `npm start`         | Serve the built app on port 5000            |
+| `npm run dev`       | Build, then serve                           |
+| `npm run build`     | Bundle JS/CSS and validate the offline layer |
+| `npm test`          | Run the test suite                          |
+| `npm run lint`      | Lint the source                             |
+| `npm run typecheck` | Type-check the typed modules                |
 
-Contributions are welcome — run `npm run lint`, `npm run typecheck`, and `npm test` before opening a pull request.
+Run `npm run lint`, `npm run typecheck`, and `npm test` before opening a pull request.
 
 ## License
 

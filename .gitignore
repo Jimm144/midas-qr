@@ -2,6 +2,10 @@ node_modules/
 dist/
 site/
 src/css/output.css
+.agents/
+.claude/
+.opencode/
+opencode.json
 *.log
 .DS_Store
 .vscode/

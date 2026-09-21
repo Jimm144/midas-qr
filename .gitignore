@@ -1,5 +1,6 @@
 node_modules/
 dist/
+site/
 src/css/output.css
 *.log
 .DS_Store

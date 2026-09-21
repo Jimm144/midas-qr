@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- __SITE_URL__ REPLACE-ME: "https://midasqr.example/" is a placeholder. Replace all <loc> entries with the production domain before deploying. -->
+<!-- __SITE_URL__ REPLACE-ME: "https://jimm144.github.io/midas-qr/" is a placeholder. Replace all <loc> entries with the production domain before deploying. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://midasqr.example/</loc>
+    <loc>https://jimm144.github.io/midas-qr/</loc>
     <lastmod>2026-09-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>

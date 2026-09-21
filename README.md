@@ -1,4 +1,4 @@
-# QR Code Studio
+# Midas QR
 
 A premium, **offline-first**, privacy-respecting QR code generator and scanner. It runs in the browser, installs as a PWA, collects no data, and works without a network connection once loaded.
 
@@ -81,7 +81,7 @@ Logo data URLs can be large; the persistence layer auto-evicts oversized logo-be
 
 `sw.js` precaches the app shell and serves same-origin assets stale-while-revalidate. Two version markers must move together on every shipped change:
 
-- `CACHE_NAME` in `sw.js` (for example `qr-code-studio-v150`) — a fresh cache name makes the service worker install as a new version instead of mutating the cache users already have.
+- `CACHE_NAME` in `sw.js` (for example `midas-qr-v150`) — a fresh cache name makes the service worker install as a new version instead of mutating the cache users already have.
 - The stylesheet query in **both** `index.html` and `sw.js` (`src/css/style.min.css?v=73`) — versioned precache entries guarantee the first controlled load gets the new CSS.
 
 `npm run build` runs `tools/check-sw.mjs` first, which fails the build if the two stylesheet versions drift, a precache path is missing on disk, an inline script hash no longer matches its meta CSP, or the HTML tags no longer balance. Always bump the cache name and the CSS query together, then re-run the build.

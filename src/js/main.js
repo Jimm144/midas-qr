@@ -1,5 +1,5 @@
 /**
- * QR Code Studio — bootstrap.
+ * Midas QR — bootstrap.
  *
  * initApp() only orchestrates: every cohesive concern lives in its own module
  * (theme-runtime, pwa, ui/shell, generator/inputs, generator/controls), and

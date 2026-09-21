@@ -1,4 +1,4 @@
-// QR Code Studio Service Worker — offline-first caching.
+// Midas QR Service Worker — offline-first caching.
 // Cache-bump policy: on every shipped change, bump CACHE_NAME and the
 // style.min.css ?v= query here AND in index.html in the same commit;
 // tools/check-sw.mjs fails the build if those two versions drift.
@@ -11,7 +11,7 @@
 // the previously cached bundle while the update installs, and the *next*
 // reload is served entirely from the new precache: the installed app updates
 // reliably within two reloads.
-const CACHE_NAME = "qr-code-studio-v197";
+const CACHE_NAME = "midas-qr-v202";
 // Runtime additions (theme fonts, offline navigation targets) are capped so a
 // long-lived worker cannot grow storage without bound. Precache is never pruned.
 const RUNTIME_CACHE_LIMIT = 60;
@@ -27,13 +27,13 @@ const PRECACHE = [
   "./sitemap.xml",
   "./manifest.json",
   "./favicon.svg",
-  "./favicon.svg?v=7",
+  "./favicon.svg?v=11",
   "./icon-192x192.png",
   "./icon-512x512.png",
   "./dist/bundle.js",
   // Precache the exact versioned stylesheet URL the page requests so the
   // first controlled load is both fresh and offline-capable.
-  "./src/css/style.min.css?v=111",
+  "./src/css/style.min.css?v=116",
   // Figtree is the default theme font; the other theme families are cached on
   // first use of their theme (stale-while-revalidate below), which keeps the
   // install payload small.

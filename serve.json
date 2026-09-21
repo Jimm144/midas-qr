@@ -8,7 +8,7 @@
       "headers": [
         {
           "key": "X-Site-Url-Placeholder",
-          "value": "__SITE_URL__ = https://qr-code-studio.example/ - REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors markers in index.html, 404.html, sitemap.xml, robots.txt, manifest.json). This route is never served."
+          "value": "__SITE_URL__ = https://midasqr.example/ - REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors markers in index.html, 404.html, sitemap.xml, robots.txt, manifest.json). This route is never served."
         }
       ]
     },
@@ -35,7 +35,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-qNWtRLpDAOEVrZdrWSHP2raUXvzD9jJi2/sboigaIBg=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-Q6lkIEPazp2H+5y6RukosHaO7/B+zh9+ivP9cgkh6N8=' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-qNWtRLpDAOEVrZdrWSHP2raUXvzD9jJi2/sboigaIBg=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-5/h4kaGyubCjOUKZTkj8Z7WaFNGFErilRCNY72kHUI0=' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         },
         {
           "key": "X-Content-Type-Options",

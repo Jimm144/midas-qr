@@ -1,5 +1,5 @@
 {
-  "name": "qr-code-studio",
+  "name": "midas-qr",
   "version": "1.0.0",
   "type": "module",
   "description": "Premium offline QR Code Generator and Scanner",
@@ -27,7 +27,7 @@
     "scanner",
     "generator"
   ],
-  "author": "QR Code Studio contributors",
+  "author": "Midas QR contributors",
   "license": "GPL-3.0",
   "homepage": "./",
   "private": true,

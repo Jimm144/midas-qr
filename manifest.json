@@ -1,7 +1,7 @@
 {
   "id": "./index.html",
-  "name": "QR Code Studio",
-  "short_name": "QR Studio",
+  "name": "Midas QR",
+  "short_name": "Midas QR",
   "description": "A powerful, offline, privacy-first QR code generator and scanner.",
   "start_url": "./index.html",
   "scope": "./",
@@ -46,7 +46,7 @@
     }
   ],
   "_screenshot_placeholder": "REPLACE-ME: no screenshots ship yet — add a real 1280x720 UI screenshot at this path plus a screenshots[] entry before deploy.",
-  "_site_url_placeholder": "https://qr-code-studio.example/ — REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors __SITE_URL__ in index.html, 404.html, sitemap.xml, robots.txt, serve.json)",
+  "_site_url_placeholder": "https://midasqr.example/ — REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors __SITE_URL__ in index.html, 404.html, sitemap.xml, robots.txt, serve.json)",
   "shortcuts": [
     {
       "name": "Generate QR",

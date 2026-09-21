@@ -243,7 +243,7 @@ describe("sw.js activate", () => {
   });
 
   it("deletes every old cache, trims runtime entries, and claims clients", async () => {
-    h.stores.set("qr-code-studio-v157", { entries: new Map() });
+    h.stores.set("midas-qr-v157", { entries: new Map() });
     const cache = await h.caches.open(h.sw.CACHE_NAME);
     await cache.put(`${BASE}dist/bundle.js`, new MockResponse("precache"));
     for (let i = 0; i < h.sw.RUNTIME_CACHE_LIMIT + 7; i++) {
@@ -254,7 +254,7 @@ describe("sw.js activate", () => {
     h.dispatch("activate", event);
     await Promise.allSettled(event.waits);
 
-    expect(h.stores.has("qr-code-studio-v157")).toBe(false);
+    expect(h.stores.has("midas-qr-v157")).toBe(false);
     expect(h.stores.has(h.sw.CACHE_NAME)).toBe(true);
     expect(h.claimCalls.length).toBe(1);
 
@@ -281,9 +281,9 @@ describe("sw.js version bumps", () => {
     // Simulate the orchestrator's CACHE_NAME bump for the next deploy: the new
     // worker must revalidate (no-cache) instead of reusing the previous cache.
     // Derived from the source so this test survives every future bump.
-    const currentVersion = Number((SW_SOURCE.match(/qr-code-studio-v(\d+)/) || [])[1]);
-    const oldCacheName = `qr-code-studio-v${currentVersion}`;
-    const nextCacheName = `qr-code-studio-v${currentVersion + 1}`;
+    const currentVersion = Number((SW_SOURCE.match(/midas-qr-v(\d+)/) || [])[1]);
+    const oldCacheName = `midas-qr-v${currentVersion}`;
+    const nextCacheName = `midas-qr-v${currentVersion + 1}`;
     const newSource = SW_SOURCE.replace(oldCacheName, nextCacheName);
     const newWorker = setupHarness({ stores, source: newSource });
     newWorker.network.resolve = async () => new MockResponse("NEW-BYTES");

@@ -267,7 +267,7 @@ export function formatEvent({ title, start, end, location, description }) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//QR Code Studio//EN",
+    "PRODID:-//Midas QR//EN",
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${now}`,

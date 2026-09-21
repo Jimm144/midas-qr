@@ -530,7 +530,7 @@ export function initShareLinkButton() {
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({
-          title: "QR Code Studio",
+          title: "Midas QR",
           text: "Scan this QR code",
           url,
         });

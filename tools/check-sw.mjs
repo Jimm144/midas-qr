@@ -264,8 +264,8 @@ for (const file of diskFonts) {
 
 // 5. The cache name must stay versioned, so caching behavior changes always
 // ship under a fresh cache instead of mutating the one users already have.
-const cacheVersion = (src.match(/const CACHE_NAME = "qr-code-studio-v(\d+)"/) || [])[1];
-if (!cacheVersion) problems.push('CACHE_NAME must match "qr-code-studio-v<number>"');
+const cacheVersion = (src.match(/const CACHE_NAME = "[a-z0-9-]+-v(\d+)"/) || [])[1];
+if (!cacheVersion) problems.push('CACHE_NAME must match "<app-prefix>-v<number>"');
 // 6. Stamp the visible build version in index.html from CACHE_NAME, so the
 //    footer always shows the build that is actually being served.
 const buildMarker = /(<span id="build-version"[^>]*>)([^<]*)(<\/span>)/;

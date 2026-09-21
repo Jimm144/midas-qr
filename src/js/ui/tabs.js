@@ -29,9 +29,9 @@ function resumeScannerView() {
 }
 
 const TAB_TITLES = {
-  generator: "QR Code Studio — Generator",
-  scanner: "QR Code Studio — Scanner",
-  history: "QR Code Studio — History",
+  generator: "Midas QR — Generator",
+  scanner: "Midas QR — Scanner",
+  history: "Midas QR — History",
 };
 
 function setTabTitle(tab) {

@@ -1,5 +1,5 @@
 /**
- * Global application state for QR Code Studio.
+ * Global application state for Midas QR.
  * Single source of truth for persistence: serializeAppState() / loadState().
  */
 import { announce } from "./ui/announce.js";

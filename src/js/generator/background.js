@@ -1,5 +1,5 @@
 import { state } from "../state";
-import { SVG_NS, parseSvgDocument, findMaskSilhouette, clipToShape } from "./mask.js";
+import { SVG_NS, findMaskSilhouette, clipToShape } from "./mask.js";
 
 /**
  * The library paints its background as a canvas-sized direct-child <rect>;
@@ -86,18 +86,4 @@ export function applyBackgroundImageToDoc(doc, w, h) {
   else container.insertBefore(image, container.firstChild);
   image.after(scrim);
   return true;
-}
-
-/**
- * Paint the user's background image behind the code. The library's background
- * rect stays below the image so a transparent code still reads over it.
- * Returns the input untouched when there is no image or the SVG can't be parsed.
- */
-export function applyBackgroundImage(svgText, w, h) {
-  if (!state.generator.bgImageDataUrl) return svgText;
-  if (typeof DOMParser === "undefined") return svgText;
-  const doc = parseSvgDocument(svgText);
-  if (!doc) return svgText;
-  if (!applyBackgroundImageToDoc(doc, w, h)) return svgText;
-  return new XMLSerializer().serializeToString(doc.documentElement);
 }

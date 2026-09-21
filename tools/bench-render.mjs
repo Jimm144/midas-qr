@@ -59,11 +59,10 @@ new Function(fs.readFileSync(path.join(ROOT, "src/lib/qr-code-styling.min.js"), 
 // Bundle the app modules so the benchmark runs the exact production code.
 const entry = `
 import { state } from ${JSON.stringify(path.join(ROOT, "src/js/state").replace(/\\/g, "/"))};
-import { innerPaddingForMask } from ${JSON.stringify(path.join(ROOT, "src/js/generator/mask.js").replace(/\\/g, "/"))};
-import { getCombinedSvgString } from ${JSON.stringify(path.join(ROOT, "src/js/generator/frame.js").replace(/\\/g, "/"))};
+import { innerPaddingForMask, maskVerticalShift } from ${JSON.stringify(path.join(ROOT, "src/js/generator/mask.js").replace(/\\/g, "/"))};
 import { getQrCode, buildQrStylingOptions } from ${JSON.stringify(path.join(ROOT, "src/js/generator/qr-instance.js").replace(/\\/g, "/"))};
-import { postProcessSvg } from ${JSON.stringify(path.join(ROOT, "src/js/generator/generator.js").replace(/\\/g, "/"))};
-export { state, innerPaddingForMask, getCombinedSvgString, getQrCode, buildQrStylingOptions, postProcessSvg };
+import { renderSvg } from ${JSON.stringify(path.join(ROOT, "src/js/generator/svg-pipeline.js").replace(/\\/g, "/"))};
+export { state, innerPaddingForMask, maskVerticalShift, getQrCode, buildQrStylingOptions, renderSvg };
 `;
 const entryPath = path.join(os.tmpdir(), `qr-bench-entry-${process.pid}.mjs`);
 const outPath = path.join(os.tmpdir(), `qr-bench-bundle-${process.pid}.mjs`);
@@ -143,30 +142,29 @@ async function renderOnce({ mask, frame }) {
     image: LOGO,
   });
   app.getQrCode().update(options);
-  const t = { library: 0, combine: 0, post: 0 };
+  const t = { library: 0, pipeline: 0 };
 
   let t0 = performance.now();
-  let svg;
-  if (frame !== "none") {
-    svg = await app.getCombinedSvgString(w, h, userMarginPx, moduleCount, matrix);
-    t.combine = performance.now() - t0;
-    t0 = performance.now();
-    svg = app.postProcessSvg(svg, { w, h, surround: false });
-    t.post = performance.now() - t0;
-  } else {
-    const text = await (await app.getQrCode().getRawData("svg")).text();
-    t.library = performance.now() - t0;
-    t0 = performance.now();
-    svg = app.postProcessSvg(text, {
-      userMarginPx,
-      w,
-      h,
+  const raw = await (await app.getQrCode().getRawData("svg")).text();
+  t.library = performance.now() - t0;
+  t0 = performance.now();
+  const svg = (
+    await app.renderSvg({
+      svgText: raw,
+      layout: {
+        userMarginPx,
+        w,
+        h,
+        moduleSize,
+        totalMarginPx,
+        maskDx: 0,
+        maskDy: app.maskVerticalShift(mask, moduleCount) * moduleSize,
+      },
       moduleCount,
       qrMatrix: matrix,
-      surround: true,
-    });
-    t.post = performance.now() - t0;
-  }
+    })
+  ).svg;
+  t.pipeline = performance.now() - t0;
   return { svg, t, moduleCount, w };
 }
 
@@ -200,7 +198,7 @@ for (const scenario of scenarios) {
   configure(scenario);
   let result;
   const totals = [];
-  const stages = { library: [], combine: [], post: [] };
+  const stages = { library: [], pipeline: [] };
   for (let i = 0; i < ITERATIONS; i++) {
     const t0 = performance.now();
     result = await renderOnce(scenario);
@@ -213,6 +211,6 @@ for (const scenario of scenarios) {
     `  modules ${result.moduleCount}, raster ${result.w}x${result.w}, svg ${result.svg.length} bytes, rects ${(result.svg.match(/<rect/g) || []).length}`
   );
   console.log(
-    `  total ${ms(median(totals))} | library ${ms(median(stages.library))} | combine ${ms(median(stages.combine))} | post ${ms(median(stages.post))}`
+    `  total ${ms(median(totals))} | library ${ms(median(stages.library))} | pipeline ${ms(median(stages.pipeline))}`
   );
 }

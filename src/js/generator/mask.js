@@ -310,15 +310,6 @@ export function applyGlobalDotGradientToDoc(doc, w, h) {
  * (They used to share the dots gradient, which silently ignored the corner
  * colour controls whenever a dots gradient was set.)
  */
-export function applyGlobalDotGradient(svgText, w, h) {
-  if (typeof DOMParser === "undefined" || !svgText.includes("clip-path") || !needsGlobalGradientPass()) {
-    return svgText;
-  }
-  const doc = parseSvgDocument(svgText);
-  if (!doc) return svgText;
-  if (!applyGlobalDotGradientToDoc(doc, w, h)) return svgText;
-  return new XMLSerializer().serializeToString(doc.documentElement);
-}
 
 const OUTER_CORNER_STYLES = {
   rounded: { radii: [1.5, 1.5, 1.5, 1.5], hole: [1, 1, 1, 1] },
@@ -467,15 +458,6 @@ export function applyCornerStylesToDoc(doc) {
   }
 
   return changed;
-}
-
-export function applyCornerStyles(svgText) {
-  if (!needsCornerStylePass()) return svgText;
-  if (typeof DOMParser === "undefined" || !svgText.includes("clip-path")) return svgText;
-  const doc = parseSvgDocument(svgText);
-  if (!doc) return svgText;
-  if (!applyCornerStylesToDoc(doc)) return svgText;
-  return new XMLSerializer().serializeToString(doc.documentElement);
 }
 
 /** Set the standard 24x24-to-shape scaling transform on a mask path element. */
@@ -847,6 +829,14 @@ function addCanvasClip(doc, root, w, h) {
  * Doc-level mask pass: replace the background rect with the silhouette, wrap
  * the code in a translated group and add the surround-dot layer behind it.
  * Returns true when the tree was modified.
+ * @param {Document} svgDoc
+ * @param {number} userMarginPx
+ * @param {number} w
+ * @param {number} h
+ * @param {number} [moduleCount]
+ * @param {unknown} [_qrMatrix] unused; kept for call-site parity with the string helper
+ * @param {{ moduleSize?: number, totalMarginPx?: number, maskDx?: number, maskDy?: number }|null} [layout]
+ * @returns {boolean}
  */
 export function applySurroundShapeToDoc(
   svgDoc,
@@ -953,13 +943,4 @@ export function applySurroundShapeToDoc(
     }
   });
   return true;
-}
-
-export function applySurroundShape(svgText, userMarginPx, w, h, moduleCount = 21, _qrMatrix = null) {
-  if (state.generator.maskType === "none") return svgText;
-  const svgDoc = parseSvgDocument(svgText);
-  if (!svgDoc) return svgText;
-  if (!applySurroundShapeToDoc(svgDoc, userMarginPx, w, h, moduleCount, _qrMatrix)) return svgText;
-  const serializer = new XMLSerializer();
-  return serializer.serializeToString(svgDoc);
 }

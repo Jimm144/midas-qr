@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { applyRadiusToDoc, maxSafeRadius, postProcessSvg } from "../src/js/generator/generator.js";
+import { applyRadiusToDoc, maxSafeRadius, renderSvg } from "../src/js/generator/svg-pipeline.js";
 import { buildQrStylingOptions } from "../src/js/generator/qr-instance.js";
 import { state } from "../src/js/state";
 import { insideRoundedRect } from "./helpers/svg-path.js";
@@ -182,7 +182,7 @@ describe("applyRadiusToDoc", () => {
 });
 
 describe("radius pass on a real library render", () => {
-  function processRadius(radius, marginPx = 4, urlWidth = 300) {
+  async function processRadius(radius, marginPx = 4, urlWidth = 300) {
     state.generator.maskType = "none";
     state.generator.bgTransparent = false;
     state.generator.qrRadius = radius;
@@ -198,12 +198,14 @@ describe("radius pass on a real library render", () => {
     const moduleSize = Math.floor(urlWidth / moduleCount);
     const dataW = moduleCount * moduleSize;
     const w = dataW + 2 * marginPx;
-    const out = postProcessSvg(baseSvg, { userMarginPx: marginPx, w, h: w, moduleCount, surround: true });
+    const out = (
+      await renderSvg({ svgText: baseSvg, layout: { userMarginPx: marginPx, w, h: w }, moduleCount })
+    ).svg;
     return { doc: parse(out), w, marginPx, dataW };
   }
 
-  it("clamps a persisted 1000px radius and never turns the code into a circle", () => {
-    const { doc, w, marginPx, dataW } = processRadius(1000);
+  it("clamps a persisted 1000px radius and never turns the code into a circle", async () => {
+    const { doc, w, marginPx, dataW } = await processRadius(1000);
     const expected = Math.floor(maxSafeRadius(w, w, marginPx));
     const bgRect = directChildren(doc.documentElement, "rect")[0];
     expect(bgRect.getAttribute("rx")).toBe(String(expected));
@@ -236,14 +238,16 @@ describe("radius pass on a real library render", () => {
       })
     );
     const gradientSvg = await (await gradientQr.getRawData("svg")).text();
-    const out = postProcessSvg(gradientSvg, { userMarginPx: 4, w: 308, h: 308, moduleCount: 25, surround: true });
+    const out = (
+      await renderSvg({ svgText: gradientSvg, layout: { userMarginPx: 4, w: 308, h: 308 }, moduleCount: 25 })
+    ).svg;
     const doc = parse(out);
     const bgRect = directChildren(doc.documentElement, "rect")[0];
     expect(bgRect.getAttribute("fill")).toContain("url(");
     expect(bgRect.getAttribute("rx")).toBe(String(Math.floor(Math.min(8, maxSafeRadius(308, 308, 4)))));
   });
 
-  it("keeps the plain render untouched when the radius is zero", () => {
+  it("keeps the plain render untouched when the radius is zero", async () => {
     state.generator.maskType = "none";
     state.generator.qrRadius = 0;
     state.generator.bgImageDataUrl = null;
@@ -254,7 +258,9 @@ describe("radius pass on a real library render", () => {
     state.generator.cornersDotGradient = null;
     state.generator.shapeOuter = "square";
     state.generator.shapeInner = "square";
-    const out = postProcessSvg(baseSvg, { userMarginPx: 4, w: 308, h: 308, moduleCount: 25, surround: true });
+    const out = (
+      await renderSvg({ svgText: baseSvg, layout: { userMarginPx: 4, w: 308, h: 308 }, moduleCount: 25 })
+    ).svg;
     expect(out).not.toContain("qr-canvas-radius-clip");
   });
 });

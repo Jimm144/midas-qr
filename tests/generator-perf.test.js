@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { state } from "../src/js/state";
 import { DOM } from "../src/js/ui/dom.js";
 import { generateQR, renderOnce } from "../src/js/generator/generator.js";
-import { applySurroundShape, innerPaddingForMask, maskVerticalShift, SVG_NS } from "../src/js/generator/mask.js";
+import { applySurroundShape } from "./helpers/svg-doc.js";
+import { innerPaddingForMask, maskVerticalShift, SVG_NS } from "../src/js/generator/mask.js";
 import { DEBOUNCE_GENERATE_MS } from "../src/js/constants.js";
 
 const RAW_SVG =
@@ -344,5 +345,135 @@ describe("color picker spectrum repaint coalescing", () => {
     expect(getContext).toHaveBeenCalledTimes(1);
     getContext.mockRestore();
     document.body.innerHTML = "";
+  });
+});
+
+/**
+ * Fresh module instances so render-queue and memo state from the earlier tests
+ * in this file cannot leak into the sequencing tests below.
+ */
+async function freshApp() {
+  vi.resetModules();
+  const dom = await import("../src/js/ui/dom.js");
+  const stateMod = await import("../src/js/state");
+  const generatorMod = await import("../src/js/generator/generator.js");
+  const { DOM } = dom;
+  DOM.qrCanvasContainer = document.createElement("div");
+  DOM.qrPreviewContainer = document.createElement("div");
+  DOM.emptyStateQr = document.createElement("div");
+  DOM.btnDownload = document.createElement("button");
+  DOM.btnCopy = document.createElement("button");
+  DOM.btnSave = document.createElement("button");
+  DOM.btnShareLink = document.createElement("button");
+  DOM.qrLoading = null;
+  DOM.marginWarning = null;
+  DOM.qrReadabilityBadge = null;
+  const { state } = stateMod;
+  state.generator.dataType = "text";
+  state.generator.dataString = "live";
+  state.generator.isValid = true;
+  state.generator.width = 300;
+  state.generator.height = 300;
+  state.generator.margin = 4;
+  state.generator.frameStyle = "none";
+  state.generator.maskType = "none";
+  state.generator.logoDataUrl = null;
+  state.generator.bgImageDataUrl = null;
+  return { DOM, state, ...generatorMod };
+}
+
+describe("renderOnce keeps concurrent edits", () => {
+  /** @type {(svg: string) => void} */
+  let resolveRaw;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    globalThis.qrcode = () => ({ addData() {}, make() {}, getModuleCount: () => 25 });
+    globalThis.QRCodeStyling = class {
+      update() {}
+      getRawData() {
+        return new Promise((resolve) => {
+          resolveRaw = (svg) => resolve({ text: async () => svg });
+        });
+      }
+    };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    delete globalThis.qrcode;
+    delete globalThis.QRCodeStyling;
+  });
+
+  it("restores only the keys the one-off render still owns", async () => {
+    const app = await freshApp();
+    const pending = app.renderOnce({ dataString: "export-snapshot", bgColor: "#000000" });
+    await vi.advanceTimersByTimeAsync(50);
+    expect(typeof resolveRaw).toBe("function");
+
+    // The user edits a field the export snapshot also set, mid-render.
+    app.state.generator.bgColor = "#ff0000";
+    resolveRaw(RAW_SVG);
+    await pending;
+
+    expect(app.state.generator.bgColor).toBe("#ff0000");
+    // Untouched override keys are still restored to the live config.
+    expect(app.state.generator.dataString).toBe("live");
+  });
+});
+
+describe("superseded renders do not publish the SVG memo", () => {
+  /** @type {((svg: string) => void)[]} */
+  let pendingRaw;
+  const svgFor = (label) => RAW_SVG.replace('fill="#000000"', `fill="#000000" data-label="${label}"`);
+
+  beforeEach(() => {
+    pendingRaw = [];
+    vi.useFakeTimers();
+    globalThis.qrcode = () => ({ addData() {}, make() {}, getModuleCount: () => 25 });
+    globalThis.QRCodeStyling = class {
+      update() {}
+      getRawData() {
+        return new Promise((resolve) => {
+          pendingRaw.push((svg) => resolve({ text: async () => svg }));
+        });
+      }
+    };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    delete globalThis.qrcode;
+    delete globalThis.QRCodeStyling;
+  });
+
+  it("re-renders instead of reusing a memo whose SVG never reached the preview", async () => {
+    const app = await freshApp();
+    // A: slow render that will be superseded before it can publish.
+    app.state.generator.dataString = "A";
+    app.generateQR(true);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(pendingRaw).toHaveLength(1);
+
+    app.state.generator.dataString = "B";
+    app.generateQR(true);
+    pendingRaw[0](svgFor("A"));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(pendingRaw).toHaveLength(2);
+
+    // B publishes: preview shows B.
+    pendingRaw[1](svgFor("B"));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(app.DOM.qrCanvasContainer.innerHTML).toContain('data-label="B"');
+
+    // Back to A: the superseded A memo must not be reused, because its SVG was
+    // never written to the preview.
+    app.state.generator.dataString = "A";
+    app.generateQR(true);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(pendingRaw).toHaveLength(3);
+    pendingRaw[2](svgFor("A"));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(app.DOM.qrCanvasContainer.innerHTML).toContain('data-label="A"');
   });
 });

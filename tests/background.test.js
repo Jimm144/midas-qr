@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { applyBackgroundImage } from "../src/js/generator/background.js";
+import { applyBackgroundImage } from "./helpers/svg-doc.js";
 import { state } from "../src/js/state";
 import { encodeStateToUrl, decodeStateFromUrl } from "../src/js/share.js";
 

@@ -1,14 +1,10 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import {
-  applySurroundShape,
-  applyCornerStyles,
-  applyGlobalDotGradient,
-  optimizeSvgRects,
-} from "../src/js/generator/mask.js";
-import { applyBackgroundImage } from "../src/js/generator/background.js";
-import { postProcessSvg } from "../src/js/generator/generator.js";
+import { applySurroundShape, applyCornerStyles, applyGlobalDotGradient } from "./helpers/svg-doc.js";
+import { optimizeSvgRects } from "../src/js/generator/mask.js";
+import { applyBackgroundImage } from "./helpers/svg-doc.js";
+import { renderSvg } from "../src/js/generator/svg-pipeline.js";
 import { buildQrStylingOptions } from "../src/js/generator/qr-instance.js";
 import { ensureQrcodeLoaded, generateUnicodeQR } from "../src/js/generator/encoder.js";
 import { setRenderInfo, getRenderInfo } from "../src/js/generator/render-info.js";
@@ -294,7 +290,7 @@ describe("combined post-processing (one parse for every pass)", () => {
     Object.assign(state.generator, initial);
   });
 
-  it("matches the sequential passes for mask + corners + gradient + background", () => {
+  it("matches the sequential passes for mask + corners + gradient + background", async () => {
     state.generator.maskType = "circle";
     state.generator.maskCustom = "";
     state.generator.shapeBody = "square";
@@ -317,18 +313,13 @@ describe("combined post-processing (one parse for every pass)", () => {
       100,
       100
     );
-    const combined = postProcessSvg(source, {
-      userMarginPx: 4,
-      w: 100,
-      h: 100,
-      moduleCount: 21,
-      qrMatrix: null,
-      surround: true,
-    });
+    const combined = (
+      await renderSvg({ svgText: source, layout: { userMarginPx: 4, w: 100, h: 100 }, moduleCount: 21, qrMatrix: null })
+    ).svg;
     expect(combined).toBe(sequential);
   });
 
-  it("returns the plain merged SVG without a DOM round-trip", () => {
+  it("returns the plain merged SVG without a DOM round-trip", async () => {
     state.generator.maskType = "none";
     state.generator.shapeOuter = "square";
     state.generator.shapeInner = "square";
@@ -337,7 +328,9 @@ describe("combined post-processing (one parse for every pass)", () => {
     state.generator.cornersDotGradient = null;
     state.generator.bgImageDataUrl = null;
     const source = libraryLike();
-    const out = postProcessSvg(source, { w: 100, h: 100, moduleCount: 21, qrMatrix: null, surround: true });
+    const out = (
+      await renderSvg({ svgText: source, layout: { userMarginPx: 0, w: 100, h: 100 }, moduleCount: 21, qrMatrix: null })
+    ).svg;
     expect(out).toBe(optimizeSvgRects(source));
   });
 });
@@ -373,14 +366,14 @@ describe("real library render through the combined pipeline", () => {
         expect(optimized.length).toBeLessThan(raw.length);
       }
 
-      const out = postProcessSvg(optimized, {
-        userMarginPx: 4,
-        w: 300,
-        h: 300,
-        moduleCount: 21,
-        qrMatrix: null,
-        surround: true,
-      });
+      const out = (
+        await renderSvg({
+          svgText: optimized,
+          layout: { userMarginPx: 4, w: 300, h: 300 },
+          moduleCount: 21,
+          qrMatrix: null,
+        })
+      ).svg;
       const doc = new DOMParser().parseFromString(out, "image/svg+xml");
       expect(doc.querySelector("parsererror")).toBeNull();
       // Mask silhouette and surround layer are present.

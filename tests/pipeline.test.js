@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { postProcessSvg, maxSafeRadius } from "../src/js/generator/generator.js";
-import { getCombinedSvgString } from "../src/js/generator/frame.js";
+import { maxSafeRadius, renderSvg } from "../src/js/generator/svg-pipeline.js";
 import { buildQrStylingOptions } from "../src/js/generator/qr-instance.js";
 import { resolveLayout } from "../src/js/generator/layout.js";
 import { framesConfig } from "../src/js/frames";
@@ -78,17 +77,8 @@ async function renderPipeline() {
   // Mirror generateQR: the library is handed the padded canvas and its margin.
   const qr = new Ctor(buildQrStylingOptions(g.w, g.w, { data: DATA, margin: totalMarginPx }));
   const raw = await (await qr.getRawData("svg")).text();
-  const processed = postProcessSvg(raw, {
-    userMarginPx: g.userMarginPx,
-    w: g.w,
-    h: g.w,
-    moduleCount,
-    qrMatrix: layout,
-    surround: true,
-  });
-  if (state.generator.frameStyle === "none") return { svg: processed, ...g, moduleCount };
-  const framed = await getCombinedSvgString(g.w, g.w, g.userMarginPx, moduleCount, layout, processed);
-  return { svg: framed, ...g, moduleCount };
+  const processed = await renderSvg({ svgText: raw, layout: g, moduleCount, qrMatrix: layout });
+  return { svg: processed.svg, ...g, moduleCount };
 }
 
 function expectResolvedUrlRefs(doc) {
@@ -142,6 +132,17 @@ describe("pipeline feature combinations", () => {
       const src = fs.readFileSync(path.resolve("src/lib/qrcode.min.js"), "utf8");
       window.eval(src);
     }
+  });
+
+  it("merges the module clip for framed renders too", async () => {
+    reset({ maskType: "none", frameStyle: "label", margin: 4, width: 300 });
+    const { svg } = await renderPipeline();
+    const clip = svg.match(/<clipPath[^>]*id="clip-path-dot-color[^"]*"[^>]*>([\s\S]*?)<\/clipPath>/);
+    expect(clip, "dot clip present in framed output").not.toBeNull();
+    // optimizeSvgRects collapses the per-module rects into one path so the
+    // framed render keeps the same AA-seam fix and file size as the plain one.
+    expect(clip[1]).toContain("<path");
+    expect(clip[1]).not.toContain("<rect");
   });
 
   it("keeps a radius render, background image and logo stacked correctly", async () => {

@@ -6,6 +6,18 @@ import { resolveFrameGeometry, frameOutputSize } from "./layout.js";
 import { parseGradient, diagonalSpan, linearEndpoints } from "./gradient.js";
 import { escapeHTML, HEX_COLOR_RE } from "../utils.js";
 
+/**
+ * Assemble the framed artwork around an already post-processed QR document.
+ * @param {number} w
+ * @param {number} h
+ * @param {number} userMarginPx
+ * @param {number} [moduleCount]
+ * @param {unknown} [qrMatrix]
+ * @param {string|null} [processedQrSvg]
+ * @param {Document|null} [processedQrDoc]
+ * @param {{ moduleSize?: number, totalMarginPx?: number, maskDx?: number, maskDy?: number }|null} [layout]
+ * @returns {Promise<string>}
+ */
 export async function getCombinedSvgString(
   w,
   h,

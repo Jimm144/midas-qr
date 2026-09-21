@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { applyGlobalDotGradient } from "../src/js/generator/mask.js";
+import { applyGlobalDotGradient } from "./helpers/svg-doc.js";
 import { frameTextFill } from "../src/js/generator/frame.js";
 import { buildQrStylingOptions } from "../src/js/generator/qr-instance.js";
 import { state } from "../src/js/state";

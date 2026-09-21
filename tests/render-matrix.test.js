@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { applySurroundShape, innerPaddingForMask, maskVerticalShift } from "../src/js/generator/mask.js";
+import { innerPaddingForMask, maskVerticalShift } from "../src/js/generator/mask.js";
+import { applySurroundShape } from "./helpers/svg-doc.js";
 import { framesConfig, BUILT_IN_MASK_PATHS } from "../src/js/frames";
 import { sanitizeGeneratorConfig, state } from "../src/js/state";
 

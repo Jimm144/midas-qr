@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
-  applySurroundShape,
   innerPaddingForMask,
   maskVerticalShift,
   optimizeSvgRects,
   surroundTilePlan,
 } from "../src/js/generator/mask.js";
+import { applySurroundShape } from "./helpers/svg-doc.js";
 import { state } from "../src/js/state";
 
 const USER_MARGIN = 4;

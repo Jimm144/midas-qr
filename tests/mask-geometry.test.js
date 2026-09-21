@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import {
   HEART_PATH_D,
-  applyGlobalDotGradient,
-  applySurroundShape,
   innerPaddingForMask,
   maskVerticalShift,
   safeMaskPathD,
 } from "../src/js/generator/mask.js";
+import { applyGlobalDotGradient, applySurroundShape } from "./helpers/svg-doc.js";
 import { BUILT_IN_MASK_PATHS } from "../src/js/frames";
 import { state } from "../src/js/state";
 import { distanceToPolygon, flattenPath, pointInPolygon } from "./helpers/svg-path.js";

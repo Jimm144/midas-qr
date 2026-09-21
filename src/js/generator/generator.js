@@ -1,25 +1,14 @@
 import { DOM } from "../ui/dom.js";
 import { syncCustomSelect, refreshCustomSelect } from "../ui/components.js";
 import { state, serializableGenerator } from "../state";
-import {
-  applySurroundShapeToDoc,
-  applyCornerStylesToDoc,
-  applyGlobalDotGradientToDoc,
-  needsCornerStylePass,
-  needsGlobalGradientPass,
-  optimizeSvgRects,
-  parseSvgDocument,
-  SVG_NS,
-} from "./mask.js";
-import { getCombinedSvgString, frameTextFill, frameFontSignature } from "./frame.js";
+import { getQrCode, buildQrStylingOptions } from "./qr-instance.js";
+import { renderSvg } from "./svg-pipeline.js";
 import { resolveLayout } from "./layout.js";
 import { framesConfig } from "../frames";
-import { applyBackgroundImageToDoc } from "./background.js";
-import { applyLogoToDoc } from "./logo.js";
+import { frameTextFill, frameFontSignature } from "./frame.js";
 import { setRenderInfo, getRenderInfo } from "./render-info.js";
 import { readabilityHint, modulePixelSize, isTooSmallToScan } from "./readability.js";
 import { ensureQrcodeLoaded } from "./encoder.js";
-import { getQrCode, buildQrStylingOptions } from "./qr-instance.js";
 import { DEBOUNCE_GENERATE_MS } from "../constants.js";
 import { announce } from "../ui/announce.js";
 import { DATA_TYPES } from "./data-types.js";
@@ -330,9 +319,11 @@ function showQrUnavailable(message) {
     DOM.qrReadabilityBadge.classList.add("hidden");
   }
   // The badge no longer reflects the preview: a later render of the same SVG
-  // must re-check instead of being skipped as already validated.
+  // must re-check instead of being skipped as already validated. Bumping the
+  // sequence also invalidates a check that is already rasterizing.
   lastReadabilitySvg = null;
   pendingReadabilitySvg = null;
+  readabilityCheckSeq += 1;
   if (readabilityTimer) {
     clearTimeout(readabilityTimer);
     readabilityTimer = null;
@@ -352,144 +343,6 @@ function showQrUnavailable(message) {
   DOM.btnShareLink.disabled = true;
   DOM.btnSave.textContent = "Save";
   setRenderInfo(null);
-}
-
-/**
- * First direct-child rect that spans the whole canvas. The visible background
- * is the only canvas-sized direct rect; matching by geometry means a library
- * that ever emits a different first rect (or an overlay rect) can never get
- * its `rx` rewritten by mistake.
- */
-function canvasBackgroundRect(parent, w, h) {
-  for (const child of parent.children) {
-    if (child.tagName.toLowerCase() !== "rect") continue;
-    const cw = Number(child.getAttribute("width"));
-    const ch = Number(child.getAttribute("height"));
-    if (Math.abs(cw - w) <= 0.5 && Math.abs(ch - h) <= 0.5) return child;
-  }
-  return null;
-}
-
-/**
- * Largest border radius whose rounded clip still fully contains the QR data
- * square, so rounding can never cut into a module.
- *
- * The clip's corner is a quarter circle of radius r centred at (r, r). Its
- * deepest intrusion along the canvas diagonal is r*(1 - 1/√2), which must stop
- * before the data corner at (margin, margin): r ≤ margin / (1 - 1/√2). The
- * result is also capped at half the canvas minus the quiet zone (never a
- * circle, and never larger than half the data area) so hostile persisted or
- * shared values cannot collapse the shape.
- */
-export function maxSafeRadius(w, h, marginPx) {
-  const side = Math.min(Number(w) || 0, Number(h) || 0);
-  if (!(side > 0)) return 0;
-  const margin = Math.max(0, Math.min(Number(marginPx) || 0, side / 2));
-  const cornerSafe = margin / (1 - Math.SQRT1_2);
-  return Math.max(0, Math.min(side / 2, side / 2 - margin, cornerSafe));
-}
-
-/**
- * Apply border radius to the QR SVG background rect and clip matrix modules.
- * The effective radius is clamped so no data module is ever cut (and the
- * shape can never collapse into a circle), even for an out-of-range value
- * arriving from persisted state or a share link.
- */
-export function applyRadiusToDoc(doc, qrRadius, w, h, userMarginPx = 0) {
-  if (!(Number(qrRadius) > 0)) return false;
-  const root = doc.documentElement;
-  const effectiveRadius = Math.floor(Math.min(Number(qrRadius), maxSafeRadius(w, h, userMarginPx)));
-  if (!(effectiveRadius > 0)) return false;
-
-  // The visible background is the first canvas-sized *direct-child* rect. The
-  // first rect in document order lives inside <defs> (a clip path); rounding
-  // that one leaves the real background square and can distort a module clip.
-  const bgRect = canvasBackgroundRect(root, w, h);
-  if (bgRect) {
-    bgRect.setAttribute("rx", String(effectiveRadius));
-    bgRect.setAttribute("ry", String(effectiveRadius));
-  }
-  let defs = root.querySelector("defs");
-  if (!defs) {
-    defs = doc.createElementNS(SVG_NS, "defs");
-    root.insertBefore(defs, root.firstChild);
-  }
-  const clipId = "qr-canvas-radius-clip";
-  const existingClip = defs.querySelector(`#${clipId}`);
-  if (existingClip) existingClip.remove();
-
-  const clip = doc.createElementNS(SVG_NS, "clipPath");
-  clip.setAttribute("id", clipId);
-  const clipRect = doc.createElementNS(SVG_NS, "rect");
-  clipRect.setAttribute("x", "0");
-  clipRect.setAttribute("y", "0");
-  clipRect.setAttribute("width", String(w));
-  clipRect.setAttribute("height", String(h));
-  clipRect.setAttribute("rx", String(effectiveRadius));
-  clipRect.setAttribute("ry", String(effectiveRadius));
-  clip.appendChild(clipRect);
-  defs.appendChild(clip);
-
-  const contentChildren = Array.from(root.children).filter(
-    (el) => el !== defs && el !== bgRect && el.tagName.toLowerCase() !== "clippath"
-  );
-  if (contentChildren.length > 0) {
-    const clipGroup = doc.createElementNS(SVG_NS, "g");
-    clipGroup.setAttribute("clip-path", `url(#${clipId})`);
-    contentChildren[0].before(clipGroup);
-    contentChildren.forEach((child) => clipGroup.appendChild(child));
-  }
-  return true;
-}
-
-/**
- * Run the SVG post-processing passes (mask, corner styles, gradients,
- * background image) over a single parse/serialize instead of one round-trip
- * per pass. `surround` selects the unframed path, where the mask pass runs
- * here; framed renders already ran it inside getCombinedSvgString.
- */
-export function postProcessSvgWithDoc(
-  svgText,
-  { userMarginPx = 0, w, h, moduleCount = 21, qrMatrix = null, surround, layout = null, deferSerialize = false }
-) {
-  const maskActive = surround && state.generator.maskType !== "none";
-  const radiusActive = surround && state.generator.maskType === "none" && (state.generator.qrRadius || 0) > 0;
-  const needsBackground = Boolean(state.generator.bgImageDataUrl);
-  const needsLogo = Boolean(state.generator.logoDataUrl);
-  const needsDomPass =
-    maskActive ||
-    radiusActive ||
-    needsCornerStylePass() ||
-    needsGlobalGradientPass() ||
-    needsBackground ||
-    needsLogo;
-  if (!surround && !needsDomPass) return { svg: svgText, doc: null };
-  // The string-only module merge runs first so the occasional DOM parse is
-  // handed a much smaller tree (and plain renders never need a parse at all).
-  const optimized = surround ? optimizeSvgRects(svgText) : svgText;
-  if (!needsDomPass) return { svg: optimized, doc: null };
-  const doc = parseSvgDocument(optimized);
-  if (!doc) return { svg: optimized, doc: null };
-  let changed = false;
-  if (maskActive) {
-    changed = applySurroundShapeToDoc(doc, userMarginPx, w, h, moduleCount, qrMatrix, layout) || changed;
-  }
-  if (radiusActive) {
-    changed = applyRadiusToDoc(doc, state.generator.qrRadius, w, h, userMarginPx) || changed;
-  }
-  changed = applyCornerStylesToDoc(doc) || changed;
-  changed = applyGlobalDotGradientToDoc(doc, w, h) || changed;
-  changed = applyBackgroundImageToDoc(doc, w, h) || changed;
-  changed = applyLogoToDoc(doc, w, h) || changed;
-  if (!changed) return { svg: optimized, doc };
-  // Framed renders hand the parsed doc straight to the frame assembly, so the
-  // serialized string would be discarded: skip it and let the caller serialize.
-  if (deferSerialize) return { svg: optimized, doc };
-  return { svg: new XMLSerializer().serializeToString(doc.documentElement), doc };
-}
-
-export function postProcessSvg(svgText, opts) {
-  return postProcessSvgWithDoc(svgText, opts).svg;
 }
 
 const READABILITY_CHECK_DEBOUNCE_MS = 120;
@@ -659,7 +512,11 @@ export function renderOnce(overrides = {}) {
           state.generator[key] = overrides[key];
         }
         renderWaiters.push((result, error) => {
-          Object.assign(state.generator, saved);
+          // Restore only the keys this render still owns: values the user
+          // changed while the render was in flight must survive.
+          for (const key of Object.keys(saved)) {
+            if (state.generator[key] === overrides[key]) state.generator[key] = saved[key];
+          }
           if (error || !result) reject(error || new Error("QR render failed"));
           else resolve(result);
         });
@@ -711,7 +568,11 @@ export function generateQR(immediate = false) {
       // Ensure the qrcode encoder is loaded so module count, module size,
       // margin limits, and payload overflow checks are always accurate.
       if (!(await ensureQrcodeLoaded())) {
-        throw new Error("Required libraries failed to load. Please reload or check your connection.");
+        const msg = "Required libraries failed to load. Please reload or check your connection.";
+        showQrUnavailable(msg);
+        announce("QR generation failed: " + msg);
+        settleRenderWaiters(null, new Error(msg));
+        return;
       }
       let moduleCount = 21;
       let qrMatrix = null;
@@ -774,8 +635,8 @@ export function generateQR(immediate = false) {
         roundSize: state.generator.shapeBody !== "square",
 
         background: state.generator.bgTransparent ? "transparent" : state.generator.bgColor,
-        // Logo is reliably injected directly into SVG DOM in postProcessSvg via applyLogoToDoc,
-        // bypassing QRCodeStyling's fragile internal async loadImage/XHR path.
+        // Logo is reliably injected directly into SVG DOM by the svg pipeline
+        // (applyLogoToDoc), bypassing QRCodeStyling's fragile async loadImage path.
       });
       if (!isCurrent()) return;
       const renderKey = svgRenderKey(w, userMarginPx, moduleCount);
@@ -806,31 +667,11 @@ export function generateQR(immediate = false) {
             rawSvgText = await qrSvgBlob.text();
             lastRawSvg = { instance: qrInstance, key: optionsKey, text: rawSvgText };
           }
-          const processed = postProcessSvgWithDoc(rawSvgText, {
-            userMarginPx,
-            w,
-            h,
-            moduleCount,
-            qrMatrix,
-            surround: true,
-            layout,
-            deferSerialize: state.generator.frameStyle !== "none",
-          });
+          const processed = await renderSvg({ svgText: rawSvgText, layout, moduleCount, qrMatrix });
           renderedSvg = processed.svg;
-          if (state.generator.frameStyle !== "none") {
-            // Hand the frame assembly the same parsed document so it doesn't
-            // serialize and re-parse the QR SVG a second time.
-            renderedSvg = await getCombinedSvgString(
-              w,
-              h,
-              userMarginPx,
-              moduleCount,
-              qrMatrix,
-              processed.svg,
-              processed.doc,
-              layout
-            );
-          }
+          // A superseded render must not publish its memo: a later run with the
+          // same key would reuse this SVG while the preview shows another one.
+          if (!isCurrent()) return;
           lastRenderKey = renderKey;
           lastRenderedSvg = renderedSvg;
         }

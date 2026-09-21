@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { applyCornerStyles } from "../src/js/generator/mask.js";
+import { applyCornerStyles } from "./helpers/svg-doc.js";
 import { state } from "../src/js/state";
 
 let baseSvg = "";

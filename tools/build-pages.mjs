@@ -21,6 +21,7 @@ const FILES = [
   "favicon.svg",
   "icon-192x192.png",
   "icon-512x512.png",
+  "og-image.png",
   "robots.txt",
   "sitemap.xml",
   "sw.js",

@@ -3,7 +3,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1b1b1b">
     <script>(function(){try{var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var bg=localStorage.getItem('qr-bg')||(d?'#1b1b1b':'#f1f1f1');var accent=localStorage.getItem('qr-accent')||(d?'#ebebeb':'#262626');var s=document.documentElement.style;s.setProperty('--bg',bg);s.setProperty('--accent',accent);s.setProperty('--text',d?'#fafafa':'#171717');s.setProperty('--surface',d?'#262626':'#ffffff');s.setProperty('--bg-elevated',d?'#363636':'#ebebeb');s.setProperty('--inset',d?'#212121':'#fafafa');s.setProperty('--border',d?'rgba(255, 255, 255, 0.10)':'rgba(0, 0, 0, 0.08)');s.setProperty('--border-strong',d?'#525252':'#d4d4d4');s.setProperty('--muted',d?'#a3a3a3':'#525252');s.setProperty('--accent-contrast',d?'#171717':'#ffffff');s.setProperty('--accent-soft',d?'rgba(255, 255, 255, 0.06)':'rgba(0, 0, 0, 0.05)');s.setProperty('--danger',d?'#ffc6c1':'#a50c25');s.setProperty('--success',d?'#9fe59b':'#007004');s.setProperty('--warning',d?'#fdcf4f':'#745b00');var tc=document.querySelector('meta[name="theme-color"]');if(tc){tc.setAttribute('content',bg);}}catch(e){}})();</script>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-qNWtRLpDAOEVrZdrWSHP2raUXvzD9jJi2/sboigaIBg=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-kBtsljcOgaRwy3TG4tw2523IByp4Hd3YSX1Pwnv+B3w='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-qNWtRLpDAOEVrZdrWSHP2raUXvzD9jJi2/sboigaIBg=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-cqS1GkgJvSu0FAM7Q8+f3RFXk1kUUrnNIE74rr9oOhA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
     <meta name="description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no data collection.">
     <meta name="color-scheme" content="dark light">
     <meta name="robots" content="index,follow">
@@ -17,15 +17,15 @@
     <meta property="og:site_name" content="Midas QR">
     <meta property="og:title" content="Midas QR — Free Offline QR Code Generator &amp; Scanner">
     <meta property="og:description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no data collection.">
-    <meta property="og:image" content="https://midasqr.is-local.org/icon-512x512.png">
-    <meta property="og:image:width" content="512">
-    <meta property="og:image:height" content="512">
-    <meta property="og:image:alt" content="Midas QR app icon">
+    <meta property="og:image" content="https://midasqr.is-local.org/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Midas QR — free offline QR code generator and scanner, with a violet-to-cyan gradient QR code">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Midas QR — Free Offline QR Code Generator &amp; Scanner">
     <meta name="twitter:description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no data collection.">
-    <meta name="twitter:image" content="https://midasqr.is-local.org/icon-512x512.png">
-    <meta name="twitter:image:alt" content="Midas QR app icon">
+    <meta name="twitter:image" content="https://midasqr.is-local.org/og-image.png">
+    <meta name="twitter:image:alt" content="Midas QR — free offline QR code generator and scanner, with a violet-to-cyan gradient QR code">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=11">
     <link rel="apple-touch-icon" href="icon-192x192.png">
@@ -37,7 +37,7 @@
     <link rel="preload" href="src/lib/jsqr.min.js" as="script">
     <link rel="preload" href="src/lib/qrcode.min.js" as="script">
     <link rel="preload" href="src/fonts/figtree-var-latin.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="src/css/style.min.css?v=116">
+    <link rel="stylesheet" href="src/css/style.min.css?v=117">
     <style>
       :root {
         --bg: #1b1b1b;
@@ -904,7 +904,7 @@
 
     <footer class="site-footer">
       <div class="footer-inner">
-        <span>Midas QR <span class="footer-sep">·</span> GPL-3.0 <span class="footer-sep">·</span> <button id="btn-credits" aria-haspopup="dialog">Credits</button> <span class="footer-sep">·</span> <span id="build-version" title="Service-worker cache version">v202</span></span>
+        <span>Midas QR <span class="footer-sep">·</span> GPL-3.0 <span class="footer-sep">·</span> <button id="btn-credits" aria-haspopup="dialog">Credits</button> <span class="footer-sep">·</span> <span id="build-version" title="Service-worker cache version">v203</span></span>
         <button id="btn-install" class="hidden">Install app</button>
         <span>No data collection</span>
       </div>
@@ -1058,7 +1058,6 @@
           });
       })();
     </script>
-  <!-- __SITE_URL__ REPLACE-ME: the "screenshot" URL below must point to a real 1280x720 app screenshot (screenshot-generator.png) on the production domain before deploy. -->
   <script type="application/ld+json">
     [
       {
@@ -1081,7 +1080,7 @@
           "Offline-first: works without internet",
           "Privacy-first: no data collection or tracking"
         ],
-        "screenshot": "https://midasqr.is-local.org/"
+        "screenshot": "https://midasqr.is-local.org/og-image.png"
       },
       {
         "@context": "https://schema.org",

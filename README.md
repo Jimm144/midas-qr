@@ -22,7 +22,7 @@ A QR code generator and scanner that runs entirely in the browser. It works offl
 
 ## Privacy
 
-No accounts, no analytics, no third-party CDNs, no network requests. Text, Wi-Fi passwords, addresses, logos, and scans stay in the browser; history is stored in local storage.
+No accounts, no cookies, no third-party CDNs. Page views are counted by Open Domains analytics, which sets no cookies and honours Do Not Track — that is the only network request. Text, Wi-Fi passwords, addresses, logos, and scans stay in the browser, and history is stored in local storage.
 
 ## Install
 

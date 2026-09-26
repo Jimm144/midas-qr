@@ -35,7 +35,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-i3e6+6Zpyta0K+VZw2LD87buYZYELWbuRjkhsA6fzPk=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-cqS1GkgJvSu0FAM7Q8+f3RFXk1kUUrnNIE74rr9oOhA=' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-i3e6+6Zpyta0K+VZw2LD87buYZYELWbuRjkhsA6fzPk=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-yT9eFw0MdE2y8FDhzR2VfAaqsFiSP79emTsDgTrZr94=' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         },
         {
           "key": "X-Content-Type-Options",

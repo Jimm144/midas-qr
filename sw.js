@@ -11,7 +11,7 @@
 // the previously cached bundle while the update installs, and the *next*
 // reload is served entirely from the new precache: the installed app updates
 // reliably within two reloads.
-const CACHE_NAME = "midas-qr-v258";
+const CACHE_NAME = "midas-qr-v259";
 // Runtime additions (theme fonts, offline navigation targets) are capped so a
 // long-lived worker cannot grow storage without bound. Precache is never pruned.
 const RUNTIME_CACHE_LIMIT = 60;

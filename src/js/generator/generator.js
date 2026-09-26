@@ -7,7 +7,7 @@ import { resolveLayout } from "./layout.js";
 import { framesConfig } from "../frames";
 import { frameTextFill, frameFontSignature } from "./frame.js";
 import { setRenderInfo, getRenderInfo } from "./render-info.js";
-import { readabilityHintDescriptor, modulePixelSize, isTooSmallToScan } from "./readability.js";
+import { svgDecodes } from "./scannability.js";
 import { ensureQrcodeLoaded } from "./encoder.js";
 import { DEBOUNCE_GENERATE_MS } from "../constants.js";
 import { announce } from "../ui/announce.js";
@@ -26,6 +26,17 @@ function setAriaInvalid(el, invalid) {
 function setWarning(el, show, relatedInput) {
   toggleWarning(el, show);
   if (relatedInput) setAriaInvalid(relatedInput, show);
+}
+
+/**
+ * Mirror the logo ratio into the readout beside its label. A slider shows no
+ * number of its own, and the ratio is the one setting whose exact value the user
+ * needs to read (0.1–0.5, two decimals).
+ */
+export function syncLogoSizeReadout() {
+  if (!DOM.logoSizeValue) return;
+  const value = Number(state.generator.logoSizeProportion);
+  DOM.logoSizeValue.textContent = Number.isFinite(value) ? String(value) : "";
 }
 
 export const compileDataString = (autoGen = true, showWarnings = true) => {
@@ -53,6 +64,7 @@ export function syncConfigToUI() {
   }
   if (DOM.logoMargin) DOM.logoMargin.value = state.generator.imageMargin;
   if (DOM.logoSize) DOM.logoSize.value = state.generator.logoSizeProportion;
+  syncLogoSizeReadout();
   if (DOM.qrFrameText) DOM.qrFrameText.value = state.generator.frameText;
   if (DOM.qrFrameSize) DOM.qrFrameSize.value = String(state.generator.frameTextSize);
   if (DOM.qrFrameTextEnabled) DOM.qrFrameTextEnabled.checked = Boolean(state.generator.frameTextEnabled);
@@ -264,19 +276,25 @@ const READABILITY_ICON_CHECK =
 const READABILITY_ICON_WARN =
   '<svg class="readability-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
 
+// Monotonic token: an async decode that finishes after a newer render must not
+// repaint the badge for a code that is no longer on screen.
+let readabilityCheckId = 0;
+
 /**
- * Deterministic readability verdict for the last rendered code.
+ * Scannability verdict for the last rendered code.
  *
- * This used to rasterise the SVG and jsQR-decode it, which made the badge
- * flip at random: the same config reported "Scannable" or "Low readability"
- * from one render to the next, because jsQR's binarisation is sensitive to
- * anti-aliasing, to stylised module shapes, and to whether the nested logo /
- * background images had finished decoding when the raster was taken. The
- * verdict now comes from the pure advisors in readability.js plus the module
- * size of the current render, so one config always reports one state, the
- * check is synchronous, and no raster work runs on the main thread.
+ * The only criterion is a decode: the published SVG is rasterised at its own
+ * size and run through the same decoder the scanner ships. "Scannable" means
+ * this exact image decodes; "Low Readability" means it does not. No threshold,
+ * colour, logo size or module size takes part — those were guesses that could
+ * disagree with the decoder, which is how a logo that hid nothing used to be
+ * reported as a problem.
+ *
+ * Determinism comes from decoding the published SVG string at a fixed size
+ * (see scannability.js) instead of the live preview DOM, which is what made the
+ * old decode-based badge flip between renders.
  */
-function validateQrReadability() {
+async function validateQrReadability() {
   const badge = DOM.qrReadabilityBadge;
   if (!badge) return;
   const info = getRenderInfo();
@@ -285,31 +303,30 @@ function validateQrReadability() {
     return;
   }
 
-  const modulePx = modulePixelSize(state.generator.width, info.moduleCount);
-  const tooSmall = isTooSmallToScan(state.generator.width, info.moduleCount);
-  // Prefer the specific cause ("corner colors nearly match the background")
-  // over the generic copy, when the config points at one. The metrics matter:
-  // dots, masks and an oversized logo plate are only worth warning about at
-  // the size that actually renders.
-  const hint = readabilityHintDescriptor(state.generator, {
-    modulePx,
-    canvasSize: state.generator.width,
-  });
+  const checkId = ++readabilityCheckId;
+  const decodes = await svgDecodes(info.svg, info.w, info.h, info.moduleCount);
+  if (checkId !== readabilityCheckId) return;
 
-  if (tooSmall || hint) {
-    badge.innerHTML = `${READABILITY_ICON_WARN} ${t("generator.lowReadability")}`;
-    badge.className = "status-warning";
-    badge.title = tooSmall
-      ? t("generator.moduleTooSmall", { size: modulePx })
-      : t("generator.lowReadabilityHint", { hint: t(hint.key, hint.params) });
-  } else {
+  if (decodes === null) {
+    // No canvas or no decoder: report nothing rather than guess a verdict.
+    badge.classList.add("hidden");
+    return;
+  }
+
+  const modulePx = info.moduleCount > 0 ? Math.floor(info.w / info.moduleCount) : 0;
+  if (decodes) {
     badge.innerHTML = `${READABILITY_ICON_CHECK} ${t("generator.scannable")}`;
     badge.className = "status-scannable";
     badge.title = t("generator.scannableOk", {
       count: info.moduleCount,
       size: modulePx,
     });
+    return;
   }
+
+  badge.innerHTML = `${READABILITY_ICON_WARN} ${t("generator.lowReadability")}`;
+  badge.className = "status-warning";
+  badge.title = t("generator.doesNotDecode", { size: modulePx });
 }
 
 // Waiting room for one-off renders. A one-off render hands the pipeline an

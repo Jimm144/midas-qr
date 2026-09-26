@@ -6,6 +6,11 @@ import { applySurroundShape } from "./helpers/svg-doc.js";
 import { innerPaddingForMask, maskVerticalShift, SVG_NS } from "../src/js/generator/mask.js";
 import { DEBOUNCE_GENERATE_MS } from "../src/js/constants.js";
 
+// The verdict is a real decode; stub it here so these tests exercise the badge
+// wiring (and the async stale-guard) without a canvas or the vendored decoder.
+vi.mock("../src/js/generator/scannability.js", () => ({ svgDecodes: vi.fn() }));
+import { svgDecodes } from "../src/js/generator/scannability.js";
+
 const RAW_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="308" height="308">' +
   '<rect x="0" y="0" width="308" height="308" fill="#ffffff"/>' +
@@ -81,6 +86,7 @@ describe("generateQR render economy", () => {
   // generateQR work only.
   beforeEach(async () => {
     vi.useFakeTimers();
+    svgDecodes.mockReset();
     installDom();
     installLibraryStub();
     resetGenerator();
@@ -161,64 +167,68 @@ describe("generateQR render economy", () => {
     expect(stats.updates).toBeGreaterThan(0);
   });
 
-  it("reports readability without rasterising the preview", async () => {
+  it("takes the verdict from the decoder, not the configuration", async () => {
     DOM.qrReadabilityBadge = document.createElement("div");
-    const originalUrl = globalThis.URL;
-    const originalImage = globalThis.Image;
-    const createObjectURL = vi.fn(() => "blob:readability");
-    globalThis.URL = { createObjectURL, revokeObjectURL: vi.fn() };
-    globalThis.Image = class {
-      set src(value) {
-        this._src = value;
-        if (this.onload) this.onload();
-      }
-      get src() {
-        return this._src;
-      }
-    };
-    try {
-      for (let i = 0; i < 3; i++) {
-        state.generator.dataString = `https://example.com/readability-${i}`;
-        generateQR(true);
-        await flushRender();
-      }
-      // The verdict is synchronous: no debounce, no image, no blob URL.
-      expect(createObjectURL).not.toHaveBeenCalled();
-      await vi.advanceTimersByTimeAsync(150);
-      expect(createObjectURL).not.toHaveBeenCalled();
-      expect(DOM.qrReadabilityBadge.className).toBe("status-scannable");
-      expect(DOM.qrReadabilityBadge.textContent).toContain("Scannable");
-    } finally {
-      globalThis.URL = originalUrl;
-      globalThis.Image = originalImage;
-    }
-  });
-
-  it("keeps the readability verdict stable for an unchanged config", async () => {
-    DOM.qrReadabilityBadge = document.createElement("div");
-    state.generator.dataString = "https://example.com/stable";
+    svgDecodes.mockResolvedValue(true);
+    state.generator.dataString = "https://example.com/readability";
     generateQR(true);
     await flushRender();
-    const first = DOM.qrReadabilityBadge.className;
-    // Re-rendering the same config (frame re-layout, locale repaint) must not
-    // flip the badge: the old raster+jsQR check reported a different state for
-    // identical output.
-    for (let i = 0; i < 3; i++) {
-      generateQR(true);
-      await flushRender();
-      expect(DOM.qrReadabilityBadge.className).toBe(first);
-    }
-    // A dot body at 12px modules is a deliberate style, not a defect.
+
+    // Decoded -> scannable, whatever the styling: a dot body is a deliberate
+    // style, and no heuristic is consulted to overrule a successful decode.
     state.generator.shapeBody = "dots";
     generateQR(true);
     await flushRender();
     expect(DOM.qrReadabilityBadge.className).toBe("status-scannable");
-    // Shrink it until the modules are too small for the gaps and the badge
-    // earns its warning.
-    state.generator.width = 100;
+    expect(DOM.qrReadabilityBadge.textContent).toContain("Scannable");
+
+    // The decoder is handed the published SVG, so the verdict describes exactly
+    // the file the preview shows and the download would contain.
+    expect(svgDecodes).toHaveBeenLastCalledWith(
+      expect.stringContaining("<svg"),
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number)
+    );
+
+    // A failed decode is the whole verdict: no cause is guessed at.
+    svgDecodes.mockResolvedValue(false);
     generateQR(true);
     await flushRender();
     expect(DOM.qrReadabilityBadge.className).toBe("status-warning");
+    expect(DOM.qrReadabilityBadge.title).toContain("does not decode");
+
+    // No verdict available (no canvas/decoder): say nothing rather than guess.
+    svgDecodes.mockResolvedValue(null);
+    generateQR(true);
+    await flushRender();
+    expect(DOM.qrReadabilityBadge.classList.contains("hidden")).toBe(true);
+  });
+
+  it("ignores a decode that finishes after a newer render", async () => {
+    DOM.qrReadabilityBadge = document.createElement("div");
+    let resolveSlow;
+    svgDecodes.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSlow = resolve;
+        })
+    );
+    state.generator.dataString = "https://example.com/slow";
+    generateQR(true);
+    await flushRender();
+
+    svgDecodes.mockResolvedValue(true);
+    state.generator.dataString = "https://example.com/fast";
+    generateQR(true);
+    await flushRender();
+    expect(DOM.qrReadabilityBadge.className).toBe("status-scannable");
+
+    // The superseded decode now reports a failure; it must not repaint the
+    // badge for a code that is no longer on screen.
+    resolveSlow(false);
+    await flushRender();
+    expect(DOM.qrReadabilityBadge.className).toBe("status-scannable");
   });
 
   it("skips the library update and raw read for frame-only edits", async () => {

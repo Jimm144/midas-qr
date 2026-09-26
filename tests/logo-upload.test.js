@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("../src/js/generator/generator.js", () => ({
   generateQR: vi.fn(),
   syncConfigToUI: vi.fn(),
+  syncLogoSizeReadout: vi.fn(),
 }));
 
 async function setup() {
@@ -63,6 +64,29 @@ describe("logo upload keyboard access", () => {
     expect(size.disabled).toBe(false);
     expect(margin.disabled).toBe(false);
     expect(margin.hasAttribute("aria-disabled")).toBe(false);
+  });
+
+  it("writes the slider ratio into state and refreshes the readout", async () => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    document.body.innerHTML = "";
+    const { DOM } = await import("../src/js/ui/dom.js");
+    const { state } = await import("../src/js/state");
+    const size = document.createElement("input");
+    size.type = "range";
+    size.value = "0.4";
+    DOM.logoSize = size;
+    DOM.logoSizeValue = document.createElement("span");
+    const { initLogoControls } = await import("../src/js/generator/controls.js");
+    const { syncLogoSizeReadout } = await import("../src/js/generator/generator.js");
+    initLogoControls();
+
+    size.value = "0.35";
+    size.dispatchEvent(new Event("input"));
+
+    expect(state.generator.logoSizeProportion).toBe(0.35);
+    // A slider shows no number of its own, so the readout has to be refreshed.
+    expect(syncLogoSizeReadout).toHaveBeenCalled();
   });
 });
 

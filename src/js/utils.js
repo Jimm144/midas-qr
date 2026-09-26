@@ -162,6 +162,36 @@ export function normalizeHexColor(value) {
 }
 
 /**
+ * WCAG relative luminance (0 = black, 1 = white), or null for invalid input.
+ * @param {unknown} value
+ * @returns {number | null}
+ */
+export function relativeLuminance(value) {
+  const hex = normalizeHexColor(value);
+  if (hex === null) return null;
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const channel = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * WCAG contrast ratio (1 = identical, 21 = black on white), or null when either
+ * colour can't be parsed. Used to pick a visible colour against a background,
+ * not to judge scannability.
+ * @param {unknown} a
+ * @param {unknown} b
+ * @returns {number | null}
+ */
+export function contrastRatio(a, b) {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  if (la === null || lb === null) return null;
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/**
  * Allow-list guard: true when `value` is one of `allowed`. The `value is T`
  * predicate narrows string unions for callers that validate enums against the
  * constants.js tables.

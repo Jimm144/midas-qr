@@ -127,6 +127,7 @@ export function initDOM(root = document) {
     logoUrl: byId("logo-url"),
     logoOptions: byId("logo-options"),
     logoSize: byId("logo-size"),
+    logoSizeValue: byId("logo-size-value"),
     logoMargin: byId("logo-margin"),
     btnClearLogo: byId("btn-clear-logo"),
     logoWarning: byId("logo-warning"),

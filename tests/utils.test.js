@@ -8,12 +8,29 @@ import {
   copyTextToClipboard,
   HEX_COLOR_RE,
   isSafeBitmapDataUrl,
+  relativeLuminance,
+  contrastRatio,
   formatHistoryTimestamp,
   snapshot,
   truncateSafe,
 } from "../src/js/utils.js";
 import { loadVendoredScript } from "../src/js/lib-loader.js";
 import { getIntlLocale } from "../src/js/i18n.js";
+
+describe("colour contrast helpers", () => {
+  it("computes WCAG relative luminance, or null for bad input", () => {
+    expect(relativeLuminance("#000000")).toBe(0);
+    expect(relativeLuminance("#ffffff")).toBeCloseTo(1, 5);
+    expect(relativeLuminance("nope")).toBeNull();
+    expect(relativeLuminance(null)).toBeNull();
+  });
+
+  it("computes the WCAG contrast ratio", () => {
+    expect(contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 5);
+    expect(contrastRatio("#123456", "#123456")).toBeCloseTo(1, 5);
+    expect(contrastRatio("#000000", "nope")).toBeNull();
+  });
+});
 
 describe("HEX_COLOR_RE", () => {
   it("accepts six-digit hex and rejects everything else", () => {

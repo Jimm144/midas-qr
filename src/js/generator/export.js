@@ -9,6 +9,7 @@ import { t } from "../i18n.js";
 import { flashButton } from "../ui/components.js";
 import { getRenderInfo } from "./render-info.js";
 import { ensureQrcodeLoaded, generateUnicodeQR } from "./encoder.js";
+import { drawSvgBitmap, svgIntrinsicSize } from "./svg-raster.js";
 
 const ALLOWED_EXPORT_FORMATS = new Set(["png", "svg", "jpeg", "webp", "txt"]);
 // Largest canvas edge the exporter will allocate. Preview sizes are clamped to
@@ -18,30 +19,6 @@ const MAX_EXPORT_DIMENSION = 8192;
 
 function normalizeFormat(value) {
   return ALLOWED_EXPORT_FORMATS.has(value) ? value : "png";
-}
-
-/** Read a numeric width/height from an <svg> open tag (percentages ignored). */
-function readSvgLength(tag, name) {
-  const match = new RegExp(`\\b${name}\\s*=\\s*["']([^"']+)["']`, "i").exec(tag);
-  if (!match) return null;
-  const value = parseFloat(match[1]);
-  if (!Number.isFinite(value) || value <= 0 || match[1].includes("%")) return null;
-  return value;
-}
-
-/**
- * Intrinsic pixel size of a rendered SVG, taken from its own root tag. The
- * rendered string and its size travel together, so a pending re-render can
- * never make the export use one config's pixels for another's artwork.
- */
-function svgIntrinsicSize(svg) {
-  if (typeof svg !== "string") return null;
-  const root = /<svg\b[^>]*>/i.exec(svg);
-  if (!root) return null;
-  const w = readSvgLength(root[0], "width");
-  const h = readSvgLength(root[0], "height");
-  if (!w || !h) return null;
-  return { w, h };
 }
 
 /**
@@ -69,59 +46,6 @@ function exportDimensions(info) {
     outH = out.h;
   }
   return { w: Math.max(1, Math.round(outW)), h: Math.max(1, Math.round(outH)) };
-}
-
-/** Rasterize an SVG string into a blob, optionally compositing a background. */
-/**
- * Draw an SVG blob onto the 2D context. The <img> path is preferred because it
- * is the only SVG decode Chromium supports (createImageBitmap rejects SVG blobs
- * there, which used to log a warning on every export); createImageBitmap stays
- * as a fallback for engines where the image load fails.
- */
-async function drawSvgBitmap(ctx, svgBlob, w, h) {
-  try {
-    const svgUrl = URL.createObjectURL(svgBlob);
-    try {
-      await new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          // An SVG with no intrinsic size decodes to 0x0; drawing it would
-          // silently produce a blank export, so make it fail loudly instead.
-          if (!img.naturalWidth || !img.naturalHeight) {
-            reject(new Error("SVG has no intrinsic size"));
-            return;
-          }
-          ctx.drawImage(img, 0, 0, w, h);
-          resolve();
-        };
-        img.onerror = () => reject(new Error("Export failed"));
-        img.src = svgUrl;
-      });
-    } finally {
-      URL.revokeObjectURL(svgUrl);
-    }
-    return true;
-  } catch (imgError) {
-    if (typeof createImageBitmap !== "function") {
-      console.warn("[QR] SVG decode failed:", imgError);
-      return false;
-    }
-    let bitmap = null;
-    try {
-      bitmap = await createImageBitmap(svgBlob);
-      if (!bitmap || !bitmap.width || !bitmap.height) {
-        console.warn("[QR] SVG decode failed (empty bitmap):", imgError);
-        return false;
-      }
-      ctx.drawImage(bitmap, 0, 0, w, h);
-      return true;
-    } catch (bitmapError) {
-      console.warn("[QR] SVG decode failed:", imgError, bitmapError);
-      return false;
-    } finally {
-      if (bitmap && bitmap.close) bitmap.close();
-    }
-  }
 }
 
 async function rasterizeSvg(svgStr, ext, w, h, backgroundFill) {

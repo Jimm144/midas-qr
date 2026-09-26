@@ -36,7 +36,7 @@ import {
   sanitizeMaskPath,
   truncateSafe,
 } from "./utils.js";
-import { contrastRatio } from "./generator/readability.js";
+import { contrastRatio } from "./utils.js";
 
 /** JSON-safe value captured from one DOM input. */
 export type GeneratorFieldValue = string | number | boolean;

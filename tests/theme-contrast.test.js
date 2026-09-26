@@ -85,17 +85,16 @@ describe("theme text contrast (WCAG AA)", () => {
     expect(contrastRatio(variant.danger, sectionHex)).toBeGreaterThanOrEqual(WCAG_AA);
   });
 
-  it.each(variants)("%s: status badge copy stays 4.5:1 on its own tint", (_label, variant) => {
-    // Mirrors #qr-readability-badge / #scan-status-badge: text is
-    // color-mix(status 80%, text) on color-mix(status 14%, transparent)
-    // composited over the card surface.
-    for (const status of ["danger", "success", "warning"]) {
-      const tint = mixHex(variant[status], 0.14, variant.surface);
-      const copy = mixHex(variant[status], 0.8, variant.text);
-      expect(
-        contrastRatio(copy, tint),
-        `${status} badge: ${contrastRatio(copy, tint).toFixed(2)}`
-      ).toBeGreaterThanOrEqual(WCAG_AA);
-    }
+  it.each(variants)("%s: the error badge's copy stays 4.5:1 on its tint", (_label, variant) => {
+    // The only tinted status badge left: #scan-status-badge.status-error paints
+    // color-mix(danger 80%, text) on color-mix(danger 14%, transparent)
+    // composited over the card surface. The detected and readability badges are
+    // neutral chrome, covered by the text/muted-on-surface checks above.
+    const tint = mixHex(variant.danger, 0.14, variant.surface);
+    const copy = mixHex(variant.danger, 0.8, variant.text);
+    expect(
+      contrastRatio(copy, tint),
+      `error badge: ${contrastRatio(copy, tint).toFixed(2)}`
+    ).toBeGreaterThanOrEqual(WCAG_AA);
   });
 });

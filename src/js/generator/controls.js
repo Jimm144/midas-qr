@@ -29,7 +29,7 @@ import { cpActiveTarget, updateFromHex, updateColorState, paintSwatch } from "..
 import { announce } from "../ui/announce.js";
 import { t } from "../i18n.js";
 import { flashButton } from "../ui/components.js";
-import { generateQR } from "./generator.js";
+import { generateQR, syncLogoSizeReadout } from "./generator.js";
 import { renderGeneratorHistory, saveGeneratorHistory } from "./history.js";
 import { encodeStateToUrl } from "../share.js";
 import { frameTextFill } from "./frame.js";
@@ -408,6 +408,7 @@ export function initLogoControls() {
     const val = parseFloat(e.target.value) || DEFAULT_LOGO_SIZE;
     // A logo larger than ~half the code hurts scannability even at ECC H.
     state.generator.logoSizeProportion = Math.min(0.5, Math.max(0.1, val));
+    syncLogoSizeReadout();
     generateQR();
   });
 

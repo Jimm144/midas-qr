@@ -66,8 +66,7 @@ export function applyLogoToDoc(doc, w, h) {
   //
   // The margin is capped so the plate can never swallow the code: at the
   // maximum 100px margin with a small logo the plate would cover most of the
-  // canvas and nothing would scan. Half the canvas is the ceiling; the badge
-  // reports the same threshold via readability.logoPlateTooBig.
+  // canvas and nothing would scan. Half the canvas is the ceiling.
   const canvasSide = Math.min(w, h);
   const pad = Math.max(0, Math.min(margin, (canvasSide * 0.5 - size) / 2));
   if (pad > 0) {

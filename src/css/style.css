@@ -979,6 +979,22 @@ input[type="range"]::-moz-range-thumb {
   background: var(--accent);
   box-shadow: var(--shadow-low);
 }
+/* The logo ratio slider shares a row with the 40px image-margin field, so match
+   its height to keep the two columns aligned. Coarse pointers keep their taller
+   touch target. */
+#logo-size {
+  height: 40px;
+}
+@media (pointer: coarse) {
+  #logo-size {
+    height: 44px;
+  }
+}
+/* Readout beside the ratio label: tabular figures so it doesn't jitter. */
+#logo-size-value {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
 
 
 select {
@@ -3711,9 +3727,11 @@ label[for="logo-file"],
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 #scan-status-badge.status-detected {
-  background: color-mix(in srgb, var(--success) 14%, transparent);
-  color: color-mix(in srgb, var(--success) 80%, var(--text));
-  border-color: color-mix(in srgb, var(--success) 50%, transparent);
+  /* Neutral chrome, matching the readability badge: the word "Detected" is the
+     state, so the copy brightens to full text rather than tinting the badge
+     green (which read as a second accent fighting the theme). Only scanning
+     (accent) and error (danger) are tinted. */
+  color: var(--text);
 }
 #scan-status-badge.status-error {
   background: color-mix(in srgb, var(--danger) 14%, transparent);

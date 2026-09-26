@@ -219,7 +219,6 @@ describe("color target isolation", () => {
     DOM.colorFrameText = document.createElement("input");
     DOM.colorFrameTextColor = document.createElement("input");
     DOM.colorDotsText = document.createElement("input");
-    DOM.colorFgMediumText = document.createElement("input");
     DOM.qrCanvasContainer = document.createElement("div");
     DOM.qrPreviewContainer = document.createElement("div");
     DOM.emptyStateQr = document.createElement("div");
@@ -536,7 +535,6 @@ describe("gradient control staleness", () => {
 
     DOM.colorDotsText = document.createElement("input");
     DOM.colorBgText = document.createElement("input");
-    DOM.colorFgMediumText = document.createElement("input");
     DOM.colorCornersSquareText = document.createElement("input");
     DOM.colorCornersDotText = document.createElement("input");
     DOM.qrCanvasContainer = document.createElement("div");
@@ -569,10 +567,6 @@ describe("gradient control staleness", () => {
   });
 
   it("never clobbers the corner colors/gradients when the foreground changes", () => {
-    // Regression: in Medium mode the foreground used to propagate into both
-    // corners (they were hidden there); now they have their own controls.
-    DOM.complexitySelect = document.createElement("select");
-    DOM.complexitySelect.innerHTML = '<option value="medium" selected>Medium</option>';
     state.generator.cornersSquareColor = "#112233";
     state.generator.cornersDotColor = "#445566";
     state.generator.cornersSquareGradient = { type: "linear", rotation: 30, color2: "#778899" };

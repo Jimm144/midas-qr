@@ -370,8 +370,10 @@ describe("decodeStateFromUrl — hostile input fuzzing", () => {
   it("rejects overlong dataString and maskCustom payloads", () => {
     decode("?data=" + "A".repeat(5000));
     expect(state.generator.dataString).toBe("previous-data");
+    // An unusable mask path is dropped rather than kept: the link defines the
+    // whole design, so a rejected value must not leave the recipient's own.
     decode("?maskPath=" + "M".repeat(5000));
-    expect(state.generator.maskCustom).toBe("M0 0");
+    expect(state.generator.maskCustom).toBe("");
     decode("?data=short");
     expect(state.generator.dataString).toBe("short");
   });
@@ -541,12 +543,26 @@ describe("decodeStateFromUrl — hostile input fuzzing", () => {
 
   it("rejects hostile frame color params", () => {
     decode("?frameColor=red&frameTextColor=url(x)");
-    expect(state.generator.frameColor).toBe("#123456");
-    expect(state.generator.frameTextColor).toBe("#654321");
+    // Rejected values fall back to the "follow the dots/frame colour" default
+    // instead of keeping whatever the recipient had configured.
+    expect(state.generator.frameColor).toBe("");
+    expect(state.generator.frameTextColor).toBe("");
     resetGenerator();
     decode("?frameColor=%23AABBCC&frameTextColor=%23ddeeff");
     expect(state.generator.frameColor).toBe("#AABBCC");
     expect(state.generator.frameTextColor).toBe("#ddeeff");
+  });
+
+  it("clears a recipient's logo, background image and transparency the link does not specify", () => {
+    state.generator.logoDataUrl = "data:image/png;base64,BBBB";
+    state.generator.logoFilename = "mine.png";
+    state.generator.bgImageDataUrl = "data:image/png;base64,CCCC";
+    state.generator.bgTransparent = true;
+    decode("?w=400&data=shared");
+    expect(state.generator.logoDataUrl).toBeNull();
+    expect(state.generator.logoFilename).toBeNull();
+    expect(state.generator.bgImageDataUrl).toBeNull();
+    expect(state.generator.bgTransparent).toBe(false);
   });
 
   it("never lets any hostile query push the state outside its clamped ranges", () => {

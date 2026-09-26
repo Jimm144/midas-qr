@@ -1,6 +1,7 @@
 import { DOM } from "../ui/dom.js";
 import { getSafeHttpUrl } from "./history.js";
 import { openModal } from "../ui/modal.js";
+import { t } from "../i18n.js";
 import { SCAN_COOLDOWN_MS } from "../constants.js";
 
 let lastScanResult = "";
@@ -49,7 +50,7 @@ function clearVisitAction() {
   DOM.btnVisitResult.classList.add("opacity-50", "pointer-events-none");
   DOM.btnVisitResult.setAttribute("tabindex", "-1");
   DOM.btnVisitResult.href = "#";
-  DOM.btnVisitResult.textContent = "Open";
+  DOM.btnVisitResult.textContent = t("common.open");
 }
 
 /**
@@ -66,14 +67,14 @@ export function renderScanResult(text) {
 
   const safeUrl = getSafeHttpUrl(text);
   if (safeUrl) {
-    setVisitAction(safeUrl, "Visit URL");
+    setVisitAction(safeUrl, t("scanner.visitUrl"));
   } else if (/^tel:/i.test(text)) {
-    setVisitAction(text, "Call");
+    setVisitAction(text, t("scanner.call"));
   } else if (/^mailto:/i.test(text)) {
-    setVisitAction(text, "Email");
+    setVisitAction(text, t("scanner.email"));
   } else if (/^SMSTO:/i.test(text)) {
     const parts = text.split(":");
-    setVisitAction(`sms:${parts[1] || ""}`, "SMS");
+    setVisitAction(`sms:${parts[1] || ""}`, t("data.sms"));
   } else {
     clearVisitAction();
   }
@@ -92,7 +93,7 @@ export function clearScannerOutput() {
   DOM.btnSaveScan.disabled = true;
   clearVisitAction();
   DOM.emptyStateScan.classList.remove("hidden");
-  setScanStatus("idle", "Idle");
+  setScanStatus("idle", t("scanner.statusIdle"));
 }
 
 function flashScanSuccess() {
@@ -112,12 +113,13 @@ export function handleScanError() {
   DOM.btnCopyResult.disabled = true;
   DOM.btnSaveScan.disabled = true;
   clearVisitAction();
-  setScanStatus("error", "Error");
+  setScanStatus("error", t("scanner.error"));
+  const message = t("scanner.decodeFailed");
   if (DOM.errorModal) {
-    DOM.errorModalMsg.textContent = "Couldn't decode this image";
+    DOM.errorModalMsg.textContent = message;
     openModal(DOM.errorModal, document.body);
   } else {
-    alert("Couldn't decode this image");
+    alert(message);
   }
 }
 
@@ -130,7 +132,7 @@ export function handleScanSuccess(text) {
   lastScanSuccessTime = now;
 
   renderScanResult(text);
-  setScanStatus("detected", "Detected");
+  setScanStatus("detected", t("scanner.detected"));
   flashScanSuccess();
 
   if (navigator.vibrate) {

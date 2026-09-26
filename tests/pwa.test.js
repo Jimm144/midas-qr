@@ -97,6 +97,24 @@ describe("service worker update banner", () => {
     expect(mock.registration.update).toHaveBeenCalled();
   });
 
+  it("re-checks for an update on the hourly timer", async () => {
+    // Spying on setInterval rather than faking timers: boot() awaits a
+    // real-timer tick, so fake timers deadlock the module under test.
+    const intervalSpy = vi.spyOn(globalThis, "setInterval");
+    try {
+      const mock = makeSwMock();
+      await boot(mock);
+      const hourly = intervalSpy.mock.calls.find(([, delay]) => delay === 60 * 60 * 1000);
+      expect(hourly, "an hourly update interval must be scheduled").toBeTruthy();
+
+      const callsBefore = mock.registration.update.mock.calls.length;
+      hourly[0]();
+      expect(mock.registration.update.mock.calls.length).toBeGreaterThan(callsBefore);
+    } finally {
+      intervalSpy.mockRestore();
+    }
+  });
+
   it("shows the banner when a new worker installs over an existing controller", async () => {
     const mock = makeSwMock();
     await boot(mock, { hadController: true });

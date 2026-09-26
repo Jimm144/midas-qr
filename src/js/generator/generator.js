@@ -1,5 +1,5 @@
 import { DOM } from "../ui/dom.js";
-import { syncCustomSelect, refreshCustomSelect } from "../ui/components.js";
+import { syncCustomSelect } from "../ui/components.js";
 import { state, serializableGenerator } from "../state";
 import { getQrCode, buildQrStylingOptions } from "./qr-instance.js";
 import { renderSvg } from "./svg-pipeline.js";
@@ -7,34 +7,12 @@ import { resolveLayout } from "./layout.js";
 import { framesConfig } from "../frames";
 import { frameTextFill, frameFontSignature } from "./frame.js";
 import { setRenderInfo, getRenderInfo } from "./render-info.js";
-import { readabilityHint, modulePixelSize, isTooSmallToScan } from "./readability.js";
+import { readabilityHintDescriptor, modulePixelSize, isTooSmallToScan } from "./readability.js";
 import { ensureQrcodeLoaded } from "./encoder.js";
 import { DEBOUNCE_GENERATE_MS } from "../constants.js";
 import { announce } from "../ui/announce.js";
+import { t } from "../i18n.js";
 import { DATA_TYPES } from "./data-types.js";
-
-// Quality presets exposed by the Parameters dropdown; values are pixel sizes
-// and must mirror the <option> values of #qr-size-medium in index.html.
-const QUALITY_PRESETS = [300, 600, 1000, 1500, 2000];
-const nearestQualityPreset = (width) =>
-  QUALITY_PRESETS.reduce(
-    (best, p) => (Math.abs(p - width) < Math.abs(best - width) ? p : best),
-    QUALITY_PRESETS[0]
-  );
-
-/**
- * Reflect a width in the Medium Size select. The select is preset-only, so a
- * width outside the list shows the nearest preset (picking that preset then
- * applies it); the custom width itself is never changed here.
- */
-export function syncMediumSizeSelect(width) {
-  const select = DOM.qrSizeMedium;
-  if (!select) return;
-  const customOption = select.querySelector("option[data-custom-size]");
-  if (customOption) customOption.remove();
-  select.value = String(nearestQualityPreset(width));
-  refreshCustomSelect(select);
-}
 
 function toggleWarning(el, show) {
   if (!el) return;
@@ -93,13 +71,6 @@ export function syncConfigToUI() {
     const frameTextSwatch = document.getElementById("swatch-bg-frame-text");
     if (frameTextSwatch) frameTextSwatch.style.background = frameTextPaint;
   }
-  if (DOM.qrSizeMedium) {
-    syncMediumSizeSelect(state.generator.width);
-  }
-  if (DOM.logoSizeMedium) {
-    DOM.logoSizeMedium.value = Math.round(state.generator.logoSizeProportion * 100);
-  }
-
   const selects = [
     { el: DOM.qrEcc, val: state.generator.ecc },
     { el: DOM.qrShapeBody, val: state.generator.shapeBody },
@@ -148,54 +119,6 @@ export function syncConfigToUI() {
     generationQueuedDuringSync = false;
     generateQR();
   }
-}
-
-function applyComplexityMode() {
-  const mode = DOM.complexitySelect.value;
-  // CSS gates a few containers (e.g. the custom mask path) on the mode.
-  document.body.dataset.complexity = mode;
-  DOM.configPanel.classList.toggle("hidden", mode === "simple");
-  DOM.qrCanvasContainer.parentElement.classList.toggle("aspect-square", mode === "simple");
-  if (mode === "simple") return;
-  const isFull = mode === "full";
-  const isMedium = mode === "medium";
-  document.querySelectorAll(".full-only").forEach((el) => {
-    if (isFull) el.classList.remove("hidden");
-    else el.classList.add("hidden");
-  });
-  if (isMedium) {
-    // Medium only offers preset sizes, so a width that matches none gets its
-    // own "Custom (Npx)" entry: the select stays truthful without discarding
-    // the user's size the way snapping to the nearest preset would.
-    DOM.mediumColorFg.classList.remove("hidden");
-    DOM.mediumColorFg.classList.add("flex");
-    DOM.mediumParameters.classList.remove("hidden");
-    DOM.mediumParameters.classList.add("flex");
-    DOM.mediumLogoOptions.classList.remove("hidden");
-    DOM.mediumLogoOptions.classList.add("flex");
-    if (DOM.qrSizeMedium) {
-      syncMediumSizeSelect(state.generator.width);
-    }
-    if (DOM.logoSizeMedium) {
-      DOM.logoSizeMedium.value = String(
-        Math.max(10, Math.min(50, Math.round(state.generator.logoSizeProportion * 100)))
-      );
-    }
-  } else {
-    DOM.mediumColorFg.classList.add("hidden");
-    DOM.mediumColorFg.classList.remove("flex");
-    DOM.mediumParameters.classList.add("hidden");
-    DOM.mediumParameters.classList.remove("flex");
-    DOM.mediumLogoOptions.classList.add("hidden");
-    DOM.mediumLogoOptions.classList.remove("flex");
-  }
-}
-
-export function initGenerator() {
-  if (DOM.complexitySelect) {
-    DOM.complexitySelect.addEventListener("change", () => applyComplexityMode());
-  }
-  applyComplexityMode(); // Init
 }
 
 /**
@@ -302,10 +225,10 @@ let suppressGenerationDuringSync = false;
 let generationQueuedDuringSync = false;
 let generationSeq = 0;
 
-function setLoadingStep(step) {
+function setLoadingStep(key = "generator.generating", params = {}) {
   if (!DOM.qrLoading) return;
   const label = DOM.qrLoading.querySelector("span");
-  if (label) label.textContent = step || "Generating…";
+  if (label) label.textContent = t(key, params);
 }
 
 /** Hide the preview and park the generator UI in the QR-unavailable state. */
@@ -317,16 +240,6 @@ function showQrUnavailable(message) {
   }
   if (DOM.qrReadabilityBadge) {
     DOM.qrReadabilityBadge.classList.add("hidden");
-  }
-  // The badge no longer reflects the preview: a later render of the same SVG
-  // must re-check instead of being skipped as already validated. Bumping the
-  // sequence also invalidates a check that is already rasterizing.
-  lastReadabilitySvg = null;
-  pendingReadabilitySvg = null;
-  readabilityCheckSeq += 1;
-  if (readabilityTimer) {
-    clearTimeout(readabilityTimer);
-    readabilityTimer = null;
   }
   if (message) {
     DOM.emptyStateQr.textContent = message;
@@ -341,135 +254,61 @@ function showQrUnavailable(message) {
   DOM.btnCopy.disabled = true;
   DOM.btnSave.disabled = true;
   DOM.btnShareLink.disabled = true;
-  DOM.btnSave.textContent = "Save";
+  DOM.btnSave.textContent = t("common.save");
   setRenderInfo(null);
 }
-
-const READABILITY_CHECK_DEBOUNCE_MS = 120;
-let readabilityCheckSeq = 0;
 
 // Official Lucide artwork (lucide-static, ISC) for the two readability states.
 const READABILITY_ICON_CHECK =
   '<svg class="readability-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 const READABILITY_ICON_WARN =
   '<svg class="readability-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
-let readabilityTimer = null;
-let pendingReadabilitySvg = null;
-let lastReadabilitySvg = null;
 
 /**
- * Coalesce badge checks: rapid renders (slider drags, a typing burst) used to
- * rasterise and jsQR-decode every intermediate SVG on the main thread. Only
- * the latest SVG is checked, after a short quiet period, and a repeat of the
- * already-checked SVG is skipped entirely.
+ * Deterministic readability verdict for the last rendered code.
+ *
+ * This used to rasterise the SVG and jsQR-decode it, which made the badge
+ * flip at random: the same config reported "Scannable" or "Low readability"
+ * from one render to the next, because jsQR's binarisation is sensitive to
+ * anti-aliasing, to stylised module shapes, and to whether the nested logo /
+ * background images had finished decoding when the raster was taken. The
+ * verdict now comes from the pure advisors in readability.js plus the module
+ * size of the current render, so one config always reports one state, the
+ * check is synchronous, and no raster work runs on the main thread.
  */
-function validateQrReadability(svgString) {
-  if (!DOM.qrReadabilityBadge) return;
-  if (svgString === lastReadabilitySvg || svgString === pendingReadabilitySvg) return;
-  pendingReadabilitySvg = svgString;
-  if (readabilityTimer) clearTimeout(readabilityTimer);
-  readabilityTimer = setTimeout(() => {
-    readabilityTimer = null;
-    const svg = pendingReadabilitySvg;
-    pendingReadabilitySvg = null;
-    runReadabilityCheck(svg).catch(() => {});
-  }, READABILITY_CHECK_DEBOUNCE_MS);
-}
+function validateQrReadability() {
+  const badge = DOM.qrReadabilityBadge;
+  if (!badge) return;
+  const info = getRenderInfo();
+  if (!info) {
+    badge.classList.add("hidden");
+    return;
+  }
 
-async function runReadabilityCheck(svgString) {
-  if (!DOM.qrReadabilityBadge) return;
-  lastReadabilitySvg = svgString;
-  const seq = ++readabilityCheckSeq;
-  try {
-    // The ring hugs the code and the silhouette fill can drown coloured finder
-    // patterns (masks have no internal quiet zone), so jsQR cannot find the
-    // code's edges with them present. Hide both before scanning: the modules,
-    // colours, shapes and logo stay exactly what the user sees. A single
-    // injected rule avoids parsing/removing/re-serializing the whole tree.
-    if (
-      state.generator.maskType !== "none" &&
-      (svgString.includes('class="qr-surround"') || svgString.includes('class="qr-mask-bg"'))
-    ) {
-      const close = svgString.lastIndexOf("</svg>");
-      if (close !== -1) {
-        svgString =
-          svgString.slice(0, close) +
-          "<style>.qr-surround,.qr-mask-bg{display:none}</style>" +
-          svgString.slice(close);
-      }
-    }
-    const img = new Image();
-    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
-      img.src = url;
+  const modulePx = modulePixelSize(state.generator.width, info.moduleCount);
+  const tooSmall = isTooSmallToScan(state.generator.width, info.moduleCount);
+  // Prefer the specific cause ("corner colors nearly match the background")
+  // over the generic copy, when the config points at one. The metrics matter:
+  // dots, masks and an oversized logo plate are only worth warning about at
+  // the size that actually renders.
+  const hint = readabilityHintDescriptor(state.generator, {
+    modulePx,
+    canvasSize: state.generator.width,
+  });
+
+  if (tooSmall || hint) {
+    badge.innerHTML = `${READABILITY_ICON_WARN} ${t("generator.lowReadability")}`;
+    badge.className = "status-warning";
+    badge.title = tooSmall
+      ? t("generator.moduleTooSmall", { size: modulePx })
+      : t("generator.lowReadabilityHint", { hint: t(hint.key, hint.params) });
+  } else {
+    badge.innerHTML = `${READABILITY_ICON_CHECK} ${t("generator.scannable")}`;
+    badge.className = "status-scannable";
+    badge.title = t("generator.scannableOk", {
+      count: info.moduleCount,
+      size: modulePx,
     });
-    URL.revokeObjectURL(url);
-    if (seq !== readabilityCheckSeq) return;
-
-    // 640px gives jsQR enough resolution to binarize colourful module sets
-    // (blue/red/purple) that a 300px raster fumbles.
-    const scanW = 640;
-    const scanH = Math.round(scanW * (img.naturalHeight / (img.naturalWidth || 1))) || scanW;
-    // Masks crop the canvas to the silhouette, so the decoded bitmap has no
-    // quiet zone and jsQR fails even for perfectly scannable codes. Pad the
-    // raster with a background-coloured border — the margin a real camera sees.
-    const pad = Math.max(12, Math.round(scanW * 0.08));
-    const canvas = document.createElement("canvas");
-    canvas.width = scanW + pad * 2;
-    canvas.height = scanH + pad * 2;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return;
-    const bgColor = state.generator.bgTransparent ? "#ffffff" : state.generator.bgColor || "#ffffff";
-    const padFill = /^#[0-9a-f]{6}$/i.test(bgColor) ? bgColor : "#ffffff";
-    const paintAndScan = (fill) => {
-      ctx.fillStyle = fill;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, pad, pad, scanW, scanH);
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      return jsQR(imgData.data, canvas.width, canvas.height, { inversionAttempts: "attemptBoth" });
-    };
-
-    let code = null;
-    if (typeof jsQR !== "undefined") {
-      code = paintAndScan(padFill);
-      if (!code) {
-        // Inverted code (light modules on a dark card): the quiet zone must be
-        // the background polarity, so try the opposite pad before giving up.
-        code = paintAndScan(padFill.toLowerCase() === "#ffffff" ? "#000000" : "#ffffff");
-      }
-    }
-
-    if (seq !== readabilityCheckSeq) return;
-
-    // A code can decode in the 640px test raster and still be unscannable in
-    // practice if it renders with tiny modules (e.g. a 50px size). Treat that
-    // as low readability so the badge never promises more than the output is.
-    const info = getRenderInfo();
-    const modulePx = info ? modulePixelSize(state.generator.width, info.moduleCount) : 0;
-    const tooSmall = info ? isTooSmallToScan(state.generator.width, info.moduleCount) : false;
-
-    DOM.qrReadabilityBadge.classList.remove("hidden");
-    if (code && !tooSmall) {
-      DOM.qrReadabilityBadge.innerHTML = `${READABILITY_ICON_CHECK} Scannable`;
-      DOM.qrReadabilityBadge.className = "status-scannable";
-      DOM.qrReadabilityBadge.title = `Scannable (decoded: "${code.data.slice(0, 50)}")`;
-    } else {
-      DOM.qrReadabilityBadge.innerHTML = `${READABILITY_ICON_WARN} Low Readability`;
-      DOM.qrReadabilityBadge.className = "status-warning";
-      // Prefer the specific cause ("corner colors nearly match the background")
-      // over the generic copy, when the config points at one.
-      const hint = readabilityHint(state.generator);
-      DOM.qrReadabilityBadge.title = tooSmall
-        ? `Low readability. Each module is only ${modulePx}px at this size — increase the size for reliable scanning.`
-        : hint
-          ? `Low readability. ${hint}`
-          : "The QR code may be difficult for scanners to decode with current colors or shapes.";
-    }
-  } catch (err) {
-    console.warn("[QR] readability validation failed:", err);
   }
 }
 
@@ -487,10 +326,28 @@ function settleRenderWaiters(result, error) {
   }
 }
 
+/**
+ * Wait for the live render to finish. Bounded: if `isGenerating` never clears
+ * (a library that never settles its promise), callers like the batch export
+ * would otherwise spin a timer forever and keep their button disabled for the
+ * life of the page.
+ */
+const RENDER_IDLE_TIMEOUT_MS = 20000;
+
 function whenIdle() {
   if (!isGenerating) return Promise.resolve();
   return new Promise((resolve) => {
-    const tick = () => (isGenerating ? setTimeout(tick, 15) : resolve());
+    const deadline = Date.now() + RENDER_IDLE_TIMEOUT_MS;
+    const tick = () => {
+      if (!isGenerating) return resolve();
+      if (Date.now() >= deadline) {
+        console.warn("[QR] live render did not settle; continuing without waiting.");
+        // Clear the flag so the next render is not blocked behind the corpse.
+        isGenerating = false;
+        return resolve();
+      }
+      setTimeout(tick, 15);
+    };
     tick();
   });
 }
@@ -551,9 +408,7 @@ export function generateQR(immediate = false) {
       const text = state.generator.dataString;
       const hasData = text && text.trim() !== "";
       if (!hasData || !state.generator.isValid) {
-        showQrUnavailable(
-          hasData ? "Fix the highlighted field to generate a QR code" : "Enter content to generate a QR code"
-        );
+        showQrUnavailable(t(hasData ? "generator.fixField" : "generator.enterContent"));
         settleRenderWaiters(null, new Error("QR config is not renderable"));
         return;
       }
@@ -568,9 +423,9 @@ export function generateQR(immediate = false) {
       // Ensure the qrcode encoder is loaded so module count, module size,
       // margin limits, and payload overflow checks are always accurate.
       if (!(await ensureQrcodeLoaded())) {
-        const msg = "Required libraries failed to load. Please reload or check your connection.";
+        const msg = t("generator.librariesFailed");
         showQrUnavailable(msg);
-        announce("QR generation failed: " + msg);
+        announce(t("generator.failed", { message: msg }));
         settleRenderWaiters(null, new Error(msg));
         return;
       }
@@ -598,9 +453,9 @@ export function generateQR(immediate = false) {
         if (e && String(e).toLowerCase().includes("overflow")) {
           // Oversized payload: surface the friendly copy, fail every waiting
           // one-off render (renderOnce must always settle) and stop this pass.
-          const msg = `Data is too large for ECC level ${state.generator.ecc}. Try lowering error correction or shortening text.`;
+          const msg = t("generator.dataTooLarge", { ecc: state.generator.ecc });
           showQrUnavailable(msg);
-          announce("QR generation failed: " + msg);
+          announce(t("generator.failed", { message: msg }));
           settleRenderWaiters(null, new Error(msg, { cause: e }));
           return;
         }
@@ -612,11 +467,13 @@ export function generateQR(immediate = false) {
       if (DOM.marginWarning) {
         if (userMarginPx > dataW / 2) {
           const maxAllowed = Math.floor(dataW / 2);
-          DOM.marginWarning.textContent = `Margin is too large — the maximum is ${maxAllowed}`;
+          DOM.marginWarning.textContent = t("generator.marginTooLarge", { max: maxAllowed });
           DOM.marginWarning.classList.remove("hidden");
           // No valid render: exports must not silently fall back to the last
-          // successful config, and a queued change still needs to run.
-          showQrUnavailable(null);
+          // successful config, and a queued change still needs to run. The
+          // message matters — showQrUnavailable hides the canvas, so without
+          // one the preview area goes blank with no explanation.
+          showQrUnavailable(t("generator.marginTooLarge", { max: maxAllowed }));
           settleRenderWaiters(null, new Error("Margin is too large to render"));
           return;
         } else {
@@ -658,10 +515,10 @@ export function generateQR(immediate = false) {
             qrInstance.update(options);
             setLoadingStep(
               state.generator.frameStyle !== "none"
-                ? "Applying mask & frame…"
+                ? "generator.applyingFrame"
                 : state.generator.maskType !== "none"
-                  ? "Applying mask…"
-                  : "Rendering QR…"
+                  ? "generator.applyingMask"
+                  : "generator.rendering"
             );
             const qrSvgBlob = await qrInstance.getRawData("svg");
             rawSvgText = await qrSvgBlob.text();
@@ -684,10 +541,10 @@ export function generateQR(immediate = false) {
         // same friendly copy as the eager layout check.
         const raw = e && e.message ? String(e.message) : "";
         const msg = /overflow|too (?:long|large)|code length/i.test(raw)
-          ? `Data is too large for ECC level ${state.generator.ecc}. Try lowering error correction or shortening text.`
-          : raw || "Data too large for this QR configuration";
+          ? t("generator.dataTooLarge", { ecc: state.generator.ecc })
+          : t("generator.dataTooLargeGeneric");
         showQrUnavailable(msg);
-        announce("QR generation failed: " + msg);
+        announce(t("generator.failed", { message: msg }));
         settleRenderWaiters(null, e instanceof Error ? e : new Error(msg));
         return;
       }
@@ -712,7 +569,7 @@ export function generateQR(immediate = false) {
         // Framed output is taller than wide, and forcing width:100% used to
         // squish it and cut the bottom frame/text.
         svgEl.setAttribute("role", "img");
-        svgEl.setAttribute("aria-label", "Generated QR code");
+        svgEl.setAttribute("aria-label", t("preview.generated"));
       }
       if (DOM.qrLoading) {
         setLoadingStep();
@@ -728,13 +585,13 @@ export function generateQR(immediate = false) {
       DOM.btnShareLink.disabled = false;
       if (isCurrentConfigSaved()) {
         DOM.btnSave.disabled = true;
-        DOM.btnSave.textContent = "Saved";
+        DOM.btnSave.textContent = t("controls.saved");
       } else {
         DOM.btnSave.disabled = false;
-        DOM.btnSave.textContent = "Save";
+        DOM.btnSave.textContent = t("common.save");
       }
-      announce("QR code generated and ready for download or copy");
-      validateQrReadability(renderedSvg);
+      announce(t("generator.ready"));
+      validateQrReadability();
     } finally {
       isGenerating = false;
       if (pendingGeneration) {

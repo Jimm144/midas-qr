@@ -13,6 +13,7 @@ import {
   truncateSafe,
 } from "../src/js/utils.js";
 import { loadVendoredScript } from "../src/js/lib-loader.js";
+import { getIntlLocale } from "../src/js/i18n.js";
 
 describe("HEX_COLOR_RE", () => {
   it("accepts six-digit hex and rejects everything else", () => {
@@ -41,10 +42,13 @@ describe("formatHistoryTimestamp", () => {
   it("composes locale time with a short date", () => {
     const ts = new Date(2026, 8, 16, 14, 32).getTime();
     const d = new Date(ts);
+    // The formatter follows the active UI language, not the runtime default,
+    // so the expectation has to ask for the same locale.
+    const locale = getIntlLocale();
     const expected =
-      d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+      d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) +
       " " +
-      d.toLocaleDateString([], { month: "short", day: "numeric" });
+      d.toLocaleDateString(locale, { month: "short", day: "numeric" });
     expect(formatHistoryTimestamp(ts)).toBe(expected);
   });
 });

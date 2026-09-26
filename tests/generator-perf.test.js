@@ -161,7 +161,7 @@ describe("generateQR render economy", () => {
     expect(stats.updates).toBeGreaterThan(0);
   });
 
-  it("coalesces readability rasterisations for rapid renders", async () => {
+  it("reports readability without rasterising the preview", async () => {
     DOM.qrReadabilityBadge = document.createElement("div");
     const originalUrl = globalThis.URL;
     const originalImage = globalThis.Image;
@@ -182,13 +182,43 @@ describe("generateQR render economy", () => {
         generateQR(true);
         await flushRender();
       }
+      // The verdict is synchronous: no debounce, no image, no blob URL.
       expect(createObjectURL).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(150);
-      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      expect(createObjectURL).not.toHaveBeenCalled();
+      expect(DOM.qrReadabilityBadge.className).toBe("status-scannable");
+      expect(DOM.qrReadabilityBadge.textContent).toContain("Scannable");
     } finally {
       globalThis.URL = originalUrl;
       globalThis.Image = originalImage;
     }
+  });
+
+  it("keeps the readability verdict stable for an unchanged config", async () => {
+    DOM.qrReadabilityBadge = document.createElement("div");
+    state.generator.dataString = "https://example.com/stable";
+    generateQR(true);
+    await flushRender();
+    const first = DOM.qrReadabilityBadge.className;
+    // Re-rendering the same config (frame re-layout, locale repaint) must not
+    // flip the badge: the old raster+jsQR check reported a different state for
+    // identical output.
+    for (let i = 0; i < 3; i++) {
+      generateQR(true);
+      await flushRender();
+      expect(DOM.qrReadabilityBadge.className).toBe(first);
+    }
+    // A dot body at 12px modules is a deliberate style, not a defect.
+    state.generator.shapeBody = "dots";
+    generateQR(true);
+    await flushRender();
+    expect(DOM.qrReadabilityBadge.className).toBe("status-scannable");
+    // Shrink it until the modules are too small for the gaps and the badge
+    // earns its warning.
+    state.generator.width = 100;
+    generateQR(true);
+    await flushRender();
+    expect(DOM.qrReadabilityBadge.className).toBe("status-warning");
   });
 
   it("skips the library update and raw read for frame-only edits", async () => {

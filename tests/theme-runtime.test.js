@@ -50,6 +50,23 @@ describe("theme runtime", () => {
     expect(localStorage.getItem("qr-bg")).toBe("#F0F0E0");
   });
 
+  it("persists the resolved token map for the pre-paint bootstrap", async () => {
+    // The inline bootstrap in <head> replays this before the first paint. It only
+    // knows qr-bg/qr-accent plus the OS dark/light preference, so without the
+    // full map a non-default theme — or light mode chosen on a dark-preferring
+    // OS — painted the wrong tokens until the bundle ran.
+    const { runtime, themeSelect, modeSelect } = await setup();
+    themeSelect.value = "matcha";
+    modeSelect.value = "light";
+    runtime.applyTheme();
+
+    const stored = JSON.parse(localStorage.getItem("qr-theme-tokens"));
+    expect(stored["--bg"]).toBe("#F0F0E0");
+    expect(stored["--accent"]).toBe("#3E481D");
+    expect(stored["--surface"]).toBeTruthy();
+    expect(localStorage.getItem("qr-scheme")).toBe("light");
+  });
+
   it("keeps Y2K's square pill radius", async () => {
     const { runtime, themeSelect } = await setup();
     themeSelect.value = "y2k";

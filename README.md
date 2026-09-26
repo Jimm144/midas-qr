@@ -18,7 +18,7 @@ A QR code generator and scanner that runs entirely in the browser. It works offl
 
 **Scanning** — webcam or image upload, decoded in a Web Worker. Results can be opened, copied, or searched, and scanned codes are kept in a local history.
 
-**App** — seven color themes (light, dark, or auto); Simple, Medium, and Full layout modes; share links that reopen the current configuration; keyboard shortcuts (`Ctrl/⌘+S` save, `Ctrl/⌘+C` copy, `R` re-render); installable PWA that works offline.
+**App** — seven color themes (light, dark, or auto); share links that reopen the current configuration; keyboard shortcuts (`Ctrl/⌘+S` save, `Ctrl/⌘+C` copy, `R` re-render); installable PWA that works offline.
 
 ## Privacy
 

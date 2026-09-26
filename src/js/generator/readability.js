@@ -19,6 +19,16 @@ export const MIN_QR_CONTRAST = 3;
 export const MIN_RENDER_MODULE_PX = 4;
 
 /**
+ * Module edge below which dot modules lose the gaps scanners rely on. Dots are
+ * a deliberate style choice and scan reliably at normal sizes, so the advice
+ * only appears once the modules get small.
+ */
+export const MIN_DOT_MODULE_PX = 6;
+
+/** Quiet zone (in output pixels) a masked code needs to stay scannable. */
+export const MIN_QUIET_ZONE_PX = 4;
+
+/**
  * Pixel size of one QR module for a requested output width (0 when unknown).
  * @param {unknown} width
  * @param {unknown} moduleCount
@@ -103,53 +113,109 @@ function isLowContrast(color, bg) {
  *   cornersDotColor?: string,
  *   logoDataUrl?: string | null,
  *   logoSizeProportion?: number,
+ *   imageMargin?: number,
+ *   margin?: number,
  *   maskType?: string,
  *   shapeBody?: string,
  * }} ReadabilityConfig
  */
 
 /**
- * Return an actionable tip for a QR that failed the post-render scan, or ""
- * when no specific cause is detectable. Ordered by how strongly each factor
- * tends to hurt scannability.
- * @param {ReadabilityConfig | null | undefined} config
- * @returns {string}
+ * Everything the advice needs about the current render. Both fields are
+ * optional: without them the size-dependent advice stays quiet rather than
+ * guessing, which keeps this module free of state and DOM imports.
+ * @typedef {{ modulePx?: number, canvasSize?: number }} ReadabilityMetrics
  */
-export function readabilityHint(config) {
-  if (!config) return "";
+
+/**
+ * The first factor that threatens scannability, or null when the config looks
+ * fine. Advice that only matters at a given size (dots, masks, an oversized
+ * logo plate) stays quiet unless the caller passes metrics.
+ *
+ * Callers read `.key` and translate it; the descriptor holds no copy, so the
+ * wording lives in the catalogs only.
+ *
+ * @param {ReadabilityConfig | null | undefined} config
+ * @param {ReadabilityMetrics} [metrics]
+ * @returns {{ key: string, params?: Record<string, string> } | null}
+ */
+export function readabilityHintDescriptor(config, metrics = {}) {
+  if (!config) return null;
+  const modulePx = Number(metrics.modulePx) || 0;
+  const canvasSize = Number(metrics.canvasSize) || 0;
   const bg = typeof config.bgColor === "string" ? config.bgColor : "#FFFFFF";
   if (config.bgImageDataUrl) {
-    return "The background image is reducing contrast — try a solid background color.";
+    return { key: "readability.backgroundImage" };
   }
-  if (
-    config.logoDataUrl &&
-    typeof config.logoSizeProportion === "number" &&
-    config.logoSizeProportion >= 0.35
-  ) {
-    return "The logo covers a large part of the code — reduce the logo size or use a shorter message.";
+  const logoSize = typeof config.logoSizeProportion === "number" ? config.logoSizeProportion : null;
+  const imageMargin = Number(config.imageMargin) || 0;
+  // The plate is the logo square grown by the margin on every side; past half
+  // the code it is not a logo any more, it is a hole.
+  if (config.logoDataUrl && canvasSize > 0 && logoSize !== null) {
+    const plate = logoSize * canvasSize + 2 * imageMargin;
+    if (plate / canvasSize >= 0.5) {
+      return { key: "readability.logoPlateTooBig" };
+    }
+  }
+  // A big logo hurts whether or not it has a plate, so that advice comes first
+  // and the plate note below only covers the mid-size case.
+  if (config.logoDataUrl && logoSize !== null && logoSize >= 0.35) {
+    return { key: "readability.largeLogo" };
+  }
+  // Without a margin no backing plate is drawn, so the logo's own transparent
+  // pixels expose the modules underneath. Small logos barely cover anything;
+  // warn once the overlay is big enough to matter.
+  if (config.logoDataUrl && imageMargin <= 0 && logoSize !== null && logoSize >= 0.2) {
+    return { key: "readability.logoNoPlate" };
   }
   if (config.bgTransparent) {
-    return "The background is transparent — scanners need contrast against the surface behind the code.";
+    return { key: "readability.transparent" };
   }
+  /** @type {[string, unknown][]} */
   const pairs = [
-    ["body", config.dotsColor],
-    ["corner squares", config.cornersSquareColor],
-    ["corner dots", config.cornersDotColor],
+    ["readability.lowContrastBody", config.dotsColor],
+    ["readability.lowContrastCornersSquare", config.cornersSquareColor],
+    ["readability.lowContrastCornersDot", config.cornersDotColor],
   ];
-  for (const [label, color] of pairs) {
+  for (const [key, color] of pairs) {
     // Equality is the extreme case of low contrast (ratio 1) and the most
     // actionable to report: "body matches the background".
     if (typeof color === "string" && isLowContrast(color, bg)) {
-      return `Low contrast between the ${label} (${color}) and the background (${bg}) — increase the difference.`;
+      return { key, params: { color, background: bg } };
     }
   }
-  // Dot modules never touch, so the module boundaries a scanner needs to lock
-  // onto disappear — the most common reason an otherwise clean design fails.
-  if (config.shapeBody === "dots" || config.shapeBody === "dot") {
-    return "The dot body style leaves gaps between modules — square or rounded modules scan more reliably.";
+  // Dot modules never touch, so the boundaries a scanner locks onto thin out.
+  // That only bites when the modules are already small: at a normal output size
+  // a dot body scans fine, and warning on every dot choice made the badge cry
+  // wolf over a deliberate design decision.
+  if (
+    (config.shapeBody === "dots" || config.shapeBody === "dot") &&
+    modulePx > 0 &&
+    modulePx < MIN_DOT_MODULE_PX
+  ) {
+    return { key: "readability.dotBody" };
   }
-  if (typeof config.maskType === "string" && config.maskType !== "none") {
-    return "The overall shape mask removes the quiet zone — increase the margin or pick a less aggressive mask.";
+  // A mask crops the code into the silhouette, so its quiet zone is whatever
+  // margin is left over. With the default margin there is one; with a thin one
+  // the code needs it back.
+  if (
+    typeof config.maskType === "string" &&
+    config.maskType !== "none" &&
+    typeof config.margin === "number" &&
+    config.margin < MIN_QUIET_ZONE_PX
+  ) {
+    return { key: "readability.mask" };
   }
-  return "";
+  return null;
+}
+
+/**
+ * The hint key for a config, or "" when nothing is wrong. Convenience wrapper
+ * for callers and tests that only care which advice applies.
+ * @param {ReadabilityConfig | null | undefined} config
+ * @param {ReadabilityMetrics} [metrics]
+ * @returns {string}
+ */
+export function readabilityHintKey(config, metrics) {
+  return readabilityHintDescriptor(config, metrics)?.key || "";
 }

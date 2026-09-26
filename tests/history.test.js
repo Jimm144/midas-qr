@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { formatHistoryTimestamp } from "../src/js/utils.js";
 
 async function freshHistoryModule({ mockGenerator = false } = {}) {
   vi.resetModules();
@@ -28,6 +29,7 @@ async function freshHistoryModule({ mockGenerator = false } = {}) {
     initGeneratorHistory: historyMod.initGeneratorHistory,
     renderGeneratorHistory: historyMod.renderGeneratorHistory,
     saveGeneratorHistory: historyMod.saveGeneratorHistory,
+    historyEntryName: historyMod.historyEntryName,
   };
 }
 
@@ -243,13 +245,19 @@ describe("generator history — batch export", () => {
     }));
     const downloads = [];
     const exportCalls = [];
-    vi.doMock("../src/js/generator/export.js", () => ({
-      exportRenderedBlob: vi.fn(async (...args) => {
-        exportCalls.push(args);
-        return new Blob(["png"], { type: "image/png" });
-      }),
-      downloadBlob: vi.fn((_blob, name) => downloads.push(name)),
-    }));
+    // Partial mock: keep the real sanitizeFilename (the download names under
+    // test depend on it) and stub only the two side-effecting exports.
+    vi.doMock("../src/js/generator/export.js", async (importOriginal) => {
+      const actual = await importOriginal();
+      return {
+        ...actual,
+        exportRenderedBlob: vi.fn(async (...args) => {
+          exportCalls.push(args);
+          return new Blob(["png"], { type: "image/png" });
+        }),
+        downloadBlob: vi.fn((_blob, name) => downloads.push(name)),
+      };
+    });
     const dom = await import("../src/js/ui/dom.js");
     const stateMod = await import("../src/js/state");
     const historyMod = await import("../src/js/generator/history.js");
@@ -266,6 +274,7 @@ describe("generator history — batch export", () => {
       DOM: dom.DOM,
       state: stateMod.state,
       initGeneratorHistory: historyMod.initGeneratorHistory,
+      renderGeneratorHistory: historyMod.renderGeneratorHistory,
       downloads,
       exportCalls,
       capturedOverrides: () => capturedOverrides,
@@ -288,7 +297,8 @@ describe("generator history — batch export", () => {
 
     await vi.advanceTimersByTimeAsync(2000);
 
-    expect(downloads).toEqual(["qr-code-3.png", "qr-code-2.png", "qr-code-1.png"]);
+    // Files are named after the entry, not "qr-code-<timestamp>".
+    expect(downloads).toEqual(["third.png", "second.png", "first.png"]);
     expect(DOM.btnExportHistoryAll.disabled).toBe(false);
     expect(DOM.btnExportHistoryAll.textContent).toBe("Download all");
   });
@@ -308,8 +318,39 @@ describe("generator history — batch export", () => {
     state.generatorHistory.splice(1, 1);
     await vi.advanceTimersByTimeAsync(2000);
 
-    expect(downloads).toEqual(["qr-code-3.png", "qr-code-1.png"]);
+    expect(downloads).toEqual(["third.png", "first.png"]);
     expect(DOM.btnExportHistoryAll.textContent).toBe("Download all");
+  });
+
+  it("keeps the row's export icon while the file is prepared", async () => {
+    const {
+      DOM,
+      state,
+      initGeneratorHistory,
+      renderGeneratorHistory,
+      downloads,
+    } = await freshBatchHistoryModule();
+    state.generatorHistory = [
+      { id: 1, time: "t", config: { dataType: "url", dataString: "https://example.com" } },
+    ];
+    initGeneratorHistory();
+    renderGeneratorHistory();
+
+    const btn = DOM.generatorHistoryList.querySelector(".btn-export-history");
+    expect(btn.querySelector("svg")).not.toBeNull();
+    btn.click();
+    expect(btn.disabled).toBe(true);
+    expect(btn.getAttribute("aria-busy")).toBe("true");
+    // The busy state used to write a "…" into the button, which replaced the
+    // icon and left an empty square behind.
+    expect(btn.querySelector("svg")).not.toBeNull();
+
+    await vi.advanceTimersByTimeAsync(10);
+
+    expect(btn.disabled).toBe(false);
+    expect(btn.hasAttribute("aria-busy")).toBe(false);
+    expect(btn.querySelector("svg")).not.toBeNull();
+    expect(downloads).toEqual(["example-com.png"]);
   });
 
   it("renders the saved config without overwriting the live one", async () => {
@@ -428,12 +469,12 @@ describe("generator history — Save button re-evaluation", () => {
   });
 });
 
-describe("generator history — design preview", () => {
+describe("generator history — design thumbnail", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
   });
 
-  it("shows the saved colours and shapes on a fixed tile", async () => {
+  it("draws four shapes in the saved colours", async () => {
     const { DOM, state, renderGeneratorHistory } = await freshHistoryModule();
     state.generatorHistory = [
       {
@@ -445,9 +486,9 @@ describe("generator history — design preview", () => {
           dotsColor: "#405060",
           cornersSquareColor: "#708090",
           cornersDotColor: "#a0b0c0",
-          shapeBody: "dot",
-          shapeOuter: "dot",
-          shapeInner: "dot",
+          shapeBody: "square",
+          shapeOuter: "square",
+          shapeInner: "square",
           maskType: "star",
         },
       },
@@ -461,9 +502,12 @@ describe("generator history — design preview", () => {
     for (const color of ["#102030", "#405060", "#708090", "#a0b0c0"]) {
       expect(markup).toContain(color);
     }
-    // The tile keeps its own shape: the overall mask never clips it.
+    // Four shapes: three finders (outer + inner block each) and one body block.
+    // The 3x3 dot grid that made the old tile read as a face is gone.
+    expect(svg.querySelectorAll("rect")).toHaveLength(8);
+    expect(svg.querySelectorAll("circle")).toHaveLength(0);
+    // The tile keeps its own square: the overall mask never clips it.
     expect(svg.querySelector("clipPath")).toBeNull();
-    expect(svg.querySelectorAll("circle").length).toBeGreaterThan(3);
   });
 
   it("uses gradients and drops the background rect when transparent", async () => {
@@ -486,6 +530,120 @@ describe("generator history — design preview", () => {
     expect(svg.querySelector('rect[width="24"]')).toBeNull();
     expect(svg.querySelector("linearGradient")).not.toBeNull();
     expect(svg.innerHTML).toContain("url(#hp");
+  });
+
+  it("draws dot shapes as circles", async () => {
+    const { DOM, state, renderGeneratorHistory } = await freshHistoryModule();
+    state.generatorHistory = [
+      {
+        id: 1,
+        time: "t",
+        config: { dataString: "x", shapeBody: "dot", shapeOuter: "dot", shapeInner: "dot" },
+      },
+    ];
+    renderGeneratorHistory();
+
+    const svg = DOM.generatorHistoryList.querySelector(".history-preview svg");
+    // Three finders (2 circles each) plus the body block.
+    expect(svg.querySelectorAll("circle")).toHaveLength(7);
+    expect(svg.querySelectorAll("rect")).toHaveLength(1);
+  });
+});
+
+describe("generator history — entry names", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("names a URL entry after its host and types it as a URL", async () => {
+    const { historyEntryName } = await freshHistoryModule();
+    const { title, meta } = historyEntryName({
+      dataType: "url",
+      dataString: "https://www.example.com/docs/page?x=1",
+      fields: { "input-url": "https://www.example.com/docs/page?x=1" },
+    });
+    expect(title).toBe("example.com");
+    expect(meta).toBe("URL");
+  });
+
+  it("names Wi-Fi, contact and event entries after their payload", async () => {
+    const { historyEntryName } = await freshHistoryModule();
+    expect(
+      historyEntryName({ dataType: "wifi", fields: { "wifi-ssid": "Home network" } })
+    ).toEqual({ title: "Home network", meta: "Wi-Fi" });
+    expect(
+      historyEntryName({ dataType: "contact", fields: { "contact-first": "Ada", "contact-last": "L" } })
+    ).toEqual({ title: "Ada", meta: "Contact" });
+    expect(historyEntryName({ dataType: "event", fields: { "event-title": "Launch" } })).toEqual({
+      title: "Launch",
+      meta: "Event",
+    });
+  });
+
+  it("falls back to the payload, then to a placeholder", async () => {
+    const { historyEntryName } = await freshHistoryModule();
+    expect(historyEntryName({ dataType: "text", dataString: "just some words" }).title).toBe(
+      "just some words"
+    );
+    // A payload-only URL entry still names itself after the host.
+    expect(
+      historyEntryName({ dataType: "url", dataString: "https://example.com/deep/link" }).title
+    ).toBe("example.com");
+    expect(historyEntryName({ dataType: "text", dataString: "" }).title).toBe("EMPTY");
+    expect(historyEntryName(null).meta).toBe("Text");
+  });
+
+  it("keeps a long payload to one clipped line", async () => {
+    const { historyEntryName } = await freshHistoryModule();
+    const long = "x".repeat(200);
+    const { title } = historyEntryName({ dataType: "text", dataString: long });
+    expect(title.length).toBeLessThanOrEqual(40);
+    expect(title.endsWith("…")).toBe(true);
+  });
+
+  it("renders the name with the type and time underneath", async () => {
+    const { DOM, state, renderGeneratorHistory } = await freshHistoryModule();
+    const id = new Date(2026, 0, 1, 12, 0).getTime();
+    state.generatorHistory = [
+      {
+        id,
+        // Stored in some other locale's format; the row must re-derive it.
+        time: "stale-time-string",
+        config: { dataType: "url", dataString: "https://example.com", fields: { "input-url": "https://example.com" } },
+      },
+    ];
+    renderGeneratorHistory();
+
+    const lines = DOM.generatorHistoryList.querySelectorAll(".history-item p");
+    expect(lines[0].textContent).toBe("example.com");
+    expect(lines[1].textContent).toBe(`URL · ${formatHistoryTimestamp(id)}`);
+    // The raw payload stays reachable on hover.
+    expect(lines[0].getAttribute("title")).toBe("https://example.com");
+  });
+
+  it("falls back to the stored time string when the entry has no id", async () => {
+    const { DOM, state, renderGeneratorHistory } = await freshHistoryModule();
+    state.generatorHistory = [
+      { id: null, time: "yesterday", config: { dataType: "text", dataString: "hello" } },
+    ];
+    renderGeneratorHistory();
+    expect(DOM.generatorHistoryList.querySelectorAll(".history-item p")[1].textContent).toContain(
+      "yesterday"
+    );
+  });
+
+  it("escapes a hostile payload in the row", async () => {
+    const { DOM, state, renderGeneratorHistory } = await freshHistoryModule();
+    state.generatorHistory = [
+      {
+        id: 1,
+        time: "t",
+        config: { dataType: "text", dataString: '<img src=x onerror="alert(1)">', fields: {} },
+      },
+    ];
+    renderGeneratorHistory();
+    expect(DOM.generatorHistoryList.querySelector("img")).toBeNull();
+    expect(DOM.generatorHistoryList.textContent).toContain("<img src=x");
   });
 });
 

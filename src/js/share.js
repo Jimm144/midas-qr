@@ -1,5 +1,6 @@
 // @ts-check
 import { state, DEFAULT_GENERATOR, repairLowVisibilityColors } from "./state";
+import { t } from "./i18n.js";
 import { FRAME_FONTS, FRAME_TEXT_DEFAULTS } from "./frames";
 import { DOM } from "./ui/dom.js";
 import {
@@ -244,7 +245,7 @@ function confirmRemoteLogo(url) {
     return false;
   }
   try {
-    return window.confirm(`This shared link loads a logo from ${host}. Load it?`);
+    return window.confirm(t("share.remoteLogoConfirm", { host }));
   } catch {
     return false;
   }
@@ -293,7 +294,9 @@ export function decodeStateFromUrl() {
     if (dots) g.dotsColor = dots;
     const bg = hexGet("bg");
     if (bg) g.bgColor = bg;
-    if (get("bgT") === "1") g.bgTransparent = true;
+    // A shared link is the whole design: absent means "off", so the
+    // recipient's own transparency/logo/background never bleed into it.
+    g.bgTransparent = get("bgT") === "1";
     const cs = hexGet("cs");
     if (cs) g.cornersSquareColor = cs;
     const cd = hexGet("cd");
@@ -308,9 +311,8 @@ export function decodeStateFromUrl() {
     const mask = get("mask");
     if (isAllowedValue(ALLOWED_MASKS, mask)) g.maskType = mask;
     const maskPath = get("maskPath");
-    if (maskPath !== null && maskPath.length <= MAX_MASK_PATH_LEN) {
-      g.maskCustom = sanitizeMaskPath(maskPath);
-    }
+    g.maskCustom =
+      maskPath !== null && maskPath.length <= MAX_MASK_PATH_LEN ? sanitizeMaskPath(maskPath) : "";
 
     const frame = get("frame");
     if (isAllowedValue(ALLOWED_FRAMES, frame)) g.frameStyle = frame;
@@ -336,23 +338,28 @@ export function decodeStateFromUrl() {
       g.frameTextEnabled = FRAME_TEXT_DEFAULTS[g.frameStyle] !== false;
     const frameFont = get("font");
     if (isAllowedValue(ALLOWED_FRAME_FONTS, frameFont)) g.frameFont = frameFont;
+    // Same rule as the gradients: an absent frame colour means "follow the
+    // dots/frame colour", not "keep whatever the recipient had".
     const frameColor = get("frameColor");
-    if (frameColor && HEX_COLOR_RE.test(frameColor)) g.frameColor = frameColor;
+    g.frameColor = frameColor && HEX_COLOR_RE.test(frameColor) ? frameColor : "";
     const frameTextColor = get("frameTextColor");
-    if (frameTextColor && HEX_COLOR_RE.test(frameTextColor)) g.frameTextColor = frameTextColor;
+    g.frameTextColor = frameTextColor && HEX_COLOR_RE.test(frameTextColor) ? frameTextColor : "";
     for (const [key, field] of FRAME_GRADIENT_PARAMS) {
       g[field] = decodeGradient(get(key)) || null;
     }
 
     const logo = get("logo");
     // Bitmap data: URLs are inert and apply directly; a remote http(s) logo is
-    // only applied after the recipient explicitly confirms the fetch.
-    if (logo !== null && isSafeImageSource(logo, { maxLength: SHARE_LOGO_MAX_BYTES, allowHttp: true })) {
-      if (isSafeBitmapDataUrl(logo) || confirmRemoteLogo(logo)) {
-        g.logoDataUrl = logo;
-        g.logoFilename = "url";
-      }
-    }
+    // only applied after the recipient explicitly confirms the fetch. An absent
+    // (or rejected) logo clears the recipient's own: the link is the design.
+    const sharedLogo =
+      logo !== null &&
+      isSafeImageSource(logo, { maxLength: SHARE_LOGO_MAX_BYTES, allowHttp: true }) &&
+      (isSafeBitmapDataUrl(logo) || confirmRemoteLogo(logo))
+        ? logo
+        : null;
+    g.logoDataUrl = sharedLogo;
+    g.logoFilename = sharedLogo ? "url" : null;
     const logoSize = get("logoSize");
     if (logoSize !== null) {
       g.logoSizeProportion = clampParam(logoSize, BOUNDS.logoSizeProportion, g.logoSizeProportion);
@@ -362,9 +369,8 @@ export function decodeStateFromUrl() {
       g.imageMargin = clampParam(logoMargin, BOUNDS.imageMargin, g.imageMargin);
     }
     const bgImage = get("bgImage");
-    if (bgImage !== null && isSafeImageSource(bgImage, { maxLength: SHARE_LOGO_MAX_BYTES })) {
-      g.bgImageDataUrl = bgImage;
-    }
+    g.bgImageDataUrl =
+      bgImage !== null && isSafeImageSource(bgImage, { maxLength: SHARE_LOGO_MAX_BYTES }) ? bgImage : null;
 
     populateInputsFromState();
     // A shared link whose corner colors match the background would render as

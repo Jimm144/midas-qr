@@ -1,14 +1,15 @@
 import { DOM } from "../ui/dom.js";
 import { state, persistAppState, sanitizeGeneratorConfig, repairLowVisibilityColors } from "../state";
 import { generateQR, syncConfigToUI, renderOnce } from "./generator.js";
-import { exportRenderedBlob, downloadBlob } from "./export.js";
-import { escapeHTML, snapshot, HEX_COLOR_RE } from "../utils.js";
+import { exportRenderedBlob, downloadBlob, sanitizeFilename } from "./export.js";
+import { escapeHTML, snapshot, HEX_COLOR_RE, formatHistoryTimestamp } from "../utils.js";
 import { ALLOWED_SHAPES } from "../constants.js";
 import { parseGradient, gradientStops, diagonalSpan, linearEndpoints } from "./gradient.js";
 import { applyGeneratorFields } from "../state";
 import { showUndoToast } from "../ui/toast.js";
 import { createUndoableList } from "../ui/undoable-list.js";
 import { announce } from "../ui/announce.js";
+import { t } from "../i18n.js";
 
 export function saveGeneratorHistory() {
   if (!persistAppState(false)) {
@@ -26,7 +27,7 @@ export function saveGeneratorHistory() {
       );
       persistAppState(false);
       renderGeneratorHistory();
-      showUndoToast("HISTORY TRIMMED — LARGE IMAGES REMOVED", () => {
+      showUndoToast(t("history.trimmed"), () => {
         state.generatorHistory = snapshot;
         renderGeneratorHistory();
       });
@@ -58,37 +59,54 @@ function previewGradient(id, spec, baseColor) {
   };
 }
 
-/** Miniature body/corner glyph for one shape, drawn at the requested size. */
-function previewGlyph(shape, x, y, size, fill) {
+/** Corner radius for a shape, as a fraction of its size. */
+function shapeRadius(shape, size) {
+  const factor =
+    shape === "extra-rounded"
+      ? 0.45
+      : shape === "classy-rounded"
+        ? 0.38
+        : shape === "classy"
+          ? 0.28
+          : shape === "rounded"
+            ? 0.2
+            : 0.06;
+  return Number((size * factor).toFixed(2));
+}
+
+/** Solid module glyph, used for the body block and a finder's centre. */
+function previewBlock(shape, x, y, size, fill) {
   if (shape === "dot" || shape === "dots") {
     return `<circle cx="${x + size / 2}" cy="${y + size / 2}" r="${size / 2}" fill="${fill}"/>`;
   }
-  const rx =
-    shape === "extra-rounded"
-      ? size * 0.45
-      : shape === "classy-rounded"
-        ? size * 0.38
-        : shape === "classy"
-          ? size * 0.28
-          : shape === "rounded"
-            ? size * 0.2
-            : size * 0.06;
-  return `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${Number(rx.toFixed(2))}" fill="${fill}"/>`;
+  return `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${shapeRadius(shape, size)}" fill="${fill}"/>`;
 }
 
 /**
- * One finder eye: the outer shape in the corner colour and the inner shape in
- * the corner-dot colour — two shapes, readable at thumbnail size.
+ * One finder pattern as a ring plus its centre — the shape a scanner actually
+ * looks for. Drawn as a stroke rather than a solid block: with the two corner
+ * colours usually identical, a solid outer block under a solid centre collapsed
+ * into one plain square and the tile stopped reading as a QR.
+ *
+ * Ring, gap and centre follow the real 1/1/3 module proportions, or the two
+ * inner parts merge into a blob at 40px.
  */
-function previewFinder(x, y, outerShape, innerShape, outerPaint, innerPaint) {
-  return (
-    previewGlyph(outerShape, x, y, 7, outerPaint) + previewGlyph(innerShape, x + 2, y + 2, 3, innerPaint)
-  );
+function previewRing(shape, x, y, size, stroke) {
+  if (shape === "dot" || shape === "dots") {
+    return `<circle cx="${x + size / 2}" cy="${y + size / 2}" r="${size / 2}" fill="none" stroke="${stroke}" stroke-width="1"/>`;
+  }
+  return `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${shapeRadius(shape, size)}" fill="none" stroke="${stroke}" stroke-width="1"/>`;
 }
 
 /**
- * Mini design preview for a saved config: the chosen colours, shapes, gradients
- * and overall mask — deliberately never the whole QR code.
+ * Design thumbnail for a saved config: four shapes — the three finder patterns
+ * and one body block — in the saved colours, shapes and gradients.
+ *
+ * The earlier tile drew thirteen glyphs (three finders plus a 3x3 dot grid) and
+ * read as a face at 40px. Four shapes is what a QR needs to be recognisable at a
+ * glance, and nothing more: the overall mask is deliberately ignored so the tile
+ * keeps its own square, and the shapes keep a quiet zone so nothing crowds the
+ * tile edge.
  */
 function designPreview(config) {
   const source =
@@ -121,24 +139,141 @@ function designPreview(config) {
   const cornerSquarePaint = resolve("cs", cornerSquare, source.cornersSquareGradient);
   const cornerDotPaint = resolve("cd", cornerDot, source.cornersDotGradient);
 
-  const bgRect = transparent ? "" : `<rect width="24" height="24" fill="${bgPaint}"/>`;
-  const content =
-    `<g>` +
-    previewFinder(1, 1, outer, inner, cornerSquarePaint, cornerDotPaint) +
-    previewFinder(16, 1, outer, inner, cornerSquarePaint, cornerDotPaint) +
-    previewFinder(1, 16, outer, inner, cornerSquarePaint, cornerDotPaint) +
-    [10, 15, 20]
-      .flatMap((x) => [10, 15, 20].map((y) => previewGlyph(body, x, y, 4, dotsPaint)))
-      .join("") +
-    `</g>`;
+  // 24-unit tile: a 3-unit quiet zone, three 7-unit finders (1-unit ring, 1-unit
+  // gap, 3-unit centre) and the body block filling the fourth quadrant at the
+  // same 7 units, so the four shapes read as one 2x2 grid.
+  const FINDER = 7;
+  const CENTRE = 3;
+  const OFFSET = (FINDER - CENTRE) / 2;
+  const finder = (x, y) =>
+    previewRing(outer, x, y, FINDER, cornerSquarePaint) +
+    previewBlock(inner, x + OFFSET, y + OFFSET, CENTRE, cornerDotPaint);
 
   return (
     `<span class="history-preview" aria-hidden="true"><svg viewBox="0 0 24 24">` +
     (defs.length ? `<defs>${defs.join("")}</defs>` : "") +
-    bgRect +
-    content +
+    (bgPaint ? `<rect width="24" height="24" fill="${bgPaint}"/>` : "") +
+    finder(3, 3) +
+    finder(14, 3) +
+    finder(3, 14) +
+    previewBlock(body, 14, 14, FINDER, dotsPaint) +
     `</svg></span>`
   );
+}
+
+// Official Lucide artwork (lucide-static, ISC) for the two quiet row actions.
+const ICON_DOWNLOAD =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>';
+const ICON_TRASH =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="m6 7 1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+
+/** Data type -> the label key that names it in every catalog. */
+const TYPE_LABEL_KEYS = {
+  url: "data.url",
+  text: "data.text",
+  wifi: "data.wifi",
+  contact: "data.contact",
+  crypto: "data.crypto",
+  geo: "data.geolocation",
+  event: "data.event",
+  sms: "data.sms",
+  phone: "data.phone",
+  email: "data.email",
+};
+
+/** Field ids that best identify a payload, per data type. */
+const TYPE_DETAIL_FIELDS = {
+  url: ["input-url"],
+  text: ["input-text"],
+  wifi: ["wifi-ssid"],
+  contact: ["contact-first", "contact-last", "contact-org", "contact-email"],
+  crypto: ["crypto-coin", "crypto-address"],
+  geo: ["geo-lat", "geo-lon"],
+  event: ["event-title", "event-location"],
+  sms: ["sms-phone", "sms-msg"],
+  phone: ["phone-number"],
+  email: ["email-to", "email-subject"],
+};
+
+/** Trim a payload fragment to something a row can show. */
+function clipDetail(value, max = 48) {
+  const text = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
+/** Host of a URL, without the scheme and any trailing slash. */
+function hostOf(value) {
+  const raw = String(value == null ? "" : value).trim();
+  if (!raw || /\s/.test(raw)) return "";
+  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
+  // Only real URLs: "12345" and "hello" are not hostnames to be salvaged.
+  if (!hasScheme && !/^www\./i.test(raw)) return "";
+  try {
+    const host = new URL(hasScheme ? raw : `https://${raw}`).hostname.replace(/^www\./, "");
+    // A numeric host normalises into an IP form ("12345" -> "0.0.48.57"),
+    // which is a worse name than the text it came from.
+    return !host || /^[0-9.]+$/.test(host) ? "" : host;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Name a saved design the way a person would: the payload's most identifying
+ * field (host, SSID, contact name, address) as the title, the data type as the
+ * quiet meta line. Raw payloads made poor titles — a saved URL showed as a
+ * 60-character string and a short text code as a stray character.
+ *
+ * @param {Record<string, unknown>} config sanitized history config
+ * @returns {{ title: string, meta: string }}
+ */
+export function historyEntryName(config) {
+  const source = config && typeof config === "object" && !Array.isArray(config) ? config : {};
+  const type = typeof source.dataType === "string" ? source.dataType : "text";
+  const meta = t(TYPE_LABEL_KEYS[type] || "data.text");
+  const fields =
+    source.fields && typeof source.fields === "object" && !Array.isArray(source.fields) ? source.fields : {};
+  const read = (id) => {
+    const value = fields[id];
+    return typeof value === "string" || typeof value === "number" ? String(value) : "";
+  };
+
+  let detail = "";
+  if (type === "url") {
+    const url = read("input-url");
+    detail = hostOf(url) || clipDetail(url);
+  } else {
+    for (const id of TYPE_DETAIL_FIELDS[type] || []) {
+      const part = clipDetail(read(id));
+      if (part) {
+        detail = part;
+        break;
+      }
+    }
+  }
+  // Entries saved before the field bag existed have no per-type field to read,
+  // so fall back to the payload — as a host when it is a URL, since
+  // "https://example.com/a/very/long/path" is nobody's idea of a name.
+  if (!detail) {
+    detail = hostOf(source.dataString) || clipDetail(source.dataString, 40);
+  }
+
+  return { title: detail || t("history.emptyValue"), meta };
+}
+
+/** Filesystem-safe name for a downloaded code: the row title, slugged. */
+function downloadName(config) {
+  const { title } = historyEntryName(config);
+  const slug = String(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  // sanitizeFilename dodges Windows device names ("nul.png" is silently
+  // refused by the OS) and is the same guard the Download button uses.
+  return `${sanitizeFilename(slug, "qr-code")}.png`;
 }
 
 function generatorHistoryRow(item, idx) {
@@ -147,19 +282,33 @@ function generatorHistoryRow(item, idx) {
       ? item.config
       : {};
   const rawContent = config.dataString == null ? "" : String(config.dataString);
-  const safeContent = escapeHTML(rawContent || "EMPTY");
-  const safeTime = escapeHTML(item && item.time != null ? String(item.time) : "");
+  const safeContent = escapeHTML(rawContent || t("history.emptyValue"));
+  // Re-derive from the id with the *current* locale, like the scanner list:
+  // the stored string was formatted in whichever language was active at save
+  // time, so a language switch left the two lists disagreeing.
+  const derivedTime =
+    item && item.id != null ? formatHistoryTimestamp(item.id) : "";
+  const safeTime = escapeHTML(
+    derivedTime || (item && item.time != null ? String(item.time) : "")
+  );
+  const loadLabel = escapeHTML(t("common.load"));
+  const exportLabel = escapeHTML(t("common.export"));
+  const deleteLabel = escapeHTML(t("common.delete"));
+  const downloadLabel = escapeHTML(t("history.downloadAria"));
+  const { title, meta } = historyEntryName(config);
+  const safeTitle = escapeHTML(title);
+  const safeMeta = escapeHTML(safeTime ? `${meta} · ${safeTime}` : meta);
   return `
       <div class="history-item flex items-center justify-between p-2 border border-white text-xs gap-3" data-idx="${idx}">
         ${designPreview(config)}
         <div class="flex-1 overflow-hidden">
-          <p class="font-bold truncate text-white" title="${safeContent}">${safeContent}</p>
-          <p class="text-[10px] opacity-70">${safeTime}</p>
+          <p class="font-bold truncate text-white" title="${safeContent}">${safeTitle}</p>
+          <p class="text-[10px] opacity-70 truncate">${safeMeta}</p>
         </div>
-        <div class="flex items-center gap-2 flex-shrink-0 text-inherit">
-          <button class="btn-load-history border border-white hover:bg-white hover:text-black w-16 h-7 flex items-center justify-center transition-colors font-medium text-inherit" data-idx="${idx}">Load</button>
-          <button class="btn-export-history border border-white hover:bg-white hover:text-black w-16 h-7 flex items-center justify-center transition-colors font-medium text-inherit" data-idx="${idx}" title="Download this QR code" aria-label="Export">Export</button>
-          <button class="btn-delete-generator-history border border-white hover:bg-red-500 hover:text-white transition-colors flex-shrink-0 w-16 h-7 flex items-center justify-center text-xs" data-idx="${idx}" title="Delete" aria-label="Delete">✕</button>
+        <div class="history-row-actions">
+          <button class="btn-load-history history-row-btn history-row-btn-label" data-idx="${idx}">${loadLabel}</button>
+          <button class="btn-export-history history-row-btn history-row-btn-icon" data-idx="${idx}" title="${downloadLabel}" aria-label="${exportLabel}">${ICON_DOWNLOAD}</button>
+          <button class="btn-delete-generator-history history-row-btn history-row-btn-icon" data-idx="${idx}" title="${deleteLabel}" aria-label="${deleteLabel}">${ICON_TRASH}</button>
         </div>
       </div>
     `;
@@ -187,8 +336,8 @@ function getGeneratorHistoryList() {
         state.generatorHistory = items;
       },
       renderRow: generatorHistoryRow,
-      emptyMarkup: '<p class="history-empty">No saved codes yet.</p>',
-      undoLabels: { remove: "HISTORY ITEM DELETED", clear: "HISTORY CLEARED" },
+      emptyMarkup: `<p class="history-empty">${t("history.emptyGenerated")}</p>`,
+      undoLabels: { remove: t("history.itemDeleted"), clear: t("history.cleared") },
       persist: () => saveGeneratorHistory(),
       onRender: (items) => {
         const hasItems = items.length > 0;
@@ -291,7 +440,7 @@ export function initGeneratorHistory() {
           state.generator.dataString = typeof config.dataString === "string" ? config.dataString : "";
           state.generator.isValid = config.isValid !== false;
           generateQR();
-          announce("Config loaded from history");
+          announce(t("history.configLoaded"));
         }
       }
     });
@@ -326,7 +475,7 @@ async function exportHistoryBatch() {
   const btn = DOM.btnExportHistoryAll;
   const label = btn ? btn.textContent : "";
   if (btn) {
-    btn.textContent = "Exporting…";
+    btn.textContent = t("history.exporting");
     btn.disabled = true;
     btn.setAttribute("aria-busy", "true");
   }
@@ -341,11 +490,11 @@ async function exportHistoryBatch() {
       // Re-check after the async render: don't ship a file for an entry the
       // user deleted while it was being prepared.
       if (!blob || !state.generatorHistory.includes(items[i])) continue;
-      downloadBlob(blob, `qr-code-${items[i].id || Date.now()}.png`);
+      downloadBlob(blob, downloadName(items[i].config));
       downloaded++;
       if (i < items.length - 1) await sleep(BATCH_EXPORT_GAP_MS);
     }
-    announce(`Downloaded ${downloaded} codes`);
+    announce(t("history.downloadedCodes", { count: downloaded }));
   } finally {
     if (btn) {
       btn.textContent = label;
@@ -399,23 +548,26 @@ async function exportHistoryItem(idx, btn) {
   const item = state.generatorHistory[idx];
   if (!item || !item.config || typeof item.config !== "object" || historyExportBusy) return;
   historyExportBusy = true;
-  const label = btn ? btn.textContent : null;
+  // The row's export button holds an icon, not a label: writing a busy string
+  // into it replaces the SVG, and restoring the captured (empty) text leaves
+  // the button blank. Disabled + aria-busy is the whole feedback; the toast
+  // reports the outcome.
   if (btn) {
-    btn.textContent = "…";
     btn.disabled = true;
+    btn.setAttribute("aria-busy", "true");
   }
   try {
     const blob = await exportHistoryConfigPng(item);
     if (blob) {
-      downloadBlob(blob, `qr-code-${item.id || Date.now()}.png`);
-      announce("QR code downloaded from history");
+      downloadBlob(blob, downloadName(item.config));
+      announce(t("history.downloadedOne"));
     } else {
-      announce("Could not export that saved code");
+      announce(t("history.exportFailed"));
     }
   } finally {
     if (btn) {
-      btn.textContent = label;
       btn.disabled = false;
+      btn.removeAttribute("aria-busy");
     }
     historyExportBusy = false;
   }

@@ -26,13 +26,17 @@ import {
   MAX_STATE_TEXT_LEN,
 } from "../src/js/constants.js";
 import { initDateTimePickers } from "../src/js/ui/datetime-picker.js";
+import { getIntlLocale } from "../src/js/i18n.js";
 
 function datetimeDisplay(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   const date = new Date(+match[1], +match[2] - 1, +match[3], +match[4], +match[5]);
+  // The picker formats with the active UI language, not the runtime default,
+  // so the expectation has to ask for the same locale.
+  const locale = getIntlLocale();
   return {
-    date: date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }),
-    time: date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }),
+    date: date.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" }),
+    time: date.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }),
   };
 }
 

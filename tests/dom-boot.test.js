@@ -18,6 +18,36 @@ describe("initDOM against the real index.html", () => {
     expect(Object.isFrozen(DOM)).toBe(true);
   });
 
+  it("keeps the refs the app's critical paths depend on", async () => {
+    const DOM = await bootRealDom();
+    // A curated floor: dropping any of these from the id table silently breaks
+    // a whole feature, and "more than 100 refs" would not notice.
+    for (const key of [
+      "tabBtnGenerator",
+      "tabBtnScanner",
+      "tabBtnHistory",
+      "panelGenerator",
+      "panelScanner",
+      "panelHistory",
+      "qrCanvasContainer",
+      "qrReadabilityBadge",
+      "btnDownload",
+      "btnCopy",
+      "btnSave",
+      "btnShareLink",
+      "exportFormat",
+      "exportFilename",
+      "generatorHistoryList",
+      "historyList",
+      "scanFileInput",
+      "dropZone",
+      "languageSelect",
+      "themeSelect",
+    ]) {
+      expect(DOM[key], `DOM.${key} must stay wired`).toBeTruthy();
+    }
+  });
+
   it("reads ids from an injected root, not the document", async () => {
     const root = document.createElement("div");
     root.innerHTML = indexBodyMarkup();

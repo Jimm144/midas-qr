@@ -3,6 +3,7 @@
  * Single source of truth for persistence: serializeAppState() / loadState().
  */
 import { announce } from "./ui/announce.js";
+import { t } from "./i18n.js";
 import { refreshCustomSelect } from "./ui/components.js";
 import { syncDateTimeField } from "./ui/datetime-picker.js";
 import { FRAME_FONTS } from "./frames";
@@ -679,7 +680,7 @@ function notifyQuotaImageEviction(): void {
   if (quotaImageEvictionNotified) return;
   quotaImageEvictionNotified = true;
   console.warn("[state] Storage full; background image kept in memory but not persisted.");
-  announce("Storage is full — your background image won't be saved for your next visit");
+  announce(t("storage.backgroundFull"));
 }
 
 /** Write serialized state to localStorage; returns false on quota failure. */
@@ -854,7 +855,7 @@ export function setupStatePersistence(): void {
         }
         persistAppState(true);
         console.warn("[state] Storage full; logo kept in memory but not persisted.");
-        announce("Storage is full — the logo will not be saved for your next visit");
+        announce(t("storage.logoFull"));
       }
     }
   };

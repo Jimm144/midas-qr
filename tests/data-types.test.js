@@ -163,3 +163,40 @@ describe("DATA_TYPES fields are covered by the persisted field capture", () => {
     }
   });
 });
+
+describe("DATA_TYPES — sms warning is attached to the right field", () => {
+  const compileSms = (phone, message) => {
+    const calls = [];
+    const warning = document.createElement("p");
+    const r = DATA_TYPES.sms.compile({
+      DOM: { smsPhone: phone, smsMsg: message, smsWarning: warning },
+      showWarnings: true,
+      setWarning: (el, show, related) => calls.push({ el, show, related }),
+      setAriaInvalid: () => {},
+    });
+    return { r, calls, warning };
+  };
+
+  it("points a phone error at the phone input", () => {
+    const phone = document.createElement("input");
+    phone.value = "abc";
+    const message = document.createElement("textarea");
+    const { r, calls } = compileSms(phone, message);
+    expect(r.isValid).toBe(false);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].show).toBe(true);
+    expect(calls[0].related).toBe(phone);
+  });
+
+  it("points an over-long body at the message field", () => {
+    const phone = document.createElement("input");
+    phone.value = "+15551234567";
+    const message = document.createElement("textarea");
+    message.value = "a".repeat(1601);
+    const { r, calls } = compileSms(phone, message);
+    expect(r.isValid).toBe(false);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].show).toBe(true);
+    expect(calls[0].related).toBe(message);
+  });
+});

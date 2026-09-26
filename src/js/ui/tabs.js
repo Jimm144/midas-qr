@@ -1,4 +1,5 @@
 import { DOM } from "./dom.js";
+import { t } from "../i18n.js";
 import { announce } from "./announce.js";
 import { state } from "../state";
 import { startWebcamScan, stopWebcamScan, initScanner } from "../scanner/scanner.js";
@@ -29,14 +30,22 @@ function resumeScannerView() {
 }
 
 const TAB_TITLES = {
-  generator: "Midas QR — Generator",
-  scanner: "Midas QR — Scanner",
-  history: "Midas QR — History",
+  generator: "tabs.documentGenerator",
+  scanner: "tabs.documentScanner",
+  history: "tabs.documentHistory",
+};
+
+const TAB_LABELS = {
+  generator: "tabs.generate",
+  scanner: "tabs.scan",
+  history: "tabs.history",
 };
 
 function setTabTitle(tab) {
-  const t = TAB_TITLES[tab];
-  if (t && document.title !== t) document.title = t;
+  const key = TAB_TITLES[tab];
+  if (!key) return;
+  const title = t(key);
+  if (document.title !== title) document.title = title;
 }
 
 function updateTabAria(targetTab) {
@@ -56,8 +65,15 @@ function updateTabAria(targetTab) {
 }
 
 function announceTab(tab) {
-  announce(`Switched to ${tab} tab`);
+  const key = TAB_LABELS[tab];
+  announce(t("tabs.switched", { tab: key ? t(key) : tab }));
 }
+
+export function refreshTabTranslations() {
+  if (Object.prototype.hasOwnProperty.call(TAB_TITLES, state.activeTab)) setTabTitle(state.activeTab);
+}
+
+document.addEventListener("app:localechange", refreshTabTranslations);
 
 function focusPanelHeading(tab) {
   const panel =
@@ -79,6 +95,85 @@ function setPanelVisibility(activePanel) {
   });
 }
 
+/**
+ * True when the current hash carries a share payload rather than a tab name.
+ * A share link keeps its design in the hash: rewriting it with `#generator`
+ * would make the link unre-shareable and unbookmarkable the moment it opened.
+ */
+function hashCarriesPayload() {
+  const hash = window.location.hash.replace(/^#/, "");
+  return hash !== "" && hash.includes("=") && !Object.prototype.hasOwnProperty.call(TAB_TITLES, hash);
+}
+
+/**
+ * Place a segmented control's sliding pill under its active button. Measured
+ * rather than computed from the index so it stays correct if the buttons ever
+ * differ in width. `offsetLeft` is relative to the container's border box, and
+ * the pill is positioned from its padding box, so the border is subtracted.
+ *
+ * @param {Element} container
+ * @returns {boolean} true when the control had a real (visible) geometry to use
+ */
+function positionSegmentedIndicator(container) {
+  const indicator = container.querySelector(":scope > .tab-indicator");
+  const active = container.querySelector(".tab-btn.is-active");
+  // A hidden panel (the scanner before its tab is opened) has no layout to
+  // measure; the placement is retried when it becomes visible.
+  if (!indicator || !active || !active.offsetWidth) return false;
+  indicator.style.width = `${active.offsetWidth}px`;
+  indicator.style.transform = `translateX(${active.offsetLeft - container.clientLeft}px)`;
+  return true;
+}
+
+/** Position every segmented control (tab rail, scanner source toggle). */
+export function positionSegmentedIndicators() {
+  document
+    .querySelectorAll(".tab-rail, .seg-control")
+    .forEach((container) => positionSegmentedIndicator(container));
+}
+
+/**
+ * Give each segmented control its sliding pill. The transition is enabled only
+ * after a placement that had real geometry, so the pill never slides in from the
+ * corner: not on load, and not when a hidden panel is first shown.
+ */
+function initSegmentedIndicators() {
+  document.querySelectorAll(".tab-rail, .seg-control").forEach((container) => {
+    if (container.querySelector(":scope > .tab-indicator")) return;
+    const indicator = document.createElement("span");
+    indicator.className = "tab-indicator";
+    indicator.setAttribute("aria-hidden", "true");
+    container.prepend(indicator);
+
+    const move = () => {
+      if (!positionSegmentedIndicator(container)) return;
+      // Only once: re-adding an existing class still fires a mutation record in
+      // some engines, which would have the observer re-trigger itself forever.
+      if (!container.classList.contains("is-indicator-ready")) {
+        container.classList.add("is-indicator-ready");
+      }
+    };
+    move();
+    // The scanner's Upload/Webcam toggle flips is-active itself, so watch the
+    // control rather than plumbing a call through that module. Debounced to a
+    // frame: the observer fires for every class change in the control.
+    let queued = false;
+    new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        move();
+      });
+    }).observe(container, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    window.addEventListener("resize", move);
+  });
+}
+
 export function switchTab(targetTab, skipHistory = false, focusHeading = false) {
   // Unknown tab names must not blank every panel and announce nonsense.
   if (!Object.prototype.hasOwnProperty.call(TAB_TITLES, targetTab)) return;
@@ -86,7 +181,7 @@ export function switchTab(targetTab, skipHistory = false, focusHeading = false) 
   state.activeTab = targetTab;
   setTabTitle(targetTab);
 
-  if (!skipHistory && window.location.hash !== `#${targetTab}`) {
+  if (!skipHistory && !hashCarriesPayload() && window.location.hash !== `#${targetTab}`) {
     window.history.pushState({ tab: targetTab }, "", `#${targetTab}`);
   }
 
@@ -122,6 +217,9 @@ export function switchTab(targetTab, skipHistory = false, focusHeading = false) 
     stopWebcamScan();
   }
   updateTabAria(targetTab);
+  // After the panel is visible: a segmented control inside a hidden panel has no
+  // geometry to measure, so its pill would be left at zero width.
+  positionSegmentedIndicators();
   announceTab(targetTab);
   if (focusHeading) {
     focusPanelHeading(targetTab);
@@ -134,6 +232,7 @@ export function initTabs() {
   // Idempotent: repeated calls must not stack click/keydown/hashchange listeners.
   if (tabsInitialized) return;
   tabsInitialized = true;
+  initSegmentedIndicators();
 
   if (DOM.tabBtnGenerator) {
     DOM.tabBtnGenerator.addEventListener("click", () => switchTab("generator"));
@@ -188,8 +287,10 @@ export function initTabs() {
     } else {
       setTabTitle(initialHash);
     }
-  } else {
+  } else if (!hashCarriesPayload()) {
     window.history.replaceState({ tab: state.activeTab }, "", `#${state.activeTab}`);
+    setTabTitle(state.activeTab);
+  } else {
     setTabTitle(state.activeTab);
   }
 }

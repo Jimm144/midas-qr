@@ -12,6 +12,15 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
+      // Thresholds exist so a coverage regression fails the build instead of
+      // only showing up in a report nobody reads. Set a little under the
+      // current numbers; raise them as the gaps close.
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 60,
+        statements: 70,
+      },
       include: [
         "src/js/constants.js",
         "src/js/utils.js",
@@ -22,6 +31,9 @@ export default defineConfig({
         "src/js/share.js",
         "src/js/theme-runtime.js",
         "src/js/pwa.js",
+        "src/js/main.js",
+        "src/js/i18n.js",
+        "src/js/locales/*.js",
         "src/js/generator/formatters.js",
         "src/js/generator/qr-instance.js",
         "src/js/generator/generator.js",
@@ -35,10 +47,17 @@ export default defineConfig({
         "src/js/generator/history.js",
         "src/js/generator/inputs.js",
         "src/js/generator/controls.js",
+        "src/js/generator/batch.js",
+        "src/js/generator/logo.js",
+        "src/js/generator/layout.js",
+        "src/js/generator/gradient.js",
+        "src/js/generator/svg-pipeline.js",
+        "src/js/generator/data-types.js",
         "src/js/scanner/scanner.js",
         "src/js/scanner/history.js",
         "src/js/scanner/result.js",
         "src/js/scanner/worker.js",
+        "src/js/scanner/decoder.js",
         "src/js/ui/dom.js",
         "src/js/ui/color-picker.js",
         "src/js/ui/components.js",
@@ -49,6 +68,8 @@ export default defineConfig({
         "src/js/ui/toast.js",
         "src/js/ui/announce.js",
         "src/js/ui/shell.js",
+        "src/js/ui/popover.js",
+        "src/js/ui/undoable-list.js",
       ],
     },
   },

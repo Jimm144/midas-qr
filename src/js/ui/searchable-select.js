@@ -5,6 +5,8 @@
  * listbox. The native select stays in the DOM as the value store.
  */
 import { openPopover, closePopover } from "./popover.js";
+import { t, tp } from "../i18n.js";
+import { escapeHTML } from "../utils.js";
 
 let ssCounter = 0;
 
@@ -22,23 +24,6 @@ function matchKey(text) {
   return text.toLowerCase().replace(/\s+/g, "");
 }
 
-/** Escape text for safe interpolation into innerHTML.
- * @param {string} text @returns {string} */
-function escapeHtml(text) {
-  return text.replace(/[&<>"]/g, (char) => {
-    switch (char) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      default:
-        return "&quot;";
-    }
-  });
-}
-
 /**
  * Wrap the characters of `text` that participate in the whitespace-insensitive
  * match for `query` in `<mark>` runs. Returns HTML-escaped markup; an empty
@@ -49,7 +34,7 @@ function escapeHtml(text) {
  */
 export function highlightMatches(text, query) {
   const key = matchKey(query);
-  if (!key) return escapeHtml(text);
+  if (!key) return escapeHTML(text);
   let out = "";
   let cursor = 0;
   let runStart = -1;
@@ -61,15 +46,15 @@ export function highlightMatches(text, query) {
       if (runStart < 0) runStart = i;
       searchIdx += 1;
       if (searchIdx === key.length) {
-        out += escapeHtml(text.slice(cursor, runStart));
-        out += `<mark>${escapeHtml(text.slice(runStart, i + 1))}</mark>`;
+        out += escapeHTML(text.slice(cursor, runStart));
+        out += `<mark>${escapeHTML(text.slice(runStart, i + 1))}</mark>`;
         cursor = i + 1;
         runStart = -1;
       }
     } else if (runStart >= 0) {
       // The query skipped this char: close the run that preceded it.
-      out += escapeHtml(text.slice(cursor, runStart));
-      out += `<mark>${escapeHtml(text.slice(runStart, i))}</mark>`;
+      out += escapeHTML(text.slice(cursor, runStart));
+      out += `<mark>${escapeHTML(text.slice(runStart, i))}</mark>`;
       cursor = i;
       runStart = -1;
     }
@@ -77,11 +62,11 @@ export function highlightMatches(text, query) {
   if (runStart >= 0) {
     // Partial match (the caller hides non-matching options, so this is only
     // reached defensively): mark what matched so far.
-    out += escapeHtml(text.slice(cursor, runStart));
-    out += `<mark>${escapeHtml(text.slice(runStart))}</mark>`;
+    out += escapeHTML(text.slice(cursor, runStart));
+    out += `<mark>${escapeHTML(text.slice(runStart))}</mark>`;
     return out;
   }
-  out += escapeHtml(text.slice(cursor));
+  out += escapeHTML(text.slice(cursor));
   return out;
 }
 
@@ -115,15 +100,30 @@ export function syncSearchableSelect(select) {
   if (!field) return;
   const trigger = field.querySelector(".ss-trigger");
   const list = field.querySelector(".ss-list");
+  const search = /** @type {HTMLInputElement|null} */ (field.querySelector(".ss-search"));
+  const empty = field.querySelector(".ss-empty");
   const option = select.options[select.selectedIndex];
   if (trigger) trigger.textContent = option ? option.text : "";
-  if (!list) return;
-  list.querySelectorAll(".ss-option").forEach((node) => {
-    const optionEl = /** @type {HTMLElement} */ (node);
-    const isSelected = Number(optionEl.dataset.index) === select.selectedIndex;
-    optionEl.classList.toggle("selected", isSelected);
-    optionEl.setAttribute("aria-selected", isSelected ? "true" : "false");
-  });
+  if (search) {
+    search.placeholder = t("search.placeholder");
+    search.setAttribute("aria-label", select.getAttribute("aria-label") || t("search.placeholder"));
+  }
+  if (list) {
+    list.setAttribute("aria-label", select.getAttribute("aria-label") || t("search.options"));
+    list.querySelectorAll(".ss-option").forEach((node) => {
+      const optionEl = /** @type {HTMLElement} */ (node);
+      const index = Number(optionEl.dataset.index);
+      const nativeOption = select.options[index];
+      if (nativeOption) {
+        optionEl.dataset.text = nativeOption.text;
+        optionEl.textContent = nativeOption.text;
+      }
+      const isSelected = index === select.selectedIndex;
+      optionEl.classList.toggle("selected", isSelected);
+      optionEl.setAttribute("aria-selected", isSelected ? "true" : "false");
+    });
+  }
+  if (empty) empty.textContent = t("search.noMatches");
 }
 
 /**
@@ -145,8 +145,8 @@ function buildField(field, select) {
   const popover = el("div", "ss-popover hidden");
   const search = /** @type {HTMLInputElement} */ (el("input", "ss-search"));
   search.type = "search";
-  search.placeholder = "Search";
-  search.setAttribute("aria-label", selectLabel || "Search");
+  search.placeholder = t("search.placeholder");
+  search.setAttribute("aria-label", selectLabel || t("search.placeholder"));
   // The magnifier is drawn by CSS (mask + currentColor) so it follows the
   // theme without an extra inline SVG node.
   const searchWrap = el("div", "ss-search-wrap");
@@ -154,7 +154,7 @@ function buildField(field, select) {
 
   const list = el("div", "ss-list");
   list.setAttribute("role", "listbox");
-  list.setAttribute("aria-label", selectLabel || "Options");
+  list.setAttribute("aria-label", selectLabel || t("search.options"));
   // Stable ids even when the source select has no id, so the combobox can
   // reference the listbox and its active option (aria-activedescendant).
   const selectId = select.id || `searchable-select-${ssCounter++}`;
@@ -172,7 +172,7 @@ function buildField(field, select) {
   search.setAttribute("aria-autocomplete", "list");
 
   const empty = el("div", "ss-empty hidden");
-  empty.textContent = "No matches";
+  empty.textContent = t("search.noMatches");
 
   const status = el("div", "ss-status sr-only");
   status.setAttribute("role", "status");
@@ -234,7 +234,7 @@ function buildField(field, select) {
     empty.classList.toggle("hidden", matches > 0);
     // Announce the result count only while a query is active, so the
     // aria-live region stays quiet when the list is simply reopened.
-    status.textContent = key ? (matches === 1 ? "1 match" : `${matches} matches`) : "";
+    status.textContent = key ? tp("search.match", matches) : "";
     setActive(-1);
   };
 

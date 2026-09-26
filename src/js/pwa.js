@@ -1,8 +1,19 @@
+import { t } from "./i18n.js";
+
 /**
  * PWA layer: service-worker registration/update banner and the install prompt.
  * Split out of main.js. The listeners below are registered at import time, so
  * importing this module is enough to keep the offline update flow working.
  */
+
+export function refreshPwaTranslations() {
+  const banner = document.getElementById("sw-update-banner");
+  if (!banner) return;
+  const message = banner.querySelector("span");
+  const button = document.getElementById("sw-reload-btn");
+  if (message) message.textContent = t("pwa.updateAvailable");
+  if (button) button.textContent = t("pwa.reload");
+}
 
 function showUpdateBanner() {
   let banner = document.getElementById("sw-update-banner");
@@ -11,10 +22,17 @@ function showUpdateBanner() {
   banner.id = "sw-update-banner";
   banner.className = "update-banner";
   banner.setAttribute("role", "status");
-  banner.innerHTML = '<span>A new version is available</span><button id="sw-reload-btn">Reload</button>';
+  const message = document.createElement("span");
+  message.textContent = t("pwa.updateAvailable");
+  const button = document.createElement("button");
+  button.id = "sw-reload-btn";
+  button.textContent = t("pwa.reload");
+  banner.append(message, button);
   document.body.appendChild(banner);
-  document.getElementById("sw-reload-btn").addEventListener("click", () => window.location.reload());
+  button.addEventListener("click", () => window.location.reload());
 }
+
+document.addEventListener("app:localechange", refreshPwaTranslations);
 
 if ("serviceWorker" in navigator) {
   // First-time visitors get a controller from clients.claim() — that is not an

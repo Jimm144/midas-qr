@@ -7,9 +7,10 @@
  * write/read it and listen for `input`/`change` to refresh the fields.
  */
 import { openPopover, closePopover } from "./popover.js";
+import { t, getIntlLocale } from "../i18n.js";
 
-const DATE_PLACEHOLDER = "Select a date";
-const TIME_PLACEHOLDER = "e.g., 2:30 PM";
+const datePlaceholder = () => t("datetime.selectDate");
+const timePlaceholder = () => t("datetime.timePlaceholder");
 /** @type {Record<string, number>} */
 const KEY_DELTAS = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
@@ -84,7 +85,7 @@ function isoDate(value) {
 /** First day of the week from the browser locale (0 = Sunday … 6 = Saturday). @returns {number} */
 function localeFirstDay() {
   try {
-    const locale = new Intl.Locale(navigator.language || "en");
+    const locale = new Intl.Locale(getIntlLocale() || document.documentElement.lang || "en");
     const probe = /** @type {{ weekInfo?: { firstDay?: number }, getWeekInfo?: () => { firstDay?: number } }} */ (
       /** @type {unknown} */ (locale)
     );
@@ -96,20 +97,20 @@ function localeFirstDay() {
   }
 }
 
-const FIRST_DAY = localeFirstDay();
-/** Two-letter weekday labels starting at the locale's first day (e.g. Su Mo …). */
-const WEEKDAY_LABELS = Array.from({ length: 7 }, (_, i) =>
-  new Date(2023, 0, 1 + ((FIRST_DAY + i) % 7))
-    .toLocaleDateString(undefined, { weekday: "short" })
-    .slice(0, 2)
-);
+function localeWeekdays(firstDay) {
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(2023, 0, 1 + ((firstDay + i) % 7))
+      .toLocaleDateString(getIntlLocale(), { weekday: "short" })
+      .slice(0, 2)
+  );
+}
 
 /** Date label for an input value ("Sep 17, 2026") or the date placeholder. @param {string} value @returns {string} */
 function formatDateDisplay(value) {
   const parts = parseValue(value);
-  if (!parts) return DATE_PLACEHOLDER;
+  if (!parts) return datePlaceholder();
   const date = new Date(parts.year, parts.month, parts.day);
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString(getIntlLocale(), { month: "short", day: "numeric", year: "numeric" });
 }
 
 /** Time text for an input value ("2:30 PM") or "" when unset. @param {string} value @returns {string} */
@@ -117,7 +118,7 @@ function formatTimeDisplay(value) {
   const parts = parseValue(value);
   if (!parts) return "";
   const date = new Date(parts.year, parts.month, parts.day, parts.hour, parts.minute);
-  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return date.toLocaleTimeString(getIntlLocale(), { hour: "numeric", minute: "2-digit" });
 }
 
 /**
@@ -129,14 +130,16 @@ function formatTimeDisplay(value) {
 function buildField(field, input) {
   field.classList.add("dt-field");
   input.classList.add("hidden");
-  const baseLabel = input.getAttribute("aria-label") || "Date and time";
+  const baseLabel = input.getAttribute("aria-label") || t("datetime.dateAndTime");
+  const firstDay = localeFirstDay();
+  const weekdayLabels = localeWeekdays(firstDay);
 
   const trigger = /** @type {HTMLButtonElement} */ (el("button", "dt-trigger dt-trigger-date btn-reset"));
   trigger.type = "button";
   trigger.setAttribute("aria-haspopup", "dialog");
   trigger.setAttribute("aria-expanded", "false");
-  trigger.setAttribute("aria-label", `${baseLabel} (date)`);
-  trigger.innerHTML = `<span class="dt-trigger-icon">${ICON_CALENDAR}</span><span class="dt-trigger-label is-placeholder">${DATE_PLACEHOLDER}</span>`;
+  trigger.setAttribute("aria-label", t("datetime.datePart", { label: baseLabel }));
+  trigger.innerHTML = `<span class="dt-trigger-icon">${ICON_CALENDAR}</span><span class="dt-trigger-label is-placeholder"></span>`;
   field.insertBefore(trigger, input);
 
   const timeField = el("div", "dt-time-field");
@@ -145,23 +148,23 @@ function buildField(field, input) {
   const timeInput = /** @type {HTMLInputElement} */ (el("input", "dt-time-input"));
   timeInput.type = "text";
   timeInput.autocomplete = "off";
-  timeInput.placeholder = TIME_PLACEHOLDER;
-  timeInput.setAttribute("aria-label", `${baseLabel} (time)`);
+  timeInput.placeholder = timePlaceholder();
+  timeInput.setAttribute("aria-label", t("datetime.timePart", { label: baseLabel }));
   timeField.append(timeIcon, timeInput);
   field.insertBefore(timeField, input);
 
   const popover = el("div", "dt-popover dt-calendar-popover hidden");
   popover.setAttribute("role", "dialog");
-  popover.setAttribute("aria-label", `${baseLabel} calendar`);
+  popover.setAttribute("aria-label", t("datetime.calendar", { label: baseLabel }));
   popover.innerHTML = `
     <div class="dt-header">
-      <button type="button" class="dt-prev-year btn-reset" aria-label="Previous year">«</button>
-      <button type="button" class="dt-prev btn-reset" aria-label="Previous month">‹</button>
+      <button type="button" class="dt-prev-year btn-reset">«</button>
+      <button type="button" class="dt-prev btn-reset">‹</button>
       <div class="dt-month" aria-live="polite"></div>
-      <button type="button" class="dt-next btn-reset" aria-label="Next month">›</button>
-      <button type="button" class="dt-next-year btn-reset" aria-label="Next year">»</button>
+      <button type="button" class="dt-next btn-reset">›</button>
+      <button type="button" class="dt-next-year btn-reset">»</button>
     </div>
-    <div class="dt-weekdays">${WEEKDAY_LABELS.map((name) => `<span class="dt-weekday">${name}</span>`).join("")}</div>
+    <div class="dt-weekdays"></div>
     <div class="dt-grid"></div>`;
   field.appendChild(popover);
 
@@ -170,7 +173,21 @@ function buildField(field, input) {
   const prevYear = /** @type {HTMLButtonElement} */ (popover.querySelector(".dt-prev-year"));
   const nextYear = /** @type {HTMLButtonElement} */ (popover.querySelector(".dt-next-year"));
   const monthLabel = /** @type {HTMLElement} */ (popover.querySelector(".dt-month"));
+  const weekdayRow = /** @type {HTMLElement} */ (popover.querySelector(".dt-weekdays"));
   const grid = /** @type {HTMLElement} */ (popover.querySelector(".dt-grid"));
+
+  const refreshLocalizedChrome = () => {
+    prevYear.setAttribute("aria-label", t("datetime.previousYear"));
+    prev.setAttribute("aria-label", t("datetime.previousMonth"));
+    next.setAttribute("aria-label", t("datetime.nextMonth"));
+    nextYear.setAttribute("aria-label", t("datetime.nextYear"));
+    popover.setAttribute("aria-label", t("datetime.calendar", { label: baseLabel }));
+    weekdayRow.innerHTML = weekdayLabels.map(() => `<span class="dt-weekday"></span>`).join("");
+    Array.from(weekdayRow.children).forEach((node, index) => {
+      node.textContent = weekdayLabels[index];
+    });
+  };
+  refreshLocalizedChrome();
 
   /** @type {DtParts|null} */
   let pending = null;
@@ -181,8 +198,8 @@ function buildField(field, input) {
 
   const renderGrid = () => {
     const first = new Date(viewYear, viewMonth, 1);
-    monthLabel.textContent = first.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-    const offset = (first.getDay() - FIRST_DAY + 7) % 7;
+    monthLabel.textContent = first.toLocaleDateString(getIntlLocale(), { month: "long", year: "numeric" });
+    const offset = (first.getDay() - firstDay + 7) % 7;
     const cursor = new Date(viewYear, viewMonth, 1 - offset);
     const today = isoDate(new Date());
     let html = "";
@@ -193,7 +210,7 @@ function buildField(field, input) {
       const current = !outside && iso === today;
       const classes =
         `dt-day btn-reset${outside ? " outside" : ""}${selected ? " selected" : ""}${current ? " today" : ""}`;
-      const label = cursor.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+      const label = cursor.toLocaleDateString(getIntlLocale(), { year: "numeric", month: "long", day: "numeric" });
       const currentAttr = current ? ' aria-current="date"' : "";
       html += `<button type="button" class="${classes}" data-date="${iso}" tabindex="-1" aria-pressed="${selected ? "true" : "false"}" aria-label="${label}"${currentAttr}>${cursor.getDate()}</button>`;
       cursor.setDate(cursor.getDate() + 1);
@@ -432,7 +449,7 @@ export function syncDateTimeField(input) {
   const dateTrigger = field.querySelector(".dt-trigger-date");
   const timeInput = /** @type {HTMLInputElement|null} */ (field.querySelector(".dt-time-input"));
   if (!dateTrigger || !timeInput) return;
-  setTriggerLabel(dateTrigger, formatDateDisplay(input.value), DATE_PLACEHOLDER);
+  setTriggerLabel(dateTrigger, formatDateDisplay(input.value), datePlaceholder());
   // Don't clobber what the user is currently typing.
   if (document.activeElement !== timeInput) {
     timeInput.value = formatTimeDisplay(input.value);
@@ -449,15 +466,27 @@ export function syncDateTimeField(input) {
 /**
  * Initialize every `[data-datetime-field]` field under `root`.
  * Idempotent: fields already initialized are skipped.
- * @param {Document|Element} [root]
  * @returns {void}
  */
+export function refreshDateTimePickers() {
+  document.querySelectorAll("[data-datetime-field]").forEach((node) => {
+    const field = /** @type {HTMLElement} */ (node);
+    field.querySelectorAll(".dt-trigger, .dt-time-field, .dt-popover").forEach((child) => child.remove());
+    field.dataset.dtInit = "false";
+    const input = field.querySelector("input");
+    if (input instanceof HTMLInputElement) input.classList.remove("hidden");
+  });
+  initDateTimePickers(document);
+}
+
 export function initDateTimePickers(root = document) {
   root.querySelectorAll("[data-datetime-field]").forEach((node) => {
     const field = /** @type {HTMLElement} */ (node);
     if (field.dataset.dtInit === "true") return;
     const input = field.querySelector("input");
     if (!(input instanceof HTMLInputElement)) return;
+    input.classList.remove("hidden");
+    field.querySelectorAll(".dt-trigger, .dt-time-field, .dt-popover").forEach((node) => node.remove());
     buildField(field, input);
     // Marked only after a successful build so a throwing init can be retried.
     field.dataset.dtInit = "true";

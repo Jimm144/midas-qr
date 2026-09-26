@@ -39,17 +39,45 @@ describe("applyLogoToDoc", () => {
     expect(clip.getAttribute("width")).toBe("300");
     expect(clip.getAttribute("height")).toBe("300");
 
-    const backing = group.querySelector(".qr-logo-backing");
-    expect(backing.getAttribute("x")).toBe("90");
-    expect(backing.getAttribute("y")).toBe("90");
-    expect(backing.getAttribute("width")).toBe("120");
-    expect(backing.getAttribute("height")).toBe("120");
+    // No backing plate at image margin 0: a transparent logo must not gain a
+    // background the user never asked for.
+    expect(group.querySelector(".qr-logo-backing")).toBeNull();
 
     const image = group.querySelector(".qr-logo-image");
     expect(image.getAttribute("href")).toBe(LOGO);
     expect(image.getAttributeNS("http://www.w3.org/1999/xlink", "href")).toBe(LOGO);
     expect(image.getAttribute("x")).toBe("90");
     expect(image.getAttribute("width")).toBe("120");
+  });
+
+  it("paints a padded backing plate once an image margin is set", () => {
+    setup({ imageMargin: 8 });
+    const doc = new DOMParser().parseFromString(svgWith(), "image/svg+xml");
+    applyLogoToDoc(doc, 300, 300);
+    const backing = doc.querySelector(".qr-logo-backing");
+    expect(backing.getAttribute("x")).toBe("82");
+    expect(backing.getAttribute("y")).toBe("82");
+    expect(backing.getAttribute("width")).toBe("136");
+    expect(backing.getAttribute("height")).toBe("136");
+    expect(backing.getAttribute("fill")).toBe("#ffffff");
+    // The plate must sit behind the image, not replace it.
+    const children = [...doc.querySelector(".qr-logo-overlay").children];
+    expect(children[0].getAttribute("class")).toBe("qr-logo-backing");
+    expect(children[1].getAttribute("class")).toBe("qr-logo-image");
+  });
+
+  it("caps the plate so an oversized margin cannot swallow the code", () => {
+    // imageMargin accepts up to 100px. Uncapped, a 0.1 logo on a 300px code
+    // produced a 231px plate — most of the code, and nothing left to scan.
+    setup({ logoSizeProportion: 0.1, imageMargin: 100 });
+    const doc = new DOMParser().parseFromString(svgWith(), "image/svg+xml");
+    applyLogoToDoc(doc, 300, 300);
+    const backing = doc.querySelector(".qr-logo-backing");
+    const size = Number(backing.getAttribute("width"));
+    expect(size).toBeLessThanOrEqual(300 * 0.5);
+    // Half the canvas, centred: 75..225.
+    expect(backing.getAttribute("x")).toBe("75");
+    expect(size).toBe(150);
   });
 
   it("follows the code when a mask shifts it inside the canvas", () => {

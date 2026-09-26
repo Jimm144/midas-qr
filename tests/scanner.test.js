@@ -1425,6 +1425,23 @@ describe("scanner history — escaping, persistence and actions", () => {
     expect(h.state.scanner.history.map((item) => item.content)).toEqual(["one", "two"]);
   });
 
+  it("ignores a delete click with a missing or garbage row index", async () => {
+    const h = await freshScannerHarness();
+    h.scanner.wireHistoryDelegation();
+    h.state.scanner.history = [
+      { id: 1, content: "one", time: "t1" },
+      { id: 2, content: "two", time: "t2" },
+    ];
+    h.scanner.renderHistoryList();
+
+    // splice(NaN, 1) coerces to 0 and would silently delete the newest entry.
+    const row = h.DOM.historyList.querySelector(".btn-delete-scan");
+    row.dataset.idx = "not-a-number";
+    row.click();
+
+    expect(h.state.scanner.history.map((item) => item.content)).toEqual(["one", "two"]);
+  });
+
   it("clears the list and restores it from the undo toast", async () => {
     const h = await freshScannerHarness();
     h.scanner.wireHistoryDelegation();

@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { initDateTimePickers, syncDateTimeField } from "../src/js/ui/datetime-picker.js";
+import { getIntlLocale } from "../src/js/i18n.js";
+
+// The picker formats with the active UI language, not the runtime default, so
+// every expectation has to ask for the same locale.
+const LOCALE = getIntlLocale();
 
 function buildField() {
   const field = document.createElement("div");
@@ -12,13 +17,13 @@ function buildField() {
 function dateFor(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   const date = new Date(+match[1], +match[2] - 1, +match[3]);
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString(LOCALE, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function timeFor(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   const date = new Date(+match[1], +match[2] - 1, +match[3], +match[4], +match[5]);
-  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return date.toLocaleTimeString(LOCALE, { hour: "numeric", minute: "2-digit" });
 }
 
 describe("datetime-picker", () => {
@@ -43,9 +48,10 @@ describe("datetime-picker", () => {
   });
 
   it("builds a date trigger and a typed time field, hides the input and is idempotent", () => {
-    expect(trigger().textContent).toBe("Select a date");
+    expect(trigger().querySelector(".dt-trigger-label").textContent).toBe("Select a date");
     expect(trigger().querySelector(".dt-trigger-label").classList.contains("is-placeholder")).toBe(true);
-    expect(timeInput().getAttribute("placeholder")).toBe("e.g., 2:30 PM");
+    // Just the time: an "e.g.," prefix left a stray dot and comma in the field.
+    expect(timeInput().getAttribute("placeholder")).toBe("2:30 PM");
     expect(timeInput().value).toBe("");
     expect(trigger().getAttribute("aria-haspopup")).toBe("dialog");
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
@@ -64,7 +70,7 @@ describe("datetime-picker", () => {
     expect(popover().querySelector(".dt-footer")).toBeNull();
     const now = new Date();
     expect(field.querySelector(".dt-month").textContent).toBe(
-      now.toLocaleDateString(undefined, { month: "long", year: "numeric" })
+      now.toLocaleDateString(LOCALE, { month: "long", year: "numeric" })
     );
     const cells = field.querySelectorAll(".dt-grid .dt-day");
     expect(cells).toHaveLength(42);
@@ -93,7 +99,7 @@ describe("datetime-picker", () => {
     syncDateTimeField(input);
     trigger().click();
     expect(field.querySelector(".dt-month").textContent).toBe(
-      new Date(2026, 8, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" })
+      new Date(2026, 8, 1).toLocaleDateString(LOCALE, { month: "long", year: "numeric" })
     );
     expect(dayCell("2026-09-17").classList.contains("selected")).toBe(true);
     expect(dayCell("2026-09-17").getAttribute("aria-pressed")).toBe("true");
@@ -114,7 +120,7 @@ describe("datetime-picker", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(popover().classList.contains("hidden")).toBe(true);
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
-    expect(trigger().textContent).toBe(dateFor("2026-09-05T14:30"));
+    expect(trigger().querySelector(".dt-trigger-label").textContent).toBe(dateFor("2026-09-05T14:30"));
     expect(timeInput().value).toBe(timeFor("2026-09-05T14:30"));
     expect(document.activeElement).toBe(trigger());
   });
@@ -126,7 +132,7 @@ describe("datetime-picker", () => {
     outside.click();
     expect(input.value.startsWith(`${iso}T`)).toBe(true);
     expect(popover().classList.contains("hidden")).toBe(true);
-    expect(trigger().textContent).toBe(dateFor(input.value));
+    expect(trigger().querySelector(".dt-trigger-label").textContent).toBe(dateFor(input.value));
   });
 
   it("defaults the time to 00:00 when only a date is picked", () => {
@@ -174,13 +180,13 @@ describe("datetime-picker", () => {
     expect(field.querySelector(".dt-prev-year").getAttribute("aria-label")).toBe("Previous year");
     field.querySelector(".dt-next-year").click();
     expect(field.querySelector(".dt-month").textContent).toBe(
-      new Date(2027, 8, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" })
+      new Date(2027, 8, 1).toLocaleDateString(LOCALE, { month: "long", year: "numeric" })
     );
     field.querySelector(".dt-prev-year").click();
     expect(dayCell("2026-09-17").classList.contains("selected")).toBe(true);
     field.querySelector(".dt-next").click();
     expect(field.querySelector(".dt-month").textContent).toBe(
-      new Date(2026, 9, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" })
+      new Date(2026, 9, 1).toLocaleDateString(LOCALE, { month: "long", year: "numeric" })
     );
     field.querySelector(".dt-prev").click();
     expect(dayCell("2026-09-17").classList.contains("selected")).toBe(true);
@@ -193,7 +199,7 @@ describe("datetime-picker", () => {
     const grid = field.querySelector(".dt-grid");
     grid.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     expect(field.querySelector(".dt-month").textContent).toBe(
-      new Date(2026, 9, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" })
+      new Date(2026, 9, 1).toLocaleDateString(LOCALE, { month: "long", year: "numeric" })
     );
     expect(document.activeElement).toBe(dayCell("2026-10-18"));
   });
@@ -226,15 +232,15 @@ describe("datetime-picker", () => {
   });
 
   it("syncDateTimeField and input events refresh the date label and time text", () => {
-    expect(trigger().textContent).toBe("Select a date");
+    expect(trigger().querySelector(".dt-trigger-label").textContent).toBe("Select a date");
     expect(timeInput().value).toBe("");
     input.value = "2026-12-01T08:05";
     input.dispatchEvent(new Event("input", { bubbles: true }));
-    expect(trigger().textContent).toBe(dateFor("2026-12-01T08:05"));
+    expect(trigger().querySelector(".dt-trigger-label").textContent).toBe(dateFor("2026-12-01T08:05"));
     expect(timeInput().value).toBe(timeFor("2026-12-01T08:05"));
     input.value = "2027-01-02T23:59";
     input.dispatchEvent(new Event("change", { bubbles: true }));
-    expect(trigger().textContent).toBe(dateFor("2027-01-02T23:59"));
+    expect(trigger().querySelector(".dt-trigger-label").textContent).toBe(dateFor("2027-01-02T23:59"));
     expect(timeInput().value).toBe(timeFor("2027-01-02T23:59"));
     input.setAttribute("aria-invalid", "true");
     input.setAttribute("aria-describedby", "hint-1");
@@ -249,7 +255,7 @@ describe("datetime-picker", () => {
     expect(timeInput().hasAttribute("aria-describedby")).toBe(false);
     input.value = "";
     syncDateTimeField(input);
-    expect(trigger().textContent).toBe("Select a date");
+    expect(trigger().querySelector(".dt-trigger-label").textContent).toBe("Select a date");
     expect(timeInput().value).toBe("");
   });
 });

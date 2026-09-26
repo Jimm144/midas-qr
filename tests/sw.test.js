@@ -410,4 +410,36 @@ describe("sw.js fetch", () => {
     h.dispatch("fetch", post);
     expect(post.handled).toBe(false);
   });
+
+  it("serves the 503 fallback for an uncached asset when the network fails", async () => {
+    // A precache entry that was evicted, requested offline: neither cached nor
+    // reachable. Without this path the page would get an opaque rejection for
+    // what it asked for as CSS/JS.
+    const url = `${BASE}src/css/style.min.css?v=999`;
+    h.network.handler = async () => {
+      throw new Error("offline");
+    };
+
+    const event = h.makeEvent(new MockRequest(url));
+    h.dispatch("fetch", event);
+    const response = await h.settle(event);
+
+    expect(response.status).toBe(503);
+  });
+
+  it("still serves the network response when the cache write fails", async () => {
+    const url = `${BASE}dist/bundle.js`;
+    const cache = await h.caches.open(h.sw.CACHE_NAME);
+    cache.put = async () => {
+      throw new Error("quota");
+    };
+    h.network.handler = async () => new MockResponse("FRESH-BUNDLE");
+
+    const event = h.makeEvent(new MockRequest(url));
+    h.dispatch("fetch", event);
+    const response = await h.settle(event);
+
+    // A failing cache.put must never swallow the response the user asked for.
+    expect(await response.text()).toBe("FRESH-BUNDLE");
+  });
 });

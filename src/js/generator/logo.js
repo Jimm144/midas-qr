@@ -58,19 +58,31 @@ export function applyLogoToDoc(doc, w, h) {
   }
   group.setAttribute("clip-path", `url(#${clipId})`);
 
-  // Backing plate to guarantee high contrast and block dots under the logo
-  const backing = doc.createElementNS(SVG_NS, "rect");
-  backing.setAttribute("class", "qr-logo-backing");
-  const pad = margin;
-  backing.setAttribute("x", String(x - pad));
-  backing.setAttribute("y", String(y - pad));
-  backing.setAttribute("width", String(size + 2 * pad));
-  backing.setAttribute("height", String(size + 2 * pad));
-  backing.setAttribute("rx", "4");
-  backing.setAttribute("ry", "4");
-  const bg = state.generator.bgTransparent ? "#ffffff" : state.generator.bgColor || "#ffffff";
-  backing.setAttribute("fill", bg);
-  group.appendChild(backing);
+  // Backing plate to guarantee high contrast and block dots under the logo.
+  // It only exists when the user asked for image margin: at margin 0 the plate
+  // would be exactly the logo's square, which an opaque logo hides completely
+  // but which paints a solid block behind a transparent one — the "my
+  // transparent logo grew a background" case.
+  //
+  // The margin is capped so the plate can never swallow the code: at the
+  // maximum 100px margin with a small logo the plate would cover most of the
+  // canvas and nothing would scan. Half the canvas is the ceiling; the badge
+  // reports the same threshold via readability.logoPlateTooBig.
+  const canvasSide = Math.min(w, h);
+  const pad = Math.max(0, Math.min(margin, (canvasSide * 0.5 - size) / 2));
+  if (pad > 0) {
+    const backing = doc.createElementNS(SVG_NS, "rect");
+    backing.setAttribute("class", "qr-logo-backing");
+    backing.setAttribute("x", String(x - pad));
+    backing.setAttribute("y", String(y - pad));
+    backing.setAttribute("width", String(size + 2 * pad));
+    backing.setAttribute("height", String(size + 2 * pad));
+    backing.setAttribute("rx", "4");
+    backing.setAttribute("ry", "4");
+    const bg = state.generator.bgTransparent ? "#ffffff" : state.generator.bgColor || "#ffffff";
+    backing.setAttribute("fill", bg);
+    group.appendChild(backing);
+  }
 
   // Logo image
   const img = doc.createElementNS(SVG_NS, "image");

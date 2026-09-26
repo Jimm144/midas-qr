@@ -3,6 +3,7 @@ import { state } from "../state";
 import { generateQR, renderOnce } from "./generator.js";
 import { exportRenderedBlob, downloadBlob, sanitizeFilename } from "./export.js";
 import { announce } from "../ui/announce.js";
+import { t } from "../i18n.js";
 
 /**
  * Parse a CSV file (exported from Excel/Sheets, hence the optional UTF-8 BOM)
@@ -58,6 +59,23 @@ export function parseCsv(text, delimiter = ",") {
 }
 
 let batchBusy = false;
+let batchStatusKey = "";
+
+function setBatchStatus(key, params = {}) {
+  batchStatusKey = key;
+  if (DOM.batchStatus) DOM.batchStatus.textContent = t(key, params);
+}
+
+function setBatchStatusText(text) {
+  batchStatusKey = "";
+  if (DOM.batchStatus) DOM.batchStatus.textContent = text;
+}
+
+function clearBatchStatus(key) {
+  if (batchStatusKey !== key) return;
+  batchStatusKey = "";
+  if (DOM.batchStatus) DOM.batchStatus.textContent = "";
+}
 
 /** True while a batch export is running (guards UI re-entry). */
 function isBatchExportRunning() {
@@ -76,10 +94,6 @@ export async function runBatchExport(values) {
   // never strand it set.
   batchBusy = true;
   const ext = (DOM.exportFormat && DOM.exportFormat.value) || "png";
-  const status = DOM.batchStatus;
-  const setStatus = (text) => {
-    if (status) status.textContent = text;
-  };
   // Re-entry guard: the button is disabled for the whole run and the busy flag
   // rejects a second invocation even if the DOM is bypassed.
   const button = DOM.btnBatch;
@@ -89,8 +103,8 @@ export async function runBatchExport(values) {
   let done = 0;
   let failed = 0;
   try {
-    setStatus(`0/${total}`);
-    announce(`Batch export started: ${total} codes — allow multiple downloads if your browser asks`);
+    setBatchStatusText(`0/${total}`);
+    announce(t("batch.started", { count: total }));
     for (let i = 0; i < total; i++) {
       const value = values[i];
       try {
@@ -107,25 +121,23 @@ export async function runBatchExport(values) {
         failed++;
         console.warn(`[QR] batch row ${i + 1} ("${value.slice(0, 40)}") failed:`, err);
       }
-      setStatus(`${done + failed}/${total}`);
+      setBatchStatusText(`${done + failed}/${total}`);
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
-    announce(
-      failed === 0
-        ? `Batch export finished: ${done} of ${total} codes`
-        : `Batch export finished: ${done} of ${total} codes (${failed} failed)`
-    );
-    setStatus(failed === 0 ? `Done: ${done}/${total}` : `Done: ${done}/${total} (${failed} failed)`);
+    const finishedKey = failed === 0 ? "batch.finished" : "batch.finishedFailed";
+    announce(t(finishedKey, { done, total, failed }));
+    const doneKey = failed === 0 ? "batch.done" : "batch.doneFailed";
+    setBatchStatus(doneKey, { done, total, failed });
     setTimeout(() => {
-      if (!batchBusy && status && status.textContent.startsWith("Done")) {
-        status.textContent = "";
-      }
+      if (!batchBusy) clearBatchStatus(doneKey);
     }, 4000);
   } finally {
-    // renderOnce restored the live config itself; just repaint the preview.
-    generateQR(true);
+    // Free the busy flag and the button before the repaint: if the repaint
+    // itself threw, the run would otherwise stay locked for the session.
     batchBusy = false;
     if (button) button.disabled = buttonWasDisabled;
+    // renderOnce restored the live config itself; just repaint the preview.
+    generateQR(true);
   }
   return done;
 }
@@ -144,13 +156,17 @@ export function parseBatchLines(text) {
 }
 
 /**
- * Pick the parser for a batch file: `.txt` (or text/plain) is one code per
- * line; `.tsv` (or text/tab-separated-values) is tab-delimited; everything
- * else goes through the comma CSV parser.
+ * Pick the parser for a batch file. The extension wins when it disagrees with
+ * the MIME type: browsers report a `.tsv`/`.csv` as `text/plain` often enough
+ * that mime-first order turned every tab-separated row into one long payload.
+ * MIME is the fallback for files with no useful extension.
  */
 export function parseBatchFile(text, filename = "", mime = "") {
-  if (/\.txt$/i.test(filename) || mime === "text/plain") return parseBatchLines(text);
-  if (/\.tsv$/i.test(filename) || mime === "text/tab-separated-values") return parseCsv(text, "\t");
+  if (/\.tsv$/i.test(filename)) return parseCsv(text, "\t");
+  if (/\.csv$/i.test(filename)) return parseCsv(text);
+  if (/\.txt$/i.test(filename)) return parseBatchLines(text);
+  if (mime === "text/tab-separated-values") return parseCsv(text, "\t");
+  if (mime === "text/plain") return parseBatchLines(text);
   return parseCsv(text);
 }
 
@@ -166,43 +182,31 @@ export function initBatchExport() {
     // CSV/TXT intact; the BOM (Excel) is stripped by the parsers.
     reader.onload = (event) => {
       if (isBatchExportRunning()) {
-        announce("A batch export is already running");
+        announce(t("batch.alreadyRunning"));
         return;
       }
       const values = parseBatchFile(event.target.result, file.name, file.type);
       if (values.length === 0) {
-        if (DOM.batchStatus) {
-          DOM.batchStatus.textContent = "No rows in file";
-          setTimeout(() => {
-            if (
-              !isBatchExportRunning() &&
-              DOM.batchStatus &&
-              DOM.batchStatus.textContent === "No rows in file"
-            ) {
-              DOM.batchStatus.textContent = "";
-            }
-          }, 3000);
-        }
-        announce("No data rows found in that file");
+        setBatchStatus("batch.noRows");
+        setTimeout(() => {
+          if (!isBatchExportRunning()) clearBatchStatus("batch.noRows");
+        }, 3000);
+        announce(t("batch.noDataRows"));
         return;
       }
-      runBatchExport(values);
+      runBatchExport(values).catch((err) => {
+        console.error("[QR] batch export failed:", err);
+        setBatchStatus("batch.finishedFailed", { done: 0, total: values.length, failed: values.length });
+        announce(t("batch.finishedFailed", { done: 0, total: values.length, failed: values.length }));
+      });
     };
     reader.onerror = (err) => {
       console.error("[QR] batch file read failed:", err);
-      if (DOM.batchStatus) {
-        DOM.batchStatus.textContent = "Couldn't read file";
-        setTimeout(() => {
-          if (
-            !isBatchExportRunning() &&
-            DOM.batchStatus &&
-            DOM.batchStatus.textContent === "Couldn't read file"
-          ) {
-            DOM.batchStatus.textContent = "";
-          }
-        }, 3000);
-      }
-      announce("Could not read that file");
+      setBatchStatus("batch.readFailedShort");
+      setTimeout(() => {
+        if (!isBatchExportRunning()) clearBatchStatus("batch.readFailedShort");
+      }, 3000);
+      announce(t("batch.readFailed"));
     };
     reader.readAsText(file, "utf-8");
   });

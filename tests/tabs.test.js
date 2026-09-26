@@ -28,12 +28,12 @@ describe("loadVendoredScript", () => {
   });
 });
 
-async function setupTablist() {
+async function setupTablist({ keepHash = false } = {}) {
   vi.resetModules();
   document.body.innerHTML = `
     <div id="announcements" role="status" aria-live="polite"></div>
     <div class="tab-rail" role="tablist">
-      <button id="tab-btn-generator" role="tab" aria-selected="true" aria-controls="panel-generator"></button>
+      <button id="tab-btn-generator" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="panel-generator"></button>
       <button id="tab-btn-scanner" role="tab" aria-selected="false" aria-controls="panel-scanner"></button>
       <button id="tab-btn-history" role="tab" aria-selected="false" aria-controls="panel-history"></button>
     </div>
@@ -42,7 +42,8 @@ async function setupTablist() {
     <section id="panel-history" role="tabpanel" aria-labelledby="tab-btn-history" class="hidden"></section>
   `;
   globalThis.jsQR = {};
-  window.history.replaceState(null, "", window.location.pathname);
+  // A share payload lives in the hash, so callers testing that path opt out.
+  if (!keepHash) window.history.replaceState(null, "", window.location.pathname);
   const { DOM } = await import("../src/js/ui/dom.js");
   DOM.tabBtnGenerator = document.getElementById("tab-btn-generator");
   DOM.tabBtnScanner = document.getElementById("tab-btn-scanner");
@@ -150,5 +151,75 @@ describe("tablist keyboard navigation", () => {
     document.getElementById("tab-btn-history").click();
     expect(scanner.classList.contains("is-active")).toBe(false);
     expect(scanner.classList.contains("custom-hook")).toBe(true);
+  });
+});
+
+describe("tab rail sliding pill", () => {
+  /** jsdom has no layout, so hand the measurement the geometry it needs. */
+  function stubGeometry(el, { width, left }) {
+    Object.defineProperty(el, "offsetWidth", { value: width, configurable: true });
+    Object.defineProperty(el, "offsetLeft", { value: left, configurable: true });
+  }
+
+  it("creates one hidden pill and slides it to the selected tab", async () => {
+    await setupTablist();
+    const rail = document.querySelector(".tab-rail");
+    const indicator = rail.querySelector(":scope > .tab-indicator");
+    expect(indicator).not.toBeNull();
+    expect(indicator.getAttribute("aria-hidden")).toBe("true");
+    // One pill for the whole rail, not one per button.
+    expect(rail.querySelectorAll(".tab-indicator")).toHaveLength(1);
+
+    stubGeometry(rail, { width: 0, left: 0 });
+    Object.defineProperty(rail, "clientLeft", { value: 1, configurable: true });
+    stubGeometry(document.getElementById("tab-btn-scanner"), { width: 120, left: 250 });
+
+    document.getElementById("tab-btn-scanner").click();
+
+    expect(indicator.style.width).toBe("120px");
+    // offsetLeft is border-box relative; the pill sits at the padding box.
+    expect(indicator.style.transform).toBe("translateX(249px)");
+  });
+
+  it("only enables the transition after a placement with real geometry", async () => {
+    await setupTablist();
+    const rail = document.querySelector(".tab-rail");
+    const indicator = rail.querySelector(":scope > .tab-indicator");
+    // jsdom has no layout, so nothing has been placed yet — and the class that
+    // switches the transition on must be held back, or the pill animates in from
+    // the corner (on load, or when a hidden panel is first shown).
+    expect(rail.classList.contains("is-indicator-ready")).toBe(false);
+
+    stubGeometry(document.getElementById("tab-btn-generator"), { width: 200, left: 0 });
+    window.dispatchEvent(new Event("resize"));
+
+    expect(rail.classList.contains("is-indicator-ready")).toBe(true);
+    expect(indicator.style.width).toBe("200px");
+    expect(indicator.style.transform).toBe("translateX(0px)");
+  });
+});
+
+describe("share links keep their payload in the hash", () => {
+  it("does not rewrite a payload hash to a tab name on init", async () => {
+    window.history.replaceState(null, "", "#w=400&data=shared");
+    await setupTablist({ keepHash: true });
+    // initTabs' else-branch used to replaceState("#generator"), which made a
+    // shared link un-re-shareable and unbookmarkable the moment it opened.
+    expect(window.location.hash).toBe("#w=400&data=shared");
+  });
+
+  it("does not overwrite a payload hash when the user switches tabs", async () => {
+    window.history.replaceState(null, "", "#w=400&data=shared");
+    const { tabs } = await setupTablist({ keepHash: true });
+    tabs.switchTab("history");
+    expect(window.location.hash).toBe("#w=400&data=shared");
+  });
+
+  it("still writes a tab hash when there is no payload", async () => {
+    // The default harness clears the hash, which is the no-payload case.
+    const { tabs } = await setupTablist();
+    expect(window.location.hash).toBe("#generator");
+    tabs.switchTab("scanner");
+    expect(window.location.hash).toBe("#scanner");
   });
 });

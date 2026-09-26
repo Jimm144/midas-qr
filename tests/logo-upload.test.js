@@ -65,3 +65,27 @@ describe("logo upload keyboard access", () => {
     expect(margin.hasAttribute("aria-disabled")).toBe(false);
   });
 });
+
+describe("logo URL safety allow-list", () => {
+  it("accepts bitmap data URLs and host-bearing http(s) URLs", async () => {
+    vi.resetModules();
+    const { isSafeLogoDataUrl } = await import("../src/js/generator/controls.js");
+    expect(isSafeLogoDataUrl("data:image/png;base64,AAAA")).toBe(true);
+    expect(isSafeLogoDataUrl("data:image/webp;base64,AAAA")).toBe(true);
+    expect(isSafeLogoDataUrl("https://example.com/logo.png")).toBe(true);
+    expect(isSafeLogoDataUrl("http://localhost:8080/logo.png")).toBe(true);
+  });
+
+  it("rejects non-image data URLs and non-http(s)/hostless values", async () => {
+    vi.resetModules();
+    const { isSafeLogoDataUrl } = await import("../src/js/generator/controls.js");
+    expect(isSafeLogoDataUrl("data:image/svg+xml;base64,AA")).toBe(false);
+    expect(isSafeLogoDataUrl("data:text/html;base64,AA")).toBe(false);
+    expect(isSafeLogoDataUrl("javascript:alert(1)")).toBe(false);
+    expect(isSafeLogoDataUrl("file:///etc/passwd")).toBe(false);
+    expect(isSafeLogoDataUrl("https://")).toBe(false);
+    expect(isSafeLogoDataUrl("example.com/logo.png")).toBe(false);
+    expect(isSafeLogoDataUrl("https://exa mple.com/logo.png")).toBe(false);
+    expect(isSafeLogoDataUrl(null)).toBe(false);
+  });
+});

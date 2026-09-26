@@ -7,16 +7,71 @@
 
 import { escapeWifiStr, escapeVCard } from "../utils.js";
 
-/** Validate a URL string (tolerant: prepends https:// if no scheme). */
+/**
+ * Invalid payloads report a translation key, never a sentence: the wording
+ * lives in the catalogs (data-types.js calls `t(r.errorKey)`), so this module
+ * stays pure and the two copies can no longer drift apart.
+ * @param {string} str
+ * @param {string} errorKey
+ */
+function invalid(str, errorKey) {
+  return { str, isValid: false, errorKey };
+}
+
+// Raw whitespace or C0/DEL control characters never belong in a URL: they are
+// the classic way a mistyped payload ("not a url") slips past `new URL`.
+const URL_WHITESPACE_RE = /\s/;
+function hasForbiddenUrlChars(str) {
+  if (URL_WHITESPACE_RE.test(str)) return true;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+// A leading `scheme:` token. `host:port` also matches, so it is disambiguated
+// below by requiring a non-digit after the colon to count as a scheme.
+const URL_SCHEME_RE = /^([a-z][a-z0-9+.-]*):/i;
+const HOST_PORT_RE = /^\d+([/?#]|$)/;
+
+/** True when the string carries an explicit, non-http(s) scheme. */
+function hasDisallowedScheme(str) {
+  const match = URL_SCHEME_RE.exec(str);
+  if (!match) return false;
+  // `example.com:8080` / `localhost:3000`: a numeric tail is a port, not a scheme.
+  if (HOST_PORT_RE.test(str.slice(match[0].length))) return false;
+  const scheme = match[1].toLowerCase();
+  return scheme !== "http" && scheme !== "https";
+}
+
+/**
+ * A host is usable when it is `localhost`, an IP literal (IPv4 contains a dot;
+ * IPv6 hostnames contain a colon), or a dotted domain. A single bare label
+ * like `foo` is almost always a mistyped payload rather than a real host.
+ * @param {string} hostname
+ */
+function hasUsableHost(hostname) {
+  if (!hostname) return false;
+  if (hostname === "localhost") return true;
+  return hostname.includes(".") || hostname.includes(":");
+}
+
+/**
+ * Validate a URL string (tolerant: prepends https:// if no scheme). Empty is
+ * valid. Rejects whitespace/control characters, explicit non-http(s) schemes
+ * (`javascript:`, `data:`, `file:`, `ftp:`), a scheme with no host, and a
+ * dotless non-localhost host.
+ */
 export function checkUrlValid(str) {
   if (!str) return true;
+  if (hasForbiddenUrlChars(str)) return false;
+  if (hasDisallowedScheme(str)) return false;
   let testStr = str;
   if (!/^https?:\/\//i.test(testStr)) {
     testStr = "https://" + testStr;
   }
   try {
-    new URL(testStr);
-    return true;
+    return hasUsableHost(new URL(testStr).hostname);
   } catch (_err) {
     return false;
   }
@@ -24,12 +79,16 @@ export function checkUrlValid(str) {
 
 /** Format URL payload, auto-prepending https:// when a scheme is missing. */
 export function formatUrl(value) {
-  const str = (value || "").trim();
-  if (!str) return { str: "", isValid: true };
-  if (!/^https?:\/\//i.test(str)) {
-    return { str: "https://" + str, isValid: checkUrlValid(str) };
+  const raw = (value || "").trim();
+  if (!raw) return { str: "", isValid: true };
+  // Reject bad schemes/characters on the raw value, before any https:// is
+  // prepended, so `javascript:alert(1)` is refused because of its scheme
+  // rather than incidentally because `new URL` chokes on the prefixed form.
+  if (hasForbiddenUrlChars(raw) || hasDisallowedScheme(raw)) {
+    return invalid(raw, "data.urlInvalid");
   }
-  return { str, isValid: checkUrlValid(str) };
+  const str = /^https?:\/\//i.test(raw) ? raw : "https://" + raw;
+  return checkUrlValid(str) ? { str, isValid: true } : invalid(str, "data.urlInvalid");
 }
 
 /** Format WIFI: payload from {ssid, pass, enc, hidden}. */
@@ -40,35 +99,38 @@ export function formatWifi({ ssid, pass, enc, hidden }) {
   const hasInput = s || p || encryption !== "WPA" || hidden;
 
   if (hasInput && !s) {
-    return { str: "", isValid: false, error: "Network name (SSID) is required" };
+    return invalid("", "validation.ssidRequired");
   }
   if (!s) {
     return { str: "", isValid: true };
   }
+  // The WIFI: payload grammar caps the SSID at 32 bytes; longer values are
+  // silently truncated (or rejected) by scanners, so refuse them up front.
+  if (s.length > 32) {
+    return invalid("", "validation.ssidLong");
+  }
 
   if (encryption === "WPA" || encryption === "WPA2") {
     if (!p) {
-      return { str: "", isValid: false, error: "Password is required for WPA network" };
+      return invalid("", "validation.wpaPasswordRequired");
     }
     if (p.length < 8) {
-      return { str: "", isValid: false, error: "WPA password must be at least 8 characters" };
+      return invalid("", "validation.wpaPasswordShort");
     }
     if (p.length > 63) {
-      return { str: "", isValid: false, error: "WPA password must be at most 63 characters" };
+      return invalid("", "validation.wpaPasswordLong");
     }
   } else if (encryption === "WEP") {
     if (!p) {
-      return { str: "", isValid: false, error: "Password is required for WEP network" };
+      return invalid("", "validation.wepPasswordRequired");
     }
     const isHex = /^[0-9a-fA-F]+$/.test(p);
-    const validAscii = p.length === 5 || p.length === 13 || p.length === 16;
-    const validHex = isHex && (p.length === 10 || p.length === 26 || p.length === 32);
+    // WEP keys are 40/104-bit: 5/13 ASCII chars or 10/26 hex digits. The
+    // 16-ASCII / 32-hex forms are NOT valid WEP keys.
+    const validAscii = p.length === 5 || p.length === 13;
+    const validHex = isHex && (p.length === 10 || p.length === 26);
     if (!validAscii && !validHex) {
-      return {
-        str: "",
-        isValid: false,
-        error: "WEP key must be 5 or 13 characters (or 10/26 hex digits)",
-      };
+      return invalid("", "validation.wepKey");
     }
   }
 
@@ -81,6 +143,25 @@ export function formatWifi({ ssid, pass, enc, hidden }) {
       : `WIFI:S:${eSsid};T:${encryption};P:${ePass};H:${h};;`;
   return { str, isValid: true };
 }
+
+/**
+ * vCard URL field is stricter than formatUrl: it must already carry an
+ * explicit http(s) scheme (no auto-prepend, so `javascript:`/`data:` can never
+ * be smuggled in) and resolve to a non-empty host. Empty stays valid.
+ * @param {string} str
+ */
+function isExplicitHttpUrl(str) {
+  if (hasForbiddenUrlChars(str)) return false;
+  if (!/^https?:\/\//i.test(str)) return false;
+  try {
+    return Boolean(new URL(str).hostname);
+  } catch (_err) {
+    return false;
+  }
+}
+
+// Pragmatic email validator: no spaces, single @, dot-separated domain.
+const EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
 
 /** Format vCard 3.0 from contact fields object. */
 export function formatVCard(c) {
@@ -118,10 +199,22 @@ export function formatVCard(c) {
   const nonBlank = (v) => typeof v === "string" && v.trim() !== "";
   const hasRequired = nonBlank(fn) || nonBlank(ln) || nonBlank(tel) || nonBlank(email);
   if (hasAnyInput && !hasRequired) {
-    return { str: "", isValid: false };
+    return invalid("", "data.contactRequired");
   }
   if (!hasRequired) {
     return { str: "", isValid: true };
+  }
+  const urlVal = typeof url === "string" ? url.trim() : "";
+  if (urlVal && !isExplicitHttpUrl(urlVal)) {
+    return invalid("", "validation.urlInvalid");
+  }
+  const emailVal = typeof email === "string" ? email.trim() : "";
+  if (emailVal && !EMAIL_RE.test(emailVal)) {
+    return invalid("", "validation.emailInvalid");
+  }
+  const telVal = typeof tel === "string" ? tel.trim() : "";
+  if (telVal && !isValidPhone(telVal)) {
+    return invalid("", "validation.phoneInvalid");
   }
   const esc = escapeVCard;
   // FN is required by strict parsers and must never be a bare space: prefer
@@ -143,7 +236,7 @@ export function formatVCard(c) {
   if (work) lines.push(`TEL;TYPE=WORK,VOICE:${esc(work)}`);
   if (fax) lines.push(`TEL;TYPE=WORK,FAX:${esc(fax)}`);
   if (email) lines.push(`EMAIL:${esc(email)}`);
-  if (url) lines.push(`URL:${esc(url)}`);
+  if (urlVal) lines.push(`URL:${esc(urlVal)}`);
   if (street || city || stateProv || zip || country) {
     lines.push(`ADR;TYPE=WORK:;;${esc(street)};${esc(city)};${esc(stateProv)};${esc(zip)};${esc(country)}`);
   }
@@ -193,11 +286,14 @@ const CRYPTO_VALIDATORS = {
 /** Format crypto URI (e.g. bitcoin:<addr>?amount=<amount>). */
 export function formatCrypto({ coin, address, amount }) {
   const amountVal = (amount || "").trim();
-  const isAmountInvalid = amountVal && !/^\d*\.?\d+$/.test(amountVal);
+  // A payment amount must be a strictly positive finite number: reject `0`,
+  // `0.0`, a leading `+`, and anything the decimal regex doesn't cover.
+  const amountNum = /^\d*\.?\d+$/.test(amountVal) ? Number(amountVal) : NaN;
+  const isAmountInvalid =
+    Boolean(amountVal) && (!Number.isFinite(amountNum) || amountNum <= 0);
   const hasAnyCrypto = (address || "").trim() || amountVal;
   if ((hasAnyCrypto && !(address || "").trim()) || isAmountInvalid) {
-    const reason = isAmountInvalid ? "Invalid amount" : "Wallet address is required";
-    return { str: "", isValid: false, error: reason };
+    return invalid("", isAmountInvalid ? "validation.invalidAmount" : "validation.walletRequired");
   }
   if (!(address || "").trim()) {
     return { str: "", isValid: true };
@@ -206,7 +302,7 @@ export function formatCrypto({ coin, address, amount }) {
   const trimmedAddr = address.trim();
   const validator = CRYPTO_VALIDATORS[coin];
   if (validator && !validator(trimmedAddr)) {
-    return { str: "", isValid: false, error: "Address is invalid for the selected coin" };
+    return invalid("", "validation.addressInvalid");
   }
 
   const addr = trimmedAddr.startsWith("bitcoincash:") ? trimmedAddr.slice(12) : trimmedAddr;
@@ -228,16 +324,16 @@ export function formatGeo({ lat, lon }) {
     lonVal && (!/^-?\d*\.?\d+$/.test(lonVal) || Number(lonVal) < -180 || Number(lonVal) > 180);
   const hasAnyGeo = latVal || lonVal;
   if ((hasAnyGeo && (!latVal || !lonVal)) || isLatInvalid || isLonInvalid) {
-    const reason = isLatInvalid
-      ? "Latitude must be between -90 and 90"
+    const errorKey = isLatInvalid
+      ? "validation.latitudeRange"
       : isLonInvalid
-        ? "Longitude must be between -180 and 180"
+        ? "validation.longitudeRange"
         : !latVal && !lonVal
-          ? "Latitude and longitude are required"
+          ? "validation.coordinatesRequired"
           : !latVal
-            ? "Latitude is required"
-            : "Longitude is required";
-    return { str: "", isValid: false, error: reason };
+            ? "validation.latitudeRequired"
+            : "validation.longitudeRequired";
+    return invalid("", errorKey);
   }
   if (!latVal || !lonVal) {
     return { str: "", isValid: true };
@@ -245,17 +341,41 @@ export function formatGeo({ lat, lon }) {
   return { str: `geo:${latVal},${lonVal}`, isValid: true };
 }
 
+/**
+ * True for a real `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM` local date-time. The
+ * shape alone is not enough: `2026-02-31T10:00` matches the regex but is not a
+ * calendar date, and RFC 5545 requires a valid DATE value.
+ * @param {string} value
+ */
+function isRealLocalDateTime(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/.exec(value || "");
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (match[4] !== undefined) {
+    const hour = Number(match[4]);
+    const minute = Number(match[5]);
+    if (hour > 23 || minute > 59) return false;
+  }
+  if (month < 1 || month > 12 || day < 1) return false;
+  return day <= new Date(year, month, 0).getDate();
+}
+
 /** Format iCalendar VEVENT payload. */
 export function formatEvent({ title, start, end, location, description }) {
   const hasAnyEvent = title || start || end || location || description;
   if (hasAnyEvent && (!title || !start)) {
-    return { str: "", isValid: false };
+    return invalid("", "data.eventRequired");
   }
   if (!title || !start) {
     return { str: "", isValid: true };
   }
+  if (!isRealLocalDateTime(start) || (end && !isRealLocalDateTime(end))) {
+    return invalid("", "validation.invalidDate");
+  }
   if (end && start && end < start) {
-    return { str: "", isValid: false, error: "End time must be after the start time" };
+    return invalid("", "validation.endAfterStart");
   }
   const fmtDate = (d) => {
     const clean = d.replace(/[-:]/g, "");
@@ -299,19 +419,24 @@ function isValidPhone(value) {
 /** Format sms:to URI. */
 export function formatSms({ phone, message }) {
   const phoneVal = (phone || "").trim();
+  const messageVal = (message || "").trim();
   const isPhoneInvalid = phoneVal && !isValidPhone(phoneVal);
-  const hasAnySms = phoneVal || (message || "").trim();
+  const hasAnySms = phoneVal || messageVal;
   if ((hasAnySms && !phoneVal) || isPhoneInvalid) {
-    const reason = isPhoneInvalid ? "Invalid phone number" : "Phone number is required";
-    return { str: "", isValid: false, error: reason };
+    return invalid("", isPhoneInvalid ? "validation.phoneInvalid" : "validation.phoneRequired");
   }
   if (!phoneVal) {
     return { str: "", isValid: true };
   }
+  // 1600 chars is the practical ceiling for a single SMS QR payload; beyond
+  // that scanners truncate or choke on the body.
+  if (messageVal.length > 1600) {
+    return invalid("", "validation.smsMessageTooLong");
+  }
   // Encode only the characters that would break URI parsing (? = query start,
   // & = parameter separator, # = fragment start). Spaces and newlines stay
   // human-readable — decoders expect them raw in SMSTO bodies.
-  const safeBody = (message || "").trim().replace(/[?&#]/g, (c) => encodeURIComponent(c));
+  const safeBody = messageVal.replace(/[?&#]/g, (c) => encodeURIComponent(c));
   return { str: `SMSTO:${phoneVal}:${safeBody}`, isValid: true };
 }
 
@@ -320,16 +445,13 @@ export function formatPhone(phone) {
   const phoneVal = (phone || "").trim();
   const isPhoneInvalid = phoneVal && !isValidPhone(phoneVal);
   if (isPhoneInvalid) {
-    return { str: "", isValid: false, error: "Invalid phone number" };
+    return invalid("", "validation.phoneInvalid");
   }
   if (!phoneVal) {
     return { str: "", isValid: true };
   }
   return { str: `tel:${phoneVal}`, isValid: true };
 }
-
-// Pragmatic email validator: no spaces, single @, dot-separated domain.
-const EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
 
 /** Format mailto: URI from {to, subject, body}. */
 export function formatEmail({ to, subject, body }) {
@@ -338,10 +460,16 @@ export function formatEmail({ to, subject, body }) {
   const bodyVal = (body || "").trim();
   const hasAnyEmail = toVal || subjectVal || bodyVal;
   if (hasAnyEmail && !toVal) {
-    return { str: "", isValid: false, error: "Email address is required" };
+    return invalid("", "validation.emailRequired");
   }
-  if (toVal && !EMAIL_RE.test(toVal)) {
-    return { str: "", isValid: false, error: "Invalid email address" };
+  if (toVal) {
+    // RFC 5321 practical limits: 254 chars for the whole address, 64 for the
+    // local part. A too-long address is un-deliverable, so reject it.
+    const atIndex = toVal.indexOf("@");
+    const localPart = atIndex === -1 ? toVal : toVal.slice(0, atIndex);
+    if (toVal.length > 254 || localPart.length > 64 || !EMAIL_RE.test(toVal)) {
+      return invalid("", "validation.emailInvalid");
+    }
   }
   if (!toVal) {
     return { str: "", isValid: true };

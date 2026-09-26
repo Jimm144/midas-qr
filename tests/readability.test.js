@@ -2,11 +2,14 @@ import { describe, it, expect } from "vitest";
 import {
   MIN_QR_CONTRAST,
   MIN_RENDER_MODULE_PX,
+  MIN_DOT_MODULE_PX,
+  MIN_QUIET_ZONE_PX,
   contrastRatio,
   isTooSmallToScan,
   modulePixelSize,
   parseHexColor,
-  readabilityHint,
+  readabilityHintDescriptor,
+  readabilityHintKey,
   relativeLuminance,
 } from "../src/js/generator/readability.js";
 
@@ -66,12 +69,17 @@ describe("render size checks", () => {
     expect(isTooSmallToScan(300, 0)).toBe(false);
   });
 
-  it("documents the module floor", () => {
+  it("documents the module and quiet-zone floors", () => {
     expect(MIN_RENDER_MODULE_PX).toBeGreaterThanOrEqual(4);
+    expect(MIN_DOT_MODULE_PX).toBeGreaterThan(MIN_RENDER_MODULE_PX);
+    expect(MIN_QUIET_ZONE_PX).toBeGreaterThan(0);
   });
 });
 
-describe("readabilityHint", () => {
+// The advisor reports a translation key, never a sentence: the wording lives in
+// the catalogs. These assertions therefore name keys, which also pins the
+// precedence between overlapping causes.
+describe("readabilityHintKey", () => {
   const base = {
     bgColor: "#FFFFFF",
     bgTransparent: false,
@@ -85,63 +93,159 @@ describe("readabilityHint", () => {
   };
 
   it("returns no hint for a high-contrast plain config", () => {
-    expect(readabilityHint(base)).toBe("");
-    expect(readabilityHint(null)).toBe("");
+    expect(readabilityHintKey(base)).toBe("");
+    expect(readabilityHintKey(null)).toBe("");
   });
 
   it("blames a background image first", () => {
-    const hint = readabilityHint({ ...base, bgImageDataUrl: "data:image/png;base64,AAAA" });
-    expect(hint).toMatch(/background image/i);
+    expect(readabilityHintKey({ ...base, bgImageDataUrl: "data:image/png;base64,AAAA" })).toBe(
+      "readability.backgroundImage"
+    );
   });
 
   it("flags an oversized logo", () => {
-    const hint = readabilityHint({
-      ...base,
-      logoDataUrl: "data:image/png;base64,AAAA",
-      logoSizeProportion: 0.4,
-    });
-    expect(hint).toMatch(/logo/i);
+    expect(
+      readabilityHintKey({
+        ...base,
+        logoDataUrl: "data:image/png;base64,AAAA",
+        logoSizeProportion: 0.4,
+        imageMargin: 8,
+      })
+    ).toBe("readability.largeLogo");
   });
 
-  it("does not flag a small logo", () => {
+  it("does not flag a small logo on its backing plate", () => {
     expect(
-      readabilityHint({ ...base, logoDataUrl: "data:image/png;base64,AAAA", logoSizeProportion: 0.2 })
+      readabilityHintKey({
+        ...base,
+        logoDataUrl: "data:image/png;base64,AAAA",
+        logoSizeProportion: 0.2,
+        imageMargin: 8,
+      })
+    ).toBe("");
+  });
+
+  it("flags a logo that sits on the code without a backing plate", () => {
+    expect(
+      readabilityHintKey({
+        ...base,
+        logoDataUrl: "data:image/png;base64,AAAA",
+        logoSizeProportion: 0.2,
+        imageMargin: 0,
+      })
+    ).toBe("readability.logoNoPlate");
+    // A margin large enough to paint a plate clears the warning again.
+    expect(
+      readabilityHintKey({
+        ...base,
+        logoDataUrl: "data:image/png;base64,AAAA",
+        logoSizeProportion: 0.2,
+        imageMargin: 4,
+      })
+    ).toBe("");
+  });
+
+  it("reports an oversized logo as large before it reports the missing plate", () => {
+    // Both conditions hold; "covers a large part" is the more useful advice.
+    expect(
+      readabilityHintKey({
+        ...base,
+        logoDataUrl: "data:image/png;base64,AAAA",
+        logoSizeProportion: 0.45,
+        imageMargin: 0,
+      })
+    ).toBe("readability.largeLogo");
+  });
+
+  it("flags a plate that would swallow the code", () => {
+    // 0.1 * 300 + 2 * 100 = 230px on a 300px code.
+    expect(
+      readabilityHintKey(
+        {
+          ...base,
+          logoDataUrl: "data:image/png;base64,AAAA",
+          logoSizeProportion: 0.1,
+          imageMargin: 100,
+        },
+        { canvasSize: 300 }
+      )
+    ).toBe("readability.logoPlateTooBig");
+    // Without a canvas size the check stays quiet rather than guessing.
+    expect(
+      readabilityHintKey({
+        ...base,
+        logoDataUrl: "data:image/png;base64,AAAA",
+        logoSizeProportion: 0.1,
+        imageMargin: 100,
+      })
+    ).toBe("");
+    // A reasonable margin on a big canvas is fine.
+    expect(
+      readabilityHintKey(
+        {
+          ...base,
+          logoDataUrl: "data:image/png;base64,AAAA",
+          logoSizeProportion: 0.3,
+          imageMargin: 8,
+        },
+        { canvasSize: 1000 }
+      )
     ).toBe("");
   });
 
   it("names the specific low-contrast target", () => {
-    expect(readabilityHint({ ...base, dotsColor: "#FEFEFE" })).toMatch(/body/i);
-    expect(readabilityHint({ ...base, dotsColor: "#000000", cornersSquareColor: "#FAFAFA" })).toMatch(
-      /corner squares/i
-    );
+    expect(readabilityHintKey({ ...base, dotsColor: "#FEFEFE" })).toBe("readability.lowContrastBody");
     expect(
-      readabilityHint({
+      readabilityHintKey({ ...base, dotsColor: "#000000", cornersSquareColor: "#FAFAFA" })
+    ).toBe("readability.lowContrastCornersSquare");
+    expect(
+      readabilityHintKey({
         ...base,
         dotsColor: "#000000",
         cornersSquareColor: "#000000",
         cornersDotColor: "#FEFEFE",
       })
-    ).toMatch(/corner dots/i);
+    ).toBe("readability.lowContrastCornersDot");
   });
 
   it("mentions transparency when the background is transparent", () => {
-    expect(readabilityHint({ ...base, bgTransparent: true })).toMatch(/transparent/i);
+    expect(readabilityHintKey({ ...base, bgTransparent: true })).toBe("readability.transparent");
   });
 
-  it("falls back to the quiet-zone tip for masks", () => {
-    expect(readabilityHint({ ...base, maskType: "circle" })).toMatch(/mask/i);
+  it("does not warn about a square body with no mask", () => {
+    expect(readabilityHintKey({ ...base, shapeBody: "square" }, { modulePx: 9 })).toBe("");
   });
 
-      it("blames the dot body style before the generic mask note", () => {
-        expect(readabilityHint({ ...base, shapeBody: "dots" })).toMatch(/dot body/i);
-        expect(readabilityHint({ ...base, shapeBody: "dot" })).toMatch(/dot body/i);
-        expect(readabilityHint({ ...base, shapeBody: "dots", maskType: "circle" })).toMatch(/dot body/i);
-        expect(readabilityHint({ ...base, shapeBody: "square" })).toBe("");
-      });
+  it("stays quiet on a dot body until the modules get small", () => {
+    // Dots are a deliberate style choice: at 9px modules they scan fine, so
+    // choosing one must not turn the badge yellow.
+    expect(readabilityHintKey({ ...base, shapeBody: "dots" }, { modulePx: 9 })).toBe("");
+    expect(readabilityHintKey({ ...base, shapeBody: "dot" }, { modulePx: 9 })).toBe("");
+    // A small render is where the gaps start to cost real scans.
+    expect(readabilityHintKey({ ...base, shapeBody: "dots" }, { modulePx: 4 })).toBe(
+      "readability.dotBody"
+    );
+    expect(readabilityHintKey({ ...base, shapeBody: "dot" }, { modulePx: 4 })).toBe(
+      "readability.dotBody"
+    );
+    // Dots win over a mask: they are the stronger factor.
+    expect(
+      readabilityHintKey({ ...base, shapeBody: "dots", maskType: "circle" }, { modulePx: 4 })
+    ).toBe("readability.dotBody");
+  });
 
-      it("flags a target that exactly matches the background", () => {
-    const hint = readabilityHint({ ...base, dotsColor: "#FFFFFF" });
-    expect(hint).toMatch(/body/i);
-    expect(hint).toMatch(/low contrast/i);
+  it("stays quiet on a mask that keeps a full quiet zone", () => {
+    expect(readabilityHintKey({ ...base, maskType: "circle", margin: 4 })).toBe("");
+    expect(readabilityHintKey({ ...base, maskType: "circle", margin: 12 })).toBe("");
+    expect(readabilityHintKey({ ...base, maskType: "circle", margin: 0 })).toBe("readability.mask");
+  });
+
+  it("flags a target that exactly matches the background", () => {
+    expect(readabilityHintKey({ ...base, dotsColor: "#FFFFFF" })).toBe("readability.lowContrastBody");
+  });
+
+  it("passes the offending colours as params for interpolation", () => {
+    const descriptor = readabilityHintDescriptor({ ...base, dotsColor: "#FEFEFE" });
+    expect(descriptor.params).toEqual({ color: "#FEFEFE", background: "#FFFFFF" });
   });
 });

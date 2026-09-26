@@ -102,8 +102,10 @@ describe("index.html accessibility invariants", () => {
       const panel = doc.getElementById(btn.getAttribute("data-target"));
       expect(panel, `missing panel for ${btn.getAttribute("data-target")}`).not.toBeNull();
       const expanded = btn.getAttribute("aria-expanded") === "true";
-      expect(expanded, `#${panel.id} hidden=${panel.classList.contains("hidden")}`).toBe(
-        !panel.classList.contains("hidden")
+      // Collapsed is `is-collapsed` (a 0fr track kept in the flow, hidden from
+      // the tab order with visibility) — not display:none, which cannot animate.
+      expect(expanded, `#${panel.id} collapsed=${panel.classList.contains("is-collapsed")}`).toBe(
+        !panel.classList.contains("is-collapsed")
       );
       expect(btn.getAttribute("aria-controls")).toBe(panel.id);
     }

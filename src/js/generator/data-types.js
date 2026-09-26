@@ -6,6 +6,7 @@
  * parsed back into the fields. generator.compileDataString and
  * share.populateInputsFromState are generic lookups over this table.
  */
+import { t } from "../i18n.js";
 import {
   formatUrl,
   formatWifi,
@@ -45,12 +46,24 @@ function safeDecodeURIComponent(value) {
   }
 }
 
+const WIFI_PASSWORD_ERROR_KEYS = new Set([
+  "validation.wpaPasswordRequired",
+  "validation.wpaPasswordShort",
+  "validation.wpaPasswordLong",
+  "validation.wepPasswordRequired",
+  "validation.wepKey",
+]);
+const GEO_LONGITUDE_ERROR_KEYS = new Set(["validation.longitudeRange", "validation.longitudeRequired"]);
+const GEO_LATITUDE_ERROR_KEYS = new Set(["validation.latitudeRange", "validation.latitudeRequired"]);
+const SMS_MESSAGE_ERROR_KEYS = new Set(["validation.smsMessageTooLong"]);
+
 /** @type {Record<import("../constants.js").DataType, DataTypeDefinition>} */
 export const DATA_TYPES = {
   url: {
     fields: ["inputUrl"],
     compile: ({ DOM, showWarnings, setWarning }) => {
       const r = formatUrl(DOM.inputUrl.value);
+      if (showWarnings && r.errorKey) DOM.urlWarning.textContent = t(r.errorKey);
       setWarning(DOM.urlWarning, !r.isValid && showWarnings, DOM.inputUrl);
       return { str: r.str, isValid: r.isValid };
     },
@@ -76,10 +89,9 @@ export const DATA_TYPES = {
         enc: DOM.wifiEnc.value,
         hidden: DOM.wifiHidden.checked,
       });
-      if (showWarnings && r.error) {
-        DOM.wifiWarning.textContent = r.error;
-        const isPassErr =
-          r.error.toLowerCase().includes("password") || r.error.toLowerCase().includes("wep key");
+      if (showWarnings && r.errorKey) {
+        DOM.wifiWarning.textContent = t(r.errorKey);
+        const isPassErr = WIFI_PASSWORD_ERROR_KEYS.has(r.errorKey);
         setWarning(DOM.wifiWarning, true, isPassErr ? DOM.wifiPass : DOM.wifiSsid);
         if (isPassErr) setAriaInvalid(DOM.wifiSsid, false);
         else setAriaInvalid(DOM.wifiPass, false);
@@ -140,6 +152,7 @@ export const DATA_TYPES = {
         zip: DOM.contactZip.value,
         country: DOM.contactCountry.value,
       });
+      if (showWarnings && r.errorKey) DOM.contactWarning.textContent = t(r.errorKey);
       setWarning(DOM.contactWarning, !r.isValid && showWarnings, DOM.contactFirst);
       return { str: r.str, isValid: r.isValid };
     },
@@ -155,8 +168,8 @@ export const DATA_TYPES = {
         address: DOM.cryptoAddress.value,
         amount: DOM.cryptoAmount.value,
       });
-      if (showWarnings && r.error) {
-        DOM.cryptoWarning.textContent = r.error;
+      if (showWarnings && r.errorKey) {
+        DOM.cryptoWarning.textContent = t(r.errorKey);
         setWarning(DOM.cryptoWarning, true, DOM.cryptoAddress);
       } else {
         setWarning(DOM.cryptoWarning, false, DOM.cryptoAddress);
@@ -195,10 +208,10 @@ export const DATA_TYPES = {
         lat: DOM.geoLat.value,
         lon: DOM.geoLon.value,
       });
-      if (showWarnings && r.error) {
-        DOM.geoWarning.textContent = r.error;
-        const isLonErr = r.error.includes("Longitude");
-        const isLatErr = r.error.includes("Latitude");
+      if (showWarnings && r.errorKey) {
+        DOM.geoWarning.textContent = t(r.errorKey);
+        const isLonErr = GEO_LONGITUDE_ERROR_KEYS.has(r.errorKey);
+        const isLatErr = GEO_LATITUDE_ERROR_KEYS.has(r.errorKey);
         if (isLonErr && !isLatErr) {
           setWarning(DOM.geoWarning, true, DOM.geoLon);
           setAriaInvalid(DOM.geoLat, false);
@@ -235,6 +248,7 @@ export const DATA_TYPES = {
         location: DOM.eventLocation.value,
         description: DOM.eventDesc.value,
       });
+      if (showWarnings && r.errorKey) DOM.eventWarning.textContent = t(r.errorKey);
       setWarning(DOM.eventWarning, !r.isValid && showWarnings, DOM.eventTitle);
       if (!r.isValid) setAriaInvalid(DOM.eventStart, true);
       else setAriaInvalid(DOM.eventStart, false);
@@ -251,9 +265,10 @@ export const DATA_TYPES = {
         phone: DOM.smsPhone.value,
         message: DOM.smsMsg.value,
       });
-      if (showWarnings && r.error) {
-        DOM.smsWarning.textContent = r.error;
-        setWarning(DOM.smsWarning, true, DOM.smsPhone);
+      if (showWarnings && r.errorKey) {
+        DOM.smsWarning.textContent = t(r.errorKey);
+        const isMsgErr = SMS_MESSAGE_ERROR_KEYS.has(r.errorKey);
+        setWarning(DOM.smsWarning, true, isMsgErr ? DOM.smsMsg : DOM.smsPhone);
       } else {
         setWarning(DOM.smsWarning, false, DOM.smsPhone);
       }
@@ -273,8 +288,8 @@ export const DATA_TYPES = {
     fields: ["phoneNumber"],
     compile: ({ DOM, showWarnings, setWarning }) => {
       const r = formatPhone(DOM.phoneNumber.value);
-      if (showWarnings && r.error) {
-        DOM.phoneWarning.textContent = r.error;
+      if (showWarnings && r.errorKey) {
+        DOM.phoneWarning.textContent = t(r.errorKey);
         setWarning(DOM.phoneWarning, true, DOM.phoneNumber);
       } else {
         setWarning(DOM.phoneWarning, false, DOM.phoneNumber);
@@ -294,8 +309,8 @@ export const DATA_TYPES = {
         subject: DOM.emailSubject.value,
         body: DOM.emailBody.value,
       });
-      if (showWarnings && r.error) {
-        DOM.emailWarning.textContent = r.error;
+      if (showWarnings && r.errorKey) {
+        DOM.emailWarning.textContent = t(r.errorKey);
         setWarning(DOM.emailWarning, true, DOM.emailTo);
       } else {
         setWarning(DOM.emailWarning, false, DOM.emailTo);

@@ -5,18 +5,19 @@
  * (theme-runtime, pwa, ui/shell, generator/inputs, generator/controls), and
  * this file wires them together in the order the app depends on.
  */
-import { initDOM } from "./ui/dom.js";
+import { DOM, initDOM } from "./ui/dom.js";
+import { initI18n, getLocale, setLocale, t } from "./i18n.js";
 import { state, loadState, setupStatePersistence, applyGeneratorFields } from "./state";
-import { initCustomSelects } from "./ui/components.js";
-import { initSearchableSelects } from "./ui/searchable-select.js";
-import { initDateTimePickers } from "./ui/datetime-picker.js";
+import { initCustomSelects, refreshCustomSelect } from "./ui/components.js";
+import { initSearchableSelects, syncSearchableSelect } from "./ui/searchable-select.js";
+import { initDateTimePickers, refreshDateTimePickers } from "./ui/datetime-picker.js";
 import { initTabs } from "./ui/tabs.js";
 import { initColorPicker } from "./ui/color-picker.js";
 import { initExport } from "./generator/export.js";
 import { initBatchExport } from "./generator/batch.js";
 import { initGeneratorHistory, renderGeneratorHistory } from "./generator/history.js";
 import { ensureQrcodeLoaded } from "./generator/encoder.js";
-import { generateQR, initGenerator, syncConfigToUI } from "./generator/generator.js";
+import { generateQR, syncConfigToUI } from "./generator/generator.js";
 import { renderHistoryList } from "./scanner/scanner.js";
 import { decodeStateFromUrl, applyHydratedPayload } from "./share.js";
 import { initThemeSystem, restoreSavedThemeMode } from "./theme-runtime.js";
@@ -48,6 +49,9 @@ const initApp = () => {
   appInitialized = true;
   try {
     initDOM();
+    initI18n();
+    refreshDateTimePickers();
+    if (DOM.languageSelect) DOM.languageSelect.value = getLocale();
     resetSampleForms();
     loadState();
     // Restore what the user typed before the reload (share URLs decoded next
@@ -71,7 +75,6 @@ const initApp = () => {
     initExport();
     initBatchExport();
     initGeneratorHistory();
-    initGenerator();
     restoreSavedThemeMode();
 
     initGlobalListeners();
@@ -95,6 +98,23 @@ const initApp = () => {
     applyHydratedPayload();
     generateQR(true);
     initInstallButton();
+    if (DOM.languageSelect) {
+      DOM.languageSelect.addEventListener("change", (event) => {
+        const select = /** @type {HTMLSelectElement} */ (event.currentTarget);
+        if (setLocale(select.value)) {
+          document.querySelectorAll(".custom-select-wrapper select").forEach((customSelect) => {
+            refreshCustomSelect(/** @type {HTMLSelectElement} */ (customSelect));
+          });
+          document.querySelectorAll("[data-searchable-select] select").forEach((searchSelect) => {
+            syncSearchableSelect(/** @type {HTMLSelectElement} */ (searchSelect));
+          });
+          refreshDateTimePickers();
+          renderHistoryList();
+          renderGeneratorHistory();
+          generateQR(true);
+        }
+      });
+    }
   } catch (err) {
     console.error("[QR] initApp CRASHED:", err);
     showFatalError(err);
@@ -111,7 +131,7 @@ function showFatalError(err) {
     banner.className = "fixed inset-x-0 top-0 z-[100] bg-red-500 text-white text-center p-3 font-semibold";
     document.body.appendChild(banner);
   }
-  banner.textContent = "App failed to start. Reload or clear site data.";
+  banner.textContent = t("app.fatal");
   void err;
 }
 

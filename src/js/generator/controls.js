@@ -18,13 +18,16 @@ import {
   snapshot,
   formatHistoryTimestamp,
   isSafeBitmapDataUrl,
+  isHttpUrl,
   HEX_COLOR_RE,
   clampNumber,
   copyTextToClipboard,
   truncateSafe,
 } from "../utils.js";
+import { checkUrlValid } from "./formatters.js";
 import { cpActiveTarget, updateFromHex, updateColorState, paintSwatch } from "../ui/color-picker.js";
 import { announce } from "../ui/announce.js";
+import { t } from "../i18n.js";
 import { flashButton } from "../ui/components.js";
 import { generateQR } from "./generator.js";
 import { renderGeneratorHistory, saveGeneratorHistory } from "./history.js";
@@ -80,9 +83,6 @@ export function initColorControls() {
     });
   };
   wireColorInput(DOM.colorBgText, "bg");
-  // Foreground now only moves the code's dots: the corner colors have their own
-  // controls (shown in Medium and Full), so they must not be clobbered.
-  wireColorInput(DOM.colorFgMediumText, "dots");
   wireColorInput(DOM.colorDotsText, "dots");
   wireColorInput(DOM.colorCornersSquareText, "cornersSquare");
   wireColorInput(DOM.colorCornersDotText, "cornersDot");
@@ -92,7 +92,7 @@ export function initColorControls() {
 
 let dimensionControlsReady = false;
 
-/** Width / height / border-radius / margin / medium size slider. */
+/** Width / height / border-radius / margin. */
 export function initDimensionControls() {
   if (dimensionControlsReady) return;
   dimensionControlsReady = true;
@@ -125,25 +125,21 @@ export function initDimensionControls() {
   if (DOM.qrRadius) {
     DOM.qrRadius.addEventListener("input", (e) => {
       const val = parseInt(e.target.value, 10);
-      state.generator.qrRadius = isNaN(val) ? 0 : val;
+      // Clamp and write back, like width/height above: the HTML `max` does not
+      // stop typing, and an unclamped value would survive in state until the
+      // next load silently changed it.
+      const radius = clampNumber(isNaN(val) ? 0 : val, GENERATOR_NUMERIC_BOUNDS.qrRadius);
+      state.generator.qrRadius = radius;
+      e.target.value = String(radius);
       generateQR();
     });
   }
   if (DOM.qrMargin) {
     DOM.qrMargin.addEventListener("input", (e) => {
       const val = parseInt(e.target.value, 10);
-      state.generator.margin = isNaN(val) ? 0 : val;
-      generateQR();
-    });
-  }
-  if (DOM.qrSizeMedium) {
-    DOM.qrSizeMedium.addEventListener("change", (e) => {
-      const size = parseInt(e.target.value, 10);
-      if (isNaN(size)) return;
-      state.generator.width = size;
-      state.generator.height = size;
-      if (DOM.qrWidth) DOM.qrWidth.value = String(size);
-      if (DOM.qrHeight) DOM.qrHeight.value = String(size);
+      const margin = clampNumber(isNaN(val) ? 0 : val, GENERATOR_NUMERIC_BOUNDS.margin);
+      state.generator.margin = margin;
+      e.target.value = String(margin);
       generateQR();
     });
   }
@@ -267,16 +263,15 @@ function forceEccHighForLogo() {
 }
 
 // SVG logos can carry script and execute when the exported QR (as SVG) is
-// reopened in a browser. Bitmap MIMEs only.
-function isSafeLogoDataUrl(url) {
+// reopened in a browser. Bitmap MIMEs only. http(s) is allowed for remote
+// logos, but it must be a real, host-bearing http(s) URL — scheme-only strings
+// like `https://` are not fetched and just strand a broken logo in state.
+export function isSafeLogoDataUrl(url) {
   if (typeof url !== "string") return false;
-  // Reject any data: URL that isn't a bitmap image. Block data:image/svg and
-  // any non-image/* data: URLs outright.
   if (url.startsWith("data:")) {
     return isSafeBitmapDataUrl(url);
   }
-  // Remote URL verification happens at fetch time; we keep http(s) here.
-  return url.startsWith("http://") || url.startsWith("https://");
+  return isHttpUrl(url) && checkUrlValid(url);
 }
 
 let logoControlsReady = false;
@@ -333,22 +328,23 @@ export function initLogoControls() {
 
   on(DOM.logoFile, "change", (e) => {
     const file = e.target.files && e.target.files[0];
+    // Reset the input so re-picking the same file fires `change` again, and so
+    // the URL box's "empty" check is not tied to a stale file selection.
+    e.target.value = "";
     if (!file) return;
     if (file.size > MAX_LOGO_BYTES) {
       if (DOM.qrLoading) DOM.qrLoading.classList.add("hidden");
-      showWarning(
-        `Image exceeds 4MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a smaller file.`
-      );
+      showWarning(t("image.tooLarge", { size: (file.size / (1024 * 1024)).toFixed(1) }));
       if (DOM.btnClearLogo) DOM.btnClearLogo.classList.remove("hidden");
       return;
     }
     if (file.type && !file.type.startsWith("image/")) {
-      showWarning("Unsupported file format. Please use PNG, JPEG, or WebP.");
+      showWarning(t("image.unsupportedFormat"));
       return;
     }
     // Block SVG uploads by extension even if MIME lies (no SVG by default).
     if (/\.(svg)$/i.test(file.name) || file.type === "image/svg+xml") {
-      showWarning("SVG logos are disabled for security. Please upload PNG, JPEG, or WebP.");
+      showWarning(t("image.logoSvgDisabled"));
       return;
     }
     state.generator.logoFilename = file.name;
@@ -356,7 +352,7 @@ export function initLogoControls() {
     reader.onload = (event) => {
       const dataUrl = event.target.result;
       if (!isSafeLogoDataUrl(dataUrl)) {
-        showWarning("Unsupported image format. Please use PNG, JPEG, or WebP.");
+        showWarning(t("image.unsupportedImage"));
         return;
       }
       clearWarning();
@@ -368,7 +364,7 @@ export function initLogoControls() {
     };
     reader.onerror = (err) => {
       console.error("[QR] logo read failed:", err);
-      showWarning("Failed to read image file. The file may be corrupt or inaccessible.");
+      showWarning(t("image.readFailed"));
     };
     reader.readAsDataURL(file);
   });
@@ -377,15 +373,19 @@ export function initLogoControls() {
     const val = e.target.value.trim();
     if (val === "") {
       clearWarning();
-      if (DOM.logoFile && !DOM.logoFile.value && DOM.btnClearLogo) DOM.btnClearLogo.click();
+      // Emptying the box clears the logo outright: the old guard also required
+      // an empty file input, so a once-chosen file left a stale logo behind.
+      if (DOM.btnClearLogo && !DOM.btnClearLogo.classList.contains("hidden")) {
+        DOM.btnClearLogo.click();
+      }
       return;
     }
     if (!isSafeLogoDataUrl(val)) {
-      showWarning("Invalid logo URL. Must be an image URL or supported data URL.");
+      showWarning(t("image.logoUrlInvalid"));
       return;
     }
     if (val.startsWith("http://") || val.startsWith("https://")) {
-      showWarning("Remote logo: export may fail without CORS support on the host.");
+      showWarning(t("image.remoteLogo"));
     } else {
       clearWarning();
     }
@@ -398,22 +398,16 @@ export function initLogoControls() {
   });
 
   on(DOM.logoMargin, "input", (e) => {
-    state.generator.imageMargin = parseInt(e.target.value, 10) || 0;
+    const val = parseInt(e.target.value, 10);
+    const margin = clampNumber(isNaN(val) ? 0 : val, GENERATOR_NUMERIC_BOUNDS.imageMargin);
+    state.generator.imageMargin = margin;
+    e.target.value = String(margin);
     generateQR();
   });
   on(DOM.logoSize, "input", (e) => {
     const val = parseFloat(e.target.value) || DEFAULT_LOGO_SIZE;
     // A logo larger than ~half the code hurts scannability even at ECC H.
     state.generator.logoSizeProportion = Math.min(0.5, Math.max(0.1, val));
-    if (DOM.logoSizeMedium) {
-      DOM.logoSizeMedium.value = String(Math.round(state.generator.logoSizeProportion * 100));
-    }
-    generateQR();
-  });
-  on(DOM.logoSizeMedium, "input", (e) => {
-    const val = parseInt(e.target.value, 10); // 10-40
-    state.generator.logoSizeProportion = Math.min(0.4, Math.max(0.1, val / 100));
-    if (DOM.logoSize) DOM.logoSize.value = String(state.generator.logoSizeProportion);
     generateQR();
   });
 
@@ -453,25 +447,23 @@ export function initBackgroundImageControls() {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     if (file.size > MAX_LOGO_BYTES) {
-      warn(
-        `Image exceeds 4MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a smaller file.`
-      );
+      warn(t("image.tooLarge", { size: (file.size / (1024 * 1024)).toFixed(1) }));
       return;
     }
     if (file.type && !file.type.startsWith("image/")) {
-      warn("Unsupported file format. Please use PNG, JPEG, or WebP.");
+      warn(t("image.unsupportedFormat"));
       return;
     }
     // Block SVG uploads by extension even if MIME lies (no SVG by default).
     if (/\.(svg)$/i.test(file.name) || file.type === "image/svg+xml") {
-      warn("SVG images are disabled for security. Please upload PNG, JPEG, or WebP.");
+      warn(t("image.backgroundSvgDisabled"));
       return;
     }
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
       if (!isSafeBitmapDataUrl(dataUrl)) {
-        warn("Unsupported image format. Please use PNG, JPEG, or WebP.");
+        warn(t("image.unsupportedImage"));
         return;
       }
       state.generator.bgImageDataUrl = dataUrl;
@@ -482,7 +474,7 @@ export function initBackgroundImageControls() {
     };
     reader.onerror = (err) => {
       console.error("[QR] background image read failed:", err);
-      warn("Failed to read image file. The file may be corrupt or inaccessible.");
+      warn(t("image.readFailed"));
     };
     reader.readAsDataURL(file);
   });
@@ -512,9 +504,9 @@ export function initSaveButton() {
     if (state.generatorHistory.length > MAX_GENERATOR_HISTORY) state.generatorHistory.pop();
     saveGeneratorHistory();
     renderGeneratorHistory();
-    DOM.btnSave.textContent = "Saved";
+    DOM.btnSave.textContent = t("controls.saved");
     DOM.btnSave.disabled = true;
-    announce("QR code saved to history");
+    announce(t("controls.savedToHistory"));
   });
 }
 
@@ -531,10 +523,10 @@ export function initShareLinkButton() {
       try {
         await navigator.share({
           title: "Midas QR",
-          text: "Scan this QR code",
+          text: t("controls.shareText"),
           url,
         });
-        announce("Share link shared");
+        announce(t("controls.shareDone"));
         return;
       } catch (err) {
         if (err && err.name === "AbortError") return; // user dismissed the sheet
@@ -544,8 +536,8 @@ export function initShareLinkButton() {
     try {
       const ok = await copyTextToClipboard(url);
       if (!ok) return;
-      announce("Share link copied to clipboard");
-      flashButton(DOM.btnShareLink, "Copied");
+      announce(t("controls.shareCopied"));
+      flashButton(DOM.btnShareLink, t("controls.copied"));
     } catch (err) {
       console.warn("[QR] share link copy failed:", err);
     }
@@ -569,12 +561,6 @@ export function syncUIFromState() {
   );
   setValue(DOM.colorCornersDotText, state.generator.cornersDotColor.toUpperCase());
   paintSwatch(document.getElementById("swatch-bg-cornersDot"), "cornersDot", state.generator.cornersDotColor);
-  if (DOM.colorFgMediumText) {
-    DOM.colorFgMediumText.value = state.generator.dotsColor.toUpperCase();
-    const mediumSwatch = document.getElementById("swatch-bg-fg-medium");
-    if (mediumSwatch) mediumSwatch.style.background = state.generator.dotsColor;
-  }
-
   setValue(DOM.qrWidth, state.generator.width);
   setValue(DOM.qrHeight, state.generator.height);
   setValue(DOM.qrRadius, state.generator.qrRadius);
@@ -604,7 +590,7 @@ export function syncUIFromState() {
   if (DOM.btnClearBgImage) DOM.btnClearBgImage.classList.toggle("hidden", !bgImage);
   if (bgImage && !isSafeBitmapDataUrl(bgImage)) {
     if (DOM.bgImageWarning) {
-      DOM.bgImageWarning.textContent = "Unsupported background image";
+      DOM.bgImageWarning.textContent = t("image.unsupportedBackground");
       DOM.bgImageWarning.classList.remove("hidden");
     }
   } else if (DOM.bgImageWarning) {

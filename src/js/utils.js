@@ -1,4 +1,6 @@
 // @ts-check
+import { getIntlLocale } from "./i18n.js";
+
 /**
  * Shared utilities — pure functions, no DOM dependency.
  * Extracted so callers don't depend on main.js (avoids circular imports).
@@ -216,13 +218,24 @@ export function isSafeImageSource(value, options) {
  * @param {number} ts epoch milliseconds
  * @returns {string}
  */
-export function formatHistoryTimestamp(ts) {
-  const d = new Date(ts);
-  return (
-    d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
-    " " +
-    d.toLocaleDateString([], { month: "short", day: "numeric" })
-  );
+export function formatHistoryTimestamp(ts, locale = getIntlLocale()) {
+  const activeLocale = locale || getIntlLocale();
+  let d;
+  try {
+    d = new Date(ts);
+  } catch {
+    return "";
+  }
+  if (!Number.isFinite(d.getTime())) return "";
+  try {
+    return (
+      d.toLocaleTimeString(activeLocale, { hour: "2-digit", minute: "2-digit" }) +
+      " " +
+      d.toLocaleDateString(activeLocale, { month: "short", day: "numeric" })
+    );
+  } catch {
+    return "";
+  }
 }
 
 /**

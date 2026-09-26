@@ -9,7 +9,8 @@ import { buildQrStylingOptions } from "../src/js/generator/qr-instance.js";
 import { ensureQrcodeLoaded, generateUnicodeQR } from "../src/js/generator/encoder.js";
 import { setRenderInfo, getRenderInfo } from "../src/js/generator/render-info.js";
 import { getCombinedSvgString } from "../src/js/generator/frame.js";
-import { exportRenderedBlob, sanitizeFilename } from "../src/js/generator/export.js";
+import { exportRenderedBlob, sanitizeFilename, updateExportFilenamePlaceholder } from "../src/js/generator/export.js";
+import { DOM } from "../src/js/ui/dom.js";
 import { state } from "../src/js/state";
 
 afterEach(() => {
@@ -391,6 +392,46 @@ describe("real library render through the combined pipeline", () => {
       }
     });
   }
+});
+
+describe("suggested file name", () => {
+  const original = { ...state.generator };
+
+  afterEach(() => {
+    Object.assign(state.generator, original);
+  });
+
+  function placeholderFor(dataString) {
+    state.generator.dataString = dataString;
+    DOM.exportFilename = document.createElement("input");
+    updateExportFilenamePlaceholder();
+    const value = DOM.exportFilename.placeholder;
+    delete DOM.exportFilename;
+    return value;
+  }
+
+  it("names a URL after its host instead of a timestamp", () => {
+    // It used to be `qr-url-2026-09-26-1505`: meaningless, and it changed every
+    // minute so the placeholder kept shifting under the user.
+    expect(placeholderFor("https://www.example.com/docs/page")).toBe("example.com");
+    expect(placeholderFor("https://example.com")).not.toMatch(/^qr-/);
+  });
+
+  it("names Wi-Fi, contact and other payloads after what identifies them", () => {
+    expect(placeholderFor("WIFI:S:Home network;T:WPA;P:secret;;")).toBe("Home network");
+    expect(placeholderFor("BEGIN:VCARD\nVERSION:3.0\nFN:Ada Lovelace\nEND:VCARD")).toBe(
+      "Ada Lovelace"
+    );
+    expect(placeholderFor("mailto:ada@example.com?subject=Hi")).toBe("ada@example.com");
+    expect(placeholderFor("tel:+15551234567")).toBe("+15551234567");
+  });
+
+  it("falls back to a clipped payload, then to a neutral name", () => {
+    expect(placeholderFor("hello there, this is a fairly long text payload")).toBe(
+      "hello there, this is a fairly lo"
+    );
+    expect(placeholderFor("")).toBe("qr-code");
+  });
 });
 
 describe("sanitizeFilename", () => {

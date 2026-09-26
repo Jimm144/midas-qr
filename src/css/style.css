@@ -567,7 +567,6 @@
   /* Dark scrims are intentional in every theme (camera viewfinder, modals). */
   --scrim: rgba(0, 0, 0, 0.55);
   --scrim-soft: rgba(0, 0, 0, 0.4);
-  --qr-shadow: drop-shadow(0 8px 18px color-mix(in srgb, var(--shadow-color) 22%, transparent));
 
   color-scheme: dark;
 }
@@ -913,12 +912,13 @@ textarea:focus-visible {
   outline: var(--focus-outline-width) solid var(--accent) !important;
   outline-offset: 1px;
 }
-#crypto-address,
+/* Monospace is for values you compare character by character: colour hex codes
+   and the scanner's decoded result. The wallet address field used to be in here
+   too, which made it the only form field in the app not set in the body face. */
 #color-bg-text,
 #color-dots-text,
 #color-cornersSquare-text,
 #color-cornersDot-text,
-#color-fg-medium-text,
 #cp-input-hex,
 #scan-result {
   font-family: var(--font-family-code) !important;
@@ -1064,8 +1064,11 @@ button.bg-red-500,
   transform: translateY(1px);
 }
 
-/* Compact controls */
+/* Compact controls. The id selectors are needed to out-rank the base button
+   rule (button:not(...) x4), which pins min-height to the large size. */
 .sm-btn,
+#btn-pick-bg-image,
+#btn-clear-bg-image,
 #btn-clear-generator-history,
 #btn-clear-history,
 #btn-credits,
@@ -1073,6 +1076,16 @@ button.bg-red-500,
   min-height: var(--size-element-sm);
   padding: 4px 12px;
   font-size: var(--font-size-sm);
+  border-radius: var(--radius-inner);
+}
+/* Sits beside the scanner's Upload/Webcam segmented control, so it matches that
+   control's height rather than the compact 28px size, which read as a stray
+   smaller button. */
+#btn-scan-paste {
+  min-height: var(--size-element-md);
+  height: var(--size-element-md);
+  padding: 0 14px;
+  font-size: var(--font-size-base);
   border-radius: var(--radius-inner);
 }
 
@@ -1090,8 +1103,53 @@ button.bg-red-500,
 #btn-clear-upload {
   padding: 4px 8px;
 }
+/* Password reveal: a tight icon button pinned to the field's right edge. The
+   markup carried Tailwind placement utilities (right-2, top-1/2, p-1, pr-10)
+   that the vendored utility subset does not ship, so the button fell back to
+   the base button box — a 6px/16px-padded pill floating inside the field. */
+#btn-toggle-pass {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--muted);
+  /* The de-emphasis lives in the muted colour, not in opacity: a 0.7 fade on
+     top of --muted left the glyph too faint to read on a dark field. */
+  opacity: 1;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+#btn-toggle-pass svg {
+  width: 18px;
+  height: 18px;
+}
 #btn-toggle-pass:hover {
-  opacity: 1 !important;
+  background: var(--accent-soft);
+  color: var(--text);
+}
+#btn-toggle-pass:active {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  color: var(--text);
+}
+#btn-toggle-pass:focus-visible {
+  outline: var(--focus-outline-width) solid var(--accent);
+  outline-offset: 1px;
+}
+/* Room for the button so typed text never runs under the glyph. */
+#wifi-pass {
+  padding-right: 44px;
 }
 /* File-upload buttons, matched to inputs. #btn-pick-logo replaced a
    <label for="logo-file">, which was absent from the keyboard tab order. */
@@ -1291,7 +1349,6 @@ label[for="logo-file"],
 .custom-select-option:focus-visible {
   background-color: var(--accent-soft) !important;
   color: var(--text) !important;
-  outline: none !important;
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 .custom-select-option.selected {
@@ -1343,6 +1400,10 @@ label[for="logo-file"],
 }
 
 .header-console {
+  /* The dividers between the controls are absolutely positioned, so this must
+     be their containing block — without it they anchored to .site-header and
+     rendered as stray hairlines at the viewport edge. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 3px;
@@ -1353,6 +1414,16 @@ label[for="logo-file"],
 }
 .header-console .custom-select-wrapper {
   width: auto;
+}
+.header-console > * + *::before {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  left: -2px;
+  width: 1px;
+  background: var(--border);
+  pointer-events: none;
 }
 .header-console .custom-select-trigger {
   background: transparent !important;
@@ -1380,7 +1451,7 @@ label[for="logo-file"],
   min-height: var(--size-element-md) !important;
   padding: 0 !important;
   border: none !important;
-  border-radius: var(--radius-pill, var(--radius-full));
+  border-radius: var(--radius-pill, var(--radius-full)) !important;
   background: transparent !important;
   color: var(--text) !important;
   cursor: pointer;
@@ -1408,6 +1479,9 @@ label[for="logo-file"],
   margin: 0 auto;
   padding: 20px 24px 36px;
   flex-grow: 1;
+  /* Column flex so .panel-grid's flex:1 can fill it (see .panel-grid). */
+  display: flex;
+  flex-direction: column;
 }
 /* Keep the skip-link target clear of the sticky header. */
 #main-content {
@@ -1429,9 +1503,39 @@ label[for="logo-file"],
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill, var(--radius-full));
+  /* Containing block for the sliding active pill. */
+  position: relative;
 }
 .tab-rail {
   width: min(540px, 100%);
+}
+/* One pill slides between the buttons of a segmented control instead of each
+   button flipping its own background, which is what makes a change read as
+   movement. Its geometry is set from the active button (see tabs.js); the
+   transition is only enabled once it has been placed while visible, so it never
+   slides in from the corner — on load, or when a hidden panel is first shown. */
+.tab-rail .tab-indicator,
+.seg-control .tab-indicator {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: calc(100% - 8px);
+  width: 0;
+  border-radius: var(--radius-pill, var(--radius-full));
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-low);
+  pointer-events: none;
+  z-index: 0;
+}
+.tab-rail.is-indicator-ready .tab-indicator,
+.seg-control.is-indicator-ready .tab-indicator {
+  transition: transform 220ms var(--ease-standard), width 220ms var(--ease-standard);
+}
+.tab-rail .tab-btn,
+.seg-control .tab-btn {
+  position: relative;
+  z-index: 1;
 }
 .tab-btn {
   display: inline-flex;
@@ -1469,6 +1573,14 @@ label[for="logo-file"],
   box-shadow: var(--shadow-low);
   border: 1px solid var(--border);
 }
+/* In a segmented control the pill *is* the indicator, so the button only carries
+   the text weight — otherwise both would paint and the pill would look doubled. */
+.tab-rail .tab-btn.is-active,
+.seg-control .tab-btn.is-active {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
 .tab-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -1493,6 +1605,18 @@ label[for="logo-file"],
   grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+}
+/* The generator's grid fills its height so its single row stretches. A sticky
+   item can only travel inside its grid area, so while the row was just as tall
+   as the tallest column the preview had zero travel whenever the sections
+   column was shorter — and sticky silently did nothing.
+   Only the generator: on the other tabs this stretched the cards to the panel's
+   height instead of their content.
+   The min-height is just enough for the preview card to have travel when the
+   sections are collapsed. */
+#panel-generator.panel-grid {
+  flex: 1;
+  min-height: 660px;
 }
 /* Grid children must be allowed to shrink so long content can't force the
    page wider than the viewport. */
@@ -1592,14 +1716,13 @@ label[for="logo-file"],
     border-color var(--duration-fast) var(--ease-standard);
 }
 #qr-readability-badge.status-scannable {
-  /* Same neutral chrome as every other status pill — no tint on either badge. */
+  /* Neutral chrome on purpose: no tint on either badge. The state reads from
+     the icon (a check) and the tooltip. */
   background: var(--surface);
   color: var(--text);
   border-color: var(--border);
 }
 #qr-readability-badge.status-warning {
-  /* Same neutral chrome as every other status pill; the warning hue lives on
-     the icon so the badge stays consistent with the rest of the palette. */
   background: var(--surface);
   color: var(--text);
   border-color: var(--border);
@@ -1615,13 +1738,25 @@ label[for="logo-file"],
 .preview-card {
   position: sticky;
   top: 82px;
-  contain: layout;
-  /* No translateZ: see the ClearType note on .site-header. */
+  /* Must not stretch to its grid area, or there is nothing left to stick
+     within. */
+  align-self: start;
+  /* The card is taller than a short desktop viewport, so without this the
+     filename field, format select and the Download row sat permanently below
+     the fold (1280x600, or any 1366x768 display at 125% scaling). */
+  max-height: calc(100dvh - 98px);
+  overflow-y: auto;
+  /* No translateZ: see the ClearType note on .site-header. The preview plate
+     and the scanner reticle had the same leftover promotion, which is what
+     made every label go grey-scale on Chromium/Windows the moment a text
+     field took focus. */
 }
 @media (max-width: 1023px) {
   .preview-card {
     position: static;
     contain: none;
+    max-height: none;
+    overflow: visible;
   }
   #panel-generator .preview-card {
     order: -1;
@@ -1629,10 +1764,17 @@ label[for="logo-file"],
 }
 
 /* ---------- Accordion sections ---------- */
+/* Header and panel read as one connected box, but the connection is *cosmetic*:
+   the header's bottom corners and bottom border, which cost no layout. The
+   spacing is constant — the header always carries a 10px bottom margin and the
+   panel cancels it with a matching negative top margin, so they sit flush while
+   open and the collapsed gap is unchanged. An earlier version flipped the
+   margin itself with aria-expanded, which closed the gap in a single frame on
+   open (a snap) and made the gap breathe while the panel grew (a bounce). */
 #config-panel {
   display: flex;
   flex-direction: column;
-  gap: 0 !important;
+  gap: 0;
 }
 .btn-toggle-section {
   display: flex;
@@ -1649,23 +1791,42 @@ label[for="logo-file"],
   cursor: pointer;
   text-align: left;
   margin-bottom: 10px;
-  transition: background-color var(--duration-fast) var(--ease-standard) !important;
+  /* The join changes the header's bottom border *colour*, never its width, and
+     morphs its corners — so the header's box is identical open or closed and
+     nothing can jump when a section finishes closing. Width was the problem:
+     transitioning it left a bright hairline between header and panel for the
+     whole open animation, and flipping it instantly made the border reappear in
+     one frame at the end of a close.
+     These run *after* the panel has finished (the join is held for the whole
+     motion), so they are kept short — a full-length second animation read as the
+     edge turning smooth too slowly. */
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-bottom-color 140ms ease-out,
+    border-bottom-left-radius 140ms ease-out,
+    border-bottom-right-radius 140ms ease-out !important;
   animation: none !important;
+}
+/* Used for the instant flatten on open: the header must be square-bottomed and
+   borderless from the first frame, because the panel's square top corners are
+   already there — a half-morphed header over them shows the page background
+   through the mismatch, and a fading hairline reads as a highlight. */
+.btn-toggle-section.no-join-transition {
+  transition: none !important;
+}
+/* The join, held for the whole motion by .is-animating: aria-expanded flips the
+   instant it is clicked, so keying the flat bottom to it alone rounded the
+   header while the panel was still attached underneath. */
+.btn-toggle-section[aria-expanded="true"],
+.btn-toggle-section.is-animating {
+  border-bottom-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 @media (hover: hover) {
   .btn-toggle-section:hover {
     background: color-mix(in srgb, var(--bg-elevated) 82%, var(--accent-soft)) !important;
     border-color: var(--border) !important;
   }
-}
-.btn-toggle-section[aria-expanded="true"] {
-  border-bottom: none !important;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  margin-bottom: 0 !important;
-}
-.btn-toggle-section[aria-expanded="true"]:hover {
-  border-bottom: none !important;
 }
 .btn-toggle-section > span:first-of-type {
   order: 1;
@@ -1710,27 +1871,90 @@ label[for="logo-file"],
   background-color: var(--text);
 }
 
+/* Collapsible sections.
+   The panel is a one-row grid whose track animates 1fr <-> 0fr. That is a single
+   animated property, which is what keeps the motion smooth: animating
+   height+padding+margin relaid the whole panel out on every frame and read as
+   choppy. The visuals live on .section-inner so a 0fr track really is zero —
+   `height: 0` on a border-box element still renders its padding and border. */
 .section-body {
+  display: grid;
+  /* One full-width column: without this the implicit auto track sizes to the
+     inner's content, so a grid-2 section (Colors) collapsed to ~half the panel
+     width and clipped its labels. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 220ms ease-in-out;
+  /* Cancels the header's constant bottom margin and covers the 1px of its
+     bottom border (transparent while joined) so no seam shows; the margin below
+     keeps the gap to the next header. The three values sum to the same 10px as
+     the collapsed state, so hiding the panel at the end of a close moves
+     nothing. */
+  margin-top: -11px;
+  margin-bottom: 11px;
+  animation: none !important;
+}
+.section-body.is-collapsed {
+  grid-template-rows: 0fr;
+}
+/* Collapsed *and settled*: out of the tab order and the a11y tree, and clipped
+   so nothing paints. Deliberately not `display: none` — the panel keeps its
+   place in the flow at a zero-height track, so opening is a plain transition
+   from a value the browser has already resolved. With `display: none` the open
+   needed a forced reflow to commit the 0fr start state, and when that reflow was
+   made cheaper the track's used size was never computed, so the panel snapped
+   open and only the header's cosmetic morph animated. */
+.section-body.is-collapsed:not(.is-animating) {
+  visibility: hidden;
+  overflow: hidden;
+}
+/* The padding has to reach zero for the 0fr track to be genuinely zero — a grid
+   track's automatic minimum includes the item's padding, which cannot compress,
+   so a "0fr" panel otherwise reserves its ~29px. It must get there *in step with
+   the track*: zeroing it in one frame (at the start of a close) jumped the
+   content up 28px, and zeroing it only once settled jumped it back at the end.
+   Its duration matches the track's. */
+.section-body.is-collapsed > .section-inner {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+/* Clipped only while the track is moving, so a dropdown opened inside a settled
+   section is never cut off by the panel. */
+.section-body.is-animating > .section-inner {
+  overflow: hidden;
+}
+.section-inner {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
   padding: 14px 16px;
   background: color-mix(in srgb, var(--bg-elevated) 65%, var(--surface)) !important;
+  /* Bottom half of the connected box: no top border and square top corners, so
+     it continues the header. Constant — the panel is only ever visible while
+     open, so nothing here needs to flip. */
   border: 1px solid var(--border) !important;
   border-top: none !important;
   border-radius: 0 0 var(--radius-element) var(--radius-element);
-  margin-top: 0 !important;
-  margin-bottom: 10px;
-  transition: none !important;
-  animation: none !important;
+  margin-bottom: 0;
+  /* In step with .section-body's track (220ms) so the panel collapses to a
+     genuine zero without either end jumping. */
+  transition: padding-top 220ms ease-in-out, padding-bottom 220ms ease-in-out;
 }
-.section-body.grid-2 {
+/* The animated track constrains this box, and a column flex container would
+   *squash* its children to fit instead of letting them overflow and be clipped —
+   which is what made the motion look wrong (fields compressing vertically).
+   Keep every child at its natural size; the clip does the revealing. */
+.section-inner > * {
+  flex-shrink: 0;
+}
+.section-body.grid-2 > .section-inner {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
   gap: 10px;
 }
 @media (min-width: 480px) {
-  .section-body.grid-2 {
+  .section-body.grid-2 > .section-inner {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1944,13 +2168,6 @@ label[for="logo-file"],
   font-size: var(--font-size-sm);
   padding: 5px 8px;
 }
-#cp-grad-color2 {
-  flex: 1 1 auto;
-  width: auto !important;
-  min-width: 0;
-  min-height: var(--size-element-md) !important;
-  font-size: var(--font-size-sm);
-}
 #color-picker-popup .cp-hue input[type="range"],
 #color-picker-popup .cp-angle input[type="range"] {
   height: var(--size-element-md);
@@ -2038,9 +2255,6 @@ label[for="logo-file"],
   outline: var(--focus-outline-width) solid var(--accent);
   outline-offset: var(--focus-outline-offset);
 }
-#cp-grad-color2 {
-  text-transform: uppercase;
-}
 
 /* Date/time picker: four nav buttons + a centered month label stay on one row. */
 .dt-header {
@@ -2080,23 +2294,12 @@ label[for="logo-file"],
 .dt-weekdays {
   margin-bottom: 6px;
 }
-.dt-footer {
-  margin-top: 12px;
-  /* The 16px-scale themes make the three footer buttons + time selects wider
-     than the 268px popover; wrapping beats clipping inside the viewport. */
-  flex-wrap: wrap;
-}
 
 /* Searchable select: filter highlight and popover rhythm. */
 .ss-popover {
   display: flex;
   flex-direction: column;
   padding: 10px;
-}
-.scan-paste-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 .scanner-source-row {
   display: flex;
@@ -2106,21 +2309,7 @@ label[for="logo-file"],
 .scanner-source-row .seg-control {
   flex: 1;
 }
-    body[data-complexity="medium"] #mask-custom-container {
-  display: none !important;
-}
-/* Medium shows Size/Margin/Error-correction only — stretch them across the row
-   instead of leaving a quarter of the grid empty. */
-body[data-complexity="medium"] #section-parameters > .grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-}
-/* Phones: three columns squeeze the selects (values truncate and the
-   Error-correction label wraps), so drop to two columns and let Error
-   correction use the full row. */
 @media (max-width: 639px) {
-  body[data-complexity="medium"] #section-parameters > .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
   #section-parameters > .grid > :last-child {
     grid-column: 1 / -1;
   }
@@ -2201,7 +2390,12 @@ body[data-complexity="medium"] #section-parameters > .grid {
   border: 1px solid var(--border) !important;
   border-radius: var(--radius-container);
   isolation: isolate;
-  contain: layout paint;
+  /* Layout containment only, with a real overflow clip. `contain: paint` lets
+     Chromium composite this plate — and everything inside it, including the
+     filename field and the Download row — as its own layer, which is the other
+     half of the Windows grey-scale-AA report. */
+  contain: layout;
+  overflow: hidden;
   max-width: 100%;
 }
 
@@ -2211,18 +2405,21 @@ body[data-complexity="medium"] #section-parameters > .grid {
   justify-content: center;
   width: 100%;
   height: 100%;
-  contain: layout paint;
-  transform: translateZ(0);
+  contain: layout;
+  overflow: hidden;
 }
 /* The preview SVG is sized by the plate, never by the export preset: the
    intrinsic size the library stamps (300…2000) used to make Low render a
-   visibly smaller code on screen. Exports still use the preset dimensions. */
+   visibly smaller code on screen. Exports still use the preset dimensions.
+   No `filter` here either: a filtered layer is re-created on every render and,
+   on Chromium/Windows, flips the surrounding text to grey-scale AA for a while
+   (see the ClearType note on .site-header). The code takes its depth from the
+   card's own shadow instead. */
 #qr-canvas-container > svg {
   width: calc(100% - 32px);
   height: calc(100% - 32px);
   border-radius: 0;
   clip-path: none;
-  filter: var(--qr-shadow);
 }
 #qr-canvas-container > canvas {
   max-width: calc(100% - 32px);
@@ -2231,9 +2428,6 @@ body[data-complexity="medium"] #section-parameters > .grid {
   height: auto;
   border-radius: 0;
   clip-path: none;
-  filter: var(--qr-shadow);
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 #qr-canvas-container.is-framed > svg,
@@ -2415,14 +2609,27 @@ body[data-complexity="medium"] #section-parameters > .grid {
 #drop-zone {
   border: 1px solid var(--border-strong) !important;
   border-radius: var(--radius-container);
-  background: var(--inset);
+  /* Barely lifted from the card it sits in: the inset well read as a hole, but a
+     5% lift read as a separate lighter panel. Derived from the surface so it
+     stays correct in every theme, light ones included. */
+  background: color-mix(in srgb, var(--text) 2%, var(--surface)) !important;
   cursor: pointer;
+  /* A 16:9 box grew to a full-width slab on desktop, which left the glyph and
+     two short lines marooned in empty space. A fixed generous target instead.
+     No max-height: in de/lt/ja the two lines wrap and hit an old 260px cap,
+     clipping the hint mid-sentence. */
+  min-height: 300px;
+  padding: 20px;
   transition: border-color var(--duration-fast) var(--ease-standard),
     background-color var(--duration-fast) var(--ease-standard);
 }
 #drop-zone:hover {
   border-color: color-mix(in srgb, var(--border-strong), var(--text) 35%) !important;
-  background: color-mix(in srgb, var(--inset), var(--text) 4%) !important;
+  background: color-mix(in srgb, var(--text) 5%, var(--surface)) !important;
+}
+#drop-zone:hover {
+  border-color: color-mix(in srgb, var(--border-strong), var(--text) 35%) !important;
+  background: color-mix(in srgb, var(--text) 9%, var(--surface)) !important;
 }
 #drop-zone.dragover {
   border-color: var(--accent) !important;
@@ -2535,7 +2742,6 @@ body[data-complexity="medium"] #section-parameters > .grid {
   justify-content: center;
   z-index: 10;
   contain: paint;
-  transform: translateZ(0);
 }
 #scanner-reticle::before {
   content: "";
@@ -2633,6 +2839,55 @@ body[data-complexity="medium"] #section-parameters > .grid {
   font-size: var(--font-size-sm) !important;
   border-radius: var(--radius-inner);
 }
+/* Row actions read as one labelled action plus a tight icon pair. Three
+   64px pills used to take half the row and compete with the entry itself. */
+.history-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.history-item button.history-row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* The base button rule outranks a class-only override, so the metrics this
+     row depends on are pinned: 28px tall, 8px radius, tight gap. */
+  gap: 6px !important;
+  height: var(--size-element-sm) !important;
+  min-height: var(--size-element-sm) !important;
+  padding: 0 10px !important;
+  min-width: 0;
+  font-size: var(--font-size-sm) !important;
+  line-height: 1;
+  letter-spacing: 0;
+  border-radius: var(--radius-inner) !important;
+}
+.history-item button.history-row-btn-icon {
+  width: var(--size-element-sm);
+  padding: 0 !important;
+  color: var(--muted);
+}
+.history-item button.history-row-btn:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.history-item button.history-row-btn:active {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  color: var(--text);
+}
+/* A disabled export keeps its glyph at reduced contrast instead of vanishing
+   into the busy background. */
+.history-item button.history-row-btn:disabled {
+  opacity: 0.55;
+  color: var(--muted);
+}
+.history-row-btn-icon svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
 .history-empty {
   font-size: var(--font-size-sm);
   text-align: center;
@@ -2667,8 +2922,8 @@ body[data-complexity="medium"] #section-parameters > .grid {
   border-radius: var(--radius-element);
 }
 
-/* History rows: quiet hovers, room between title and timestamp, and a small
-   design preview (colours + shapes only — never the whole QR). */
+/* History rows: the name leads, the type and time sit quietly underneath, and
+   hovers stay low-contrast so a long list does not flicker. */
 .history-item p:last-child {
   margin-top: 4px;
 }
@@ -2684,6 +2939,8 @@ body[data-complexity="medium"] #section-parameters > .grid {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 45%, transparent);
 }
+/* Design thumbnail: four shapes in the saved colours, on a tile that keeps its
+   own square so the overall mask never distorts it. */
 .history-preview {
   flex-shrink: 0;
   width: 40px;
@@ -2787,11 +3044,22 @@ body[data-complexity="medium"] #section-parameters > .grid {
   letter-spacing: normal;
   color: var(--text);
 }
-@media (max-width: 480px) {
+/* The hint used to open above the trigger, so on a phone — where the error
+   correction row sits near the top of the viewport — the panel was clipped
+   off-screen. Below 720px it becomes a sheet pinned to the bottom of the
+   viewport instead: always fully on screen and clear of the sticky header. */
+@media (max-width: 720px) {
   .tooltip-content {
-    left: auto;
-    right: 0;
+    position: fixed;
+    top: auto;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-width: none;
     transform: none;
+    margin: 0;
+    z-index: 220;
   }
 }
 
@@ -3014,7 +3282,13 @@ body[data-complexity="medium"] #section-parameters > .grid {
   animation: warningIn var(--duration-fast) var(--ease-standard);
 }
 
-/* Footer */
+/* Footer.
+   Deliberately no scroll slack anywhere: the page must end at the footer and the
+   footer must sit directly under the content. The consequence is that collapsing
+   an accordion section near the bottom of the page can shift the view, because
+   the browser clamps the scroll when the document shortens past it. Reserving the
+   height instead either pushed the footer hundreds of pixels past collapsed
+   content or left scrollable space below it. */
 .site-footer {
   border-top: 1px solid var(--border);
   margin-top: 24px;
@@ -3036,14 +3310,14 @@ body[data-complexity="medium"] #section-parameters > .grid {
 }
 .footer-link {
   color: var(--muted);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 .footer-link:hover,
 .footer-link:focus-visible {
   color: var(--text);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
+  text-decoration-thickness: 2px;
 }
 /* ---------- A11y / banners ---------- */
 .sr-only,
@@ -3184,23 +3458,69 @@ body[data-complexity="medium"] #section-parameters > .grid {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  /* visibility:hidden keeps layout, so the whole app chrome still paginated
+     and the absolutely-positioned code anchored to a hidden plate. Hide the
+     chrome outright and centre the code on the page. */
+  body > * {
+    display: none !important;
   }
-  #qr-canvas-container,
-  #qr-canvas-container * {
-    visibility: visible;
+  #qr-preview-container {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: 90mm;
+    height: 90mm;
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
   }
   #qr-canvas-container {
-    position: absolute;
-    top: 0;
-    left: 0;
+    display: flex !important;
     width: 100% !important;
-    height: auto !important;
-    max-height: 90vh !important;
+    height: 100% !important;
+  }
+  #qr-canvas-container > svg,
+  #qr-canvas-container > canvas {
+    width: 100% !important;
+    height: 100% !important;
+    filter: none !important;
   }
   @page {
     margin: 1cm;
+  }
+}
+
+/* Windows High Contrast / forced colours: every state cue in this app is a
+   background or shadow delta, which the forced palette discards. Re-assert the
+   important ones with system colours. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+  .tab-btn.is-active,
+  .custom-select-option.selected,
+  .ss-option.selected,
+  .cp-stop.is-active,
+  .cp-mode-btn.is-active,
+  .btn-toggle-section[aria-expanded="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+  .custom-checkbox-input:checked + .custom-checkbox-box {
+    background: Highlight;
+    border-color: Highlight;
+  }
+  .custom-checkbox-input:checked + .custom-checkbox-box .custom-checkbox-check {
+    stroke: HighlightText;
+  }
+  #qr-readability-badge,
+  #scan-status-badge {
+    border: 1px solid CanvasText;
   }
 }
 
@@ -3215,12 +3535,39 @@ body[data-complexity="medium"] #section-parameters > .grid {
     padding: 10px 16px;
   }
   .header-console {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
+    margin-left: auto;
     order: 2;
+    display: grid;
+    grid-template-columns: var(--size-element-md) minmax(120px, 150px) minmax(128px, 160px);
+    align-items: center;
   }
   .header-console .custom-select-wrapper {
-    flex: 1 1 0;
+    width: auto;
     min-width: 0;
+  }
+  .header-console .custom-select-trigger {
+    padding-inline: 10px 30px;
+  }
+  .header-console #btn-theme-toggle {
+    grid-column: 1;
+  }
+  .header-console .theme-select-wrapper {
+    grid-column: 2;
+  }
+  .header-console .language-select-wrapper {
+    grid-column: 3;
+  }
+  .header-console .language-select-wrapper .custom-select-trigger {
+    padding-inline: 12px 30px;
+  }
+  .header-console .language-select-wrapper .custom-select-options {
+    min-width: 150px;
+  }
+  .header-console [data-persistent-icon] {
+    flex-shrink: 0;
+    color: var(--muted);
   }
   .workspace {
     padding: 16px 16px 32px;
@@ -3230,9 +3577,15 @@ body[data-complexity="medium"] #section-parameters > .grid {
     padding: 16px;
   }
   #color-picker-popup {
-    width: calc(100vw - 28px) !important;
-    left: 14px !important;
-    right: 14px !important;
+    /* A near-full-bleed panel read as a system dialog and lost the app's
+       shape. Keep it compact and centred, with real gutters either side.
+       Centred with auto margins, not a translate: the open animation owns the
+       transform, so a translate would be dropped mid-transition. */
+    width: min(300px, calc(100vw - 48px)) !important;
+    max-width: none;
+    left: 0 !important;
+    right: 0 !important;
+    margin-inline: auto !important;
   }
   #undo-toast {
     left: 14px;
@@ -3286,6 +3639,34 @@ body[data-complexity="medium"] #section-parameters > .grid {
 
 /* Very small phones: keep the three tab labels from overflowing the rail. */
 @media (max-width: 420px) {
+  .header-console {
+    width: 100%;
+    margin-left: 0;
+    grid-template-columns: var(--size-element-md) minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 2px;
+    padding: 3px;
+  }
+  .header-console .custom-select-trigger {
+    min-height: 36px;
+    padding-inline: 8px 24px;
+    font-size: var(--font-size-xs);
+  }
+  .header-console .language-select-wrapper .custom-select-trigger {
+    padding-inline: 9px 24px;
+  }
+  .header-console .custom-select-trigger::after {
+    right: 8px;
+    width: 10px;
+    height: 10px;
+    margin-top: -5px;
+  }
+  .header-console [data-persistent-icon] {
+    width: 14px;
+    height: 14px;
+  }
+  .header-console .trigger-content {
+    gap: 6px;
+  }
   .tab-btn {
     padding: 0 10px;
     gap: 6px;
@@ -3392,31 +3773,48 @@ body[data-complexity="medium"] #section-parameters > .grid {
     min-height: 44px;
     padding: 0 12px !important;
   }
+  /* Taller touch targets, but still square: 44px-wide icon buttons plus a
+     padded label would overflow the row on a narrow phone. */
+  .history-item button.history-row-btn {
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+  .history-item button.history-row-btn-icon {
+    width: 40px;
+    padding: 0 !important;
+  }
   #btn-close-cp,
   #btn-close-credits,
   #btn-close-error {
     min-width: 44px;
     min-height: 44px !important;
   }
-  #btn-clear-upload,
-  #btn-clear-logo {
+  /* #btn-clear-logo sits in a 40px-tall row next to the logo URL field, so a
+     44px box would overflow it and its expanded ::after stole taps from the
+     field. Keep it at the row height instead of faking a bigger target. */
+  #btn-clear-upload {
     min-width: 44px;
     min-height: 44px !important;
   }
-  #btn-clear-logo,
-  #tooltip-trigger-ecc {
-    position: relative;
+  #btn-clear-logo {
+    min-width: 40px;
+    min-height: 40px !important;
+    padding: 0 8px;
   }
-  /* Expand small icon hit areas without changing layout. */
-  #btn-toggle-pass::after,
-  #btn-clear-logo::after,
-  #tooltip-trigger-ecc::after {
+  /* The ECC help dot is 16px; grow the real box rather than an invisible
+     overlay that swallowed taps meant for the select below it. */
+  #tooltip-trigger-ecc {
+    width: 28px;
+    height: 28px;
+  }
+  #btn-toggle-pass::after {
     content: "";
     position: absolute;
-    inset: -10px;
+    inset: -6px;
   }
-  #tooltip-trigger-ecc::after {
-    inset: -14px;
+  /* Checkbox rows: the box is 18px, so the label is the only hit target. */
+  .custom-checkbox-label {
+    min-height: 44px;
   }
   input[type="range"] {
     height: 44px;
@@ -3451,13 +3849,6 @@ body[data-complexity="medium"] #section-parameters > .grid {
   }
   .dt-grid {
     gap: 1px;
-  }
-  .dt-clear,
-  .dt-today,
-  .dt-done,
-  .dt-time select.dt-hour,
-  .dt-time select.dt-minute {
-    min-height: 40px;
   }
   #cp-presets {
     flex-wrap: wrap;

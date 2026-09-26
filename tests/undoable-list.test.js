@@ -129,4 +129,22 @@ describe("createUndoableList", () => {
     expect(listB.items()).toEqual(["b"]);
     expect(listA.items()).toEqual([]);
   });
+
+  it("dismisses the undo toast on its own after the timeout", async () => {
+    const { createUndoableList } = await freshFactory();
+    const { list, items } = makeList(createUndoableList, ["a", "b"]);
+
+    list.removeAt(0);
+    const toast = document.getElementById("undo-toast");
+    expect(toast.classList.contains("hidden")).toBe(false);
+
+    // The fake timers in this suite were never advanced, so the 5s auto-dismiss
+    // (and the "undo after expiry is a no-op" behaviour) went untested.
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(toast.classList.contains("hidden")).toBe(true);
+    // The slot is released, so the still-present button can no longer undo.
+    document.getElementById("undo-toast-btn").click();
+    expect(items()).toEqual(["b"]);
+  });
 });

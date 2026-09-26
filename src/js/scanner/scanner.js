@@ -1,14 +1,11 @@
 import { DOM } from "../ui/dom.js";
 import { state } from "../state";
+import { t } from "../i18n.js";
 import { copyTextToClipboard } from "../utils.js";
 import { MAX_SCAN_UPLOAD_BYTES, SCAN_COOLDOWN_MS } from "../constants.js";
 import { flashButton, refreshCustomSelect } from "../ui/components.js";
 import { openModal, closeModal } from "../ui/modal.js";
-import {
-  addToScanHistory,
-  removeScanHistoryAt,
-  clearScanHistory,
-} from "./history.js";
+import { addToScanHistory, removeScanHistoryAt, clearScanHistory } from "./history.js";
 import {
   initDecoder,
   initWorker,
@@ -201,7 +198,7 @@ function wireDropZone() {
       };
       try {
         if (!navigator.clipboard || typeof navigator.clipboard.read !== "function") {
-          showPasteError("Clipboard images are not supported in this browser");
+          showPasteError(t("scanner.clipboardUnsupported"));
           return;
         }
         const items = await navigator.clipboard.read();
@@ -214,10 +211,10 @@ function wireDropZone() {
           processUploadFile(new File([blob], `clipboard.${ext}`, { type }));
           return;
         }
-        showPasteError("No image found in the clipboard");
+        showPasteError(t("scanner.clipboardEmpty"));
       } catch (err) {
         console.warn("[Scanner] Clipboard paste failed:", err);
-        showPasteError("Could not read the clipboard — check the permission and try again");
+        showPasteError(t("scanner.clipboardFailed"));
       }
     });
   }
@@ -249,7 +246,7 @@ function wireScanResultButtons() {
     try {
       const ok = await copyTextToClipboard(text);
       if (!ok) return;
-      flashButton(DOM.btnCopyResult, "Copied", 1500, ["bg-white", "text-black"]);
+      flashButton(DOM.btnCopyResult, t("controls.copied"), 1500, ["bg-white", "text-black"]);
     } catch (err) {
       console.warn("[QR] scan result copy failed:", err);
     }
@@ -260,7 +257,7 @@ function wireScanResultButtons() {
     if (!text) return;
     addToScanHistory(text);
     DOM.btnSaveScan.disabled = true;
-    flashButton(DOM.btnSaveScan, "Saved", 1500, ["bg-white", "text-black"]);
+    flashButton(DOM.btnSaveScan, t("controls.saved"), 1500, ["bg-white", "text-black"]);
   });
 }
 
@@ -288,7 +285,7 @@ export function wireHistoryDelegation() {
         const item = state.scanner.history[idx];
         if (!item || typeof item.content !== "string" || !item.content) return;
         const ok = await copyTextToClipboard(item.content);
-        if (ok) flashButton(btnCopy, "Copied", 1000, ["bg-white", "text-black"]);
+        if (ok) flashButton(btnCopy, t("controls.copied"), 1000, ["bg-white", "text-black"]);
         return;
       }
 
@@ -296,7 +293,8 @@ export function wireHistoryDelegation() {
       if (btnDelete) {
         e.stopPropagation();
         const idx = parseInt(btnDelete.dataset.idx, 10);
-        removeScanHistoryAt(idx);
+        // splice(NaN, 1) would silently delete the newest entry instead.
+        if (!Number.isNaN(idx)) removeScanHistoryAt(idx);
         return;
       }
 
@@ -335,21 +333,21 @@ export function stopWebcamScan() {
     cancelAnimationFrame(state.scanner.animationFrameId);
     state.scanner.animationFrameId = null;
   }
-  DOM.btnToggleCamera.textContent = "Start";
+  DOM.btnToggleCamera.textContent = t("common.start");
   DOM.btnToggleCamera.setAttribute("aria-pressed", "false");
-  setScanStatus("idle", "Idle");
+  setScanStatus("idle", t("scanner.statusIdle"));
 }
 
 /** User-facing camera failure text for the common getUserMedia error names. */
 function describeCameraError(err) {
   const name = err && err.name;
   if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
-    return "Access denied";
+    return t("scanner.accessDenied");
   }
-  if (name === "NotFoundError" || name === "DevicesNotFoundError") return "No camera found";
-  if (name === "NotReadableError" || name === "TrackStartError") return "Camera is in use by another app";
-  if (name === "OverconstrainedError") return "Selected camera unavailable";
-  return "Stream failed";
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") return t("scanner.noCamera");
+  if (name === "NotReadableError" || name === "TrackStartError") return t("scanner.cameraInUse");
+  if (name === "OverconstrainedError") return t("scanner.selectedCameraUnavailable");
+  return t("scanner.streamFailed");
 }
 
 export async function startWebcamScan() {
@@ -357,15 +355,15 @@ export async function startWebcamScan() {
   const session = ++scanSession;
   DOM.cameraLoadingState.classList.remove("hidden");
   DOM.cameraErrorState.classList.add("hidden");
-  setScanStatus("scanning", "Starting...");
+  setScanStatus("scanning", t("scanner.statusStarting"));
 
   // getUserMedia is unavailable in insecure contexts and very old browsers;
   // report that distinctly instead of a generic stream failure.
   if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
     DOM.cameraLoadingState.classList.add("hidden");
     DOM.cameraErrorState.classList.remove("hidden");
-    DOM.cameraErrorMsg.textContent = "Camera not supported";
-    setScanStatus("error", "Camera error");
+    DOM.cameraErrorMsg.textContent = t("scanner.notSupported");
+    setScanStatus("error", t("scanner.statusError"));
     return;
   }
 
@@ -389,7 +387,7 @@ export async function startWebcamScan() {
     DOM.cameraLoadingState.classList.add("hidden");
     DOM.cameraErrorState.classList.remove("hidden");
     DOM.cameraErrorMsg.textContent = describeCameraError(err);
-    setScanStatus("error", "Camera error");
+    setScanStatus("error", t("scanner.statusError"));
     return;
   }
   if (session === scanSession) webcamStartPending = false;
@@ -411,8 +409,8 @@ export async function startWebcamScan() {
       if (session !== scanSession) return;
       stopWebcamScan();
       DOM.cameraErrorState.classList.remove("hidden");
-      DOM.cameraErrorMsg.textContent = "Camera disconnected";
-      setScanStatus("error", "Camera error");
+      DOM.cameraErrorMsg.textContent = t("scanner.disconnected");
+      setScanStatus("error", t("scanner.statusError"));
     });
   });
   DOM.webcamVideo.srcObject = stream;
@@ -429,8 +427,8 @@ export async function startWebcamScan() {
     console.warn("[Scanner] Video playback failed:", err);
     stopWebcamScan();
     DOM.cameraErrorState.classList.remove("hidden");
-    DOM.cameraErrorMsg.textContent = "Camera playback denied — check permissions";
-    setScanStatus("error", "Camera error");
+    DOM.cameraErrorMsg.textContent = t("scanner.playbackDenied");
+    setScanStatus("error", t("scanner.statusError"));
     return;
   }
   if (session !== scanSession) {
@@ -446,7 +444,7 @@ export async function startWebcamScan() {
   const trackFacingMode = trackSettings.facingMode;
   const isFront = trackFacingMode !== undefined ? trackFacingMode === "user" : selectedDeviceId === "user";
   DOM.webcamVideo.classList.toggle("scale-x-[-1]", isFront);
-  DOM.btnToggleCamera.textContent = "Stop";
+  DOM.btnToggleCamera.textContent = t("common.stop");
   DOM.btnToggleCamera.setAttribute("aria-pressed", "true");
 
   await populateCameras();
@@ -458,7 +456,7 @@ export async function startWebcamScan() {
   DOM.cameraLoadingState.classList.add("hidden");
   DOM.scannerReticle.classList.remove("opacity-50");
   DOM.scannerReticle.classList.add("scanning");
-  setScanStatus("scanning", "Scanning...");
+  setScanStatus("scanning", t("scanner.statusScanning"));
   state.scanner.animationFrameId = requestAnimationFrame(scanTick);
 }
 
@@ -471,7 +469,8 @@ async function populateCameras() {
 
     if (videoDevices.length === 0) {
       DOM.cameraSelect.innerHTML =
-        '<option value="user">Front</option><option value="environment">Back</option>';
+        `<option value="user">${t("common.front")}</option>` +
+        `<option value="environment">${t("common.back")}</option>`;
       state.scanner.selectedCameraId = DOM.cameraSelect.value || "";
       refreshCustomSelect(DOM.cameraSelect);
       return;
@@ -480,7 +479,7 @@ async function populateCameras() {
     videoDevices.forEach((device, index) => {
       const option = document.createElement("option");
       option.value = device.deviceId;
-      option.textContent = device.label || `Camera ${index + 1}`;
+      option.textContent = device.label || t("scanner.cameraNumber", { count: index + 1 });
       DOM.cameraSelect.appendChild(option);
     });
 
@@ -617,12 +616,12 @@ function scanTick(timestamp) {
 function processUploadFile(file) {
   if (!file) return;
   if (file.type && !ALLOWED_SCAN_IMAGE_TYPES.includes(file.type)) {
-    DOM.errorModalMsg.textContent = "Invalid file type — an image is required";
+    DOM.errorModalMsg.textContent = t("scanner.invalidFileType");
     openModal(DOM.errorModal, document.body);
     return;
   }
   if (file.size > MAX_SCAN_UPLOAD_BYTES) {
-    DOM.errorModalMsg.textContent = "File too large (max 15 MB)";
+    DOM.errorModalMsg.textContent = t("scanner.fileTooLarge");
     openModal(DOM.errorModal, document.body);
     return;
   }

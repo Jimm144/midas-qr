@@ -4,6 +4,7 @@
  * Split out of main.js.
  */
 import { DOM } from "./ui/dom.js";
+import { t } from "./i18n.js";
 import { themes } from "./themes";
 import { generateQR } from "./generator/generator.js";
 
@@ -57,8 +58,9 @@ function updateThemeToggleUI(themeName, isDark) {
   const moonIcon = document.getElementById("icon-theme-moon");
   if (DOM.btnThemeToggle) {
     if (isDarkOnly) {
-      DOM.btnThemeToggle.setAttribute("aria-label", "Light mode unavailable in Gothic theme");
-      DOM.btnThemeToggle.setAttribute("title", "Light mode unavailable in Gothic theme");
+      const label = t("theme.gothicLightUnavailable");
+      DOM.btnThemeToggle.setAttribute("aria-label", label);
+      DOM.btnThemeToggle.setAttribute("title", label);
       DOM.btnThemeToggle.disabled = true;
       DOM.btnThemeToggle.setAttribute("aria-disabled", "true");
       DOM.btnThemeToggle.classList.add("opacity-50", "pointer-events-none");
@@ -71,17 +73,33 @@ function updateThemeToggleUI(themeName, isDark) {
       if (isDark) {
         if (sunIcon) sunIcon.classList.remove("hidden");
         if (moonIcon) moonIcon.classList.add("hidden");
-        DOM.btnThemeToggle.setAttribute("aria-label", "Switch to light mode");
-        DOM.btnThemeToggle.setAttribute("title", "Switch to light mode");
+        const label = t("theme.switchLight");
+        DOM.btnThemeToggle.setAttribute("aria-label", label);
+        DOM.btnThemeToggle.setAttribute("title", label);
       } else {
         if (sunIcon) sunIcon.classList.add("hidden");
         if (moonIcon) moonIcon.classList.remove("hidden");
-        DOM.btnThemeToggle.setAttribute("aria-label", "Switch to dark mode");
-        DOM.btnThemeToggle.setAttribute("title", "Switch to dark mode");
+        const label = t("theme.switchDark");
+        DOM.btnThemeToggle.setAttribute("aria-label", label);
+        DOM.btnThemeToggle.setAttribute("title", label);
       }
     }
   }
 }
+
+export function refreshThemeToggleTranslations() {
+  if (!DOM.themeSelect || !DOM.modeSelect || !DOM.btnThemeToggle) return;
+  const themeName = DOM.themeSelect.value;
+  const modeName = DOM.modeSelect.value;
+  const isDark =
+    themeName === "gothic" ||
+    modeName === "dark" ||
+    (modeName === "auto" &&
+      !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches));
+  updateThemeToggleUI(themeName, isDark);
+}
+
+document.addEventListener("app:localechange", refreshThemeToggleTranslations);
 
 /** Build the CSS custom-property map for the active theme variant. */
 function buildCssVarMap(themeName, isDark) {
@@ -136,6 +154,13 @@ function applyThemeTokens(themeName, modeName) {
   try {
     localStorage.setItem("qr-bg", activeThemeObj.bg);
     localStorage.setItem("qr-accent", activeThemeObj.accent);
+    // The whole resolved map, so the inline bootstrap in <head> can replay it
+    // before the first paint. It only knows qr-bg/qr-accent plus the OS
+    // dark/light preference, so a non-default theme — or light mode chosen on a
+    // dark-preferring OS — painted the wrong tokens until the bundle ran, which
+    // is the flash of wrong colours on refresh.
+    localStorage.setItem("qr-theme-tokens", JSON.stringify(styles));
+    localStorage.setItem("qr-scheme", isDark ? "dark" : "light");
   } catch (e) {
     console.warn("[QR] theme color persist failed:", e);
   }

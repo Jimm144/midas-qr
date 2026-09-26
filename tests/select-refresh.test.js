@@ -52,18 +52,6 @@ describe("custom select refresh", () => {
     expect(opts[0].classList.contains("selected")).toBe(false);
   });
 
-  it("keeps the generated option markup identical to the scanner rebuild", () => {
-    const sel = select();
-    sel.innerHTML = '<option value="a">Alpha</option><option value="b">Beta</option>';
-    sel.value = "b";
-
-    refreshCustomSelect(sel);
-
-    const opts = options();
-    expect(opts[0].className).toBe("custom-select-option text-xs font-bold");
-    expect(opts[1].className).toBe("custom-select-option text-xs font-bold selected");
-  });
-
   it("handles clicks on options created by the refresh", () => {
     const sel = select();
     const changes = [];

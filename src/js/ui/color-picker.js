@@ -1,4 +1,5 @@
 import { DOM } from "./dom.js";
+import { t } from "../i18n.js";
 import { state } from "../state";
 import { generateQR } from "../generator/generator.js";
 import { syncCustomSelect, closeOpenCustomSelects } from "./components.js";
@@ -340,7 +341,7 @@ function scheduleColorRender() {
   }
 }
 
-/** Refresh the trigger swatches that mirror a target (incl. medium-mode corner propagation). */
+/** Refresh the trigger swatches that mirror a target. */
 function repaintTargetSwatches(target, hex) {
   if (target === "frame") {
     state.generator.frameColor = hex;
@@ -353,10 +354,6 @@ function repaintTargetSwatches(target, hex) {
     paintSwatch(document.getElementById("swatch-bg-bg"), "bg", hex);
   } else if (target === "dots") {
     paintSwatch(document.getElementById("swatch-bg-dots"), "dots", hex);
-    if (DOM.colorFgMediumText) {
-      DOM.colorFgMediumText.value = hex.toUpperCase();
-      paintSwatch(document.getElementById("swatch-bg-fg-medium"), "dots", hex);
-    }
   } else if (target === "cornersSquare") {
     paintSwatch(document.getElementById("swatch-bg-cornersSquare"), "cornersSquare", hex);
   } else if (target === "cornersDot") {
@@ -474,10 +471,6 @@ export function updateColorState(target, hex) {
     state.generator.dotsColor = hex;
     if (DOM.colorDotsText) DOM.colorDotsText.value = hex.toUpperCase();
     paintSwatch(document.getElementById("swatch-bg-dots"), "dots", hex);
-    if (DOM.colorFgMediumText) {
-      DOM.colorFgMediumText.value = hex.toUpperCase();
-      paintSwatch(document.getElementById("swatch-bg-fg-medium"), "dots", hex);
-    }
   } else if (target === "cornersSquare") {
     state.generator.cornersSquareColor = hex;
     if (DOM.colorCornersSquareText) DOM.colorCornersSquareText.value = hex.toUpperCase();
@@ -1111,6 +1104,37 @@ function openPickerForButton(btn) {
   }, 50);
 }
 
+export function refreshColorPickerTranslations() {
+  if (cpPopup) {
+    cpPopup.setAttribute("role", "dialog");
+    cpPopup.setAttribute("aria-label", t("color.picker"));
+    cpPopup.setAttribute("aria-modal", "true");
+  }
+  if (cpSpectrum) {
+    cpSpectrum.setAttribute("role", "img");
+    cpSpectrum.setAttribute("aria-label", t("color.spectrumKeyboard"));
+    cpSpectrum.setAttribute("tabindex", "0");
+  }
+  if (cpInputHex) {
+    cpInputHex.setAttribute("aria-label", t("color.hexValue"));
+    cpInputHex.setAttribute("autocomplete", "off");
+    cpInputHex.setAttribute("autocapitalize", "off");
+    cpInputHex.setAttribute("spellcheck", "false");
+  }
+  if (cpResetBtn) {
+    const label = t("color.resetBeforeEditing");
+    cpResetBtn.setAttribute("aria-label", label);
+    cpResetBtn.setAttribute("title", label);
+  }
+  if (cpOkBtn) {
+    const label = t("color.apply");
+    cpOkBtn.setAttribute("aria-label", label);
+    cpOkBtn.setAttribute("title", label);
+  }
+}
+
+document.addEventListener("app:localechange", refreshColorPickerTranslations);
+
 /** Resolve picker elements, set static aria attributes, then wire all interactions. */
 export function initColorPicker() {
   cpPopup = document.getElementById("color-picker-popup");
@@ -1129,34 +1153,7 @@ export function initColorPicker() {
   cpGradType = document.getElementById("cp-gradient-type");
   cpGradAngle = document.getElementById("cp-gradient-angle");
 
-  if (cpPopup) {
-    cpPopup.setAttribute("role", "dialog");
-    cpPopup.setAttribute("aria-label", "Color picker");
-    cpPopup.setAttribute("aria-modal", "true");
-  }
-  if (cpSpectrum) {
-    cpSpectrum.setAttribute("role", "img");
-    cpSpectrum.setAttribute(
-      "aria-label",
-      "Saturation and brightness field: Left/Right adjust saturation, Up/Down adjust brightness, Ctrl+Left/Right adjust hue"
-    );
-    cpSpectrum.setAttribute("tabindex", "0");
-  }
-  if (cpInputHex) {
-    cpInputHex.setAttribute("aria-label", "Hex color value");
-    cpInputHex.setAttribute("autocomplete", "off");
-    cpInputHex.setAttribute("autocapitalize", "off");
-    cpInputHex.setAttribute("spellcheck", "false");
-  }
-  if (cpResetBtn) {
-    cpResetBtn.setAttribute("aria-label", "Reset to the color before editing");
-    cpResetBtn.setAttribute("title", "Reset to the color before editing");
-  }
-  if (cpOkBtn) {
-    cpOkBtn.setAttribute("aria-label", "Apply color and close");
-    cpOkBtn.setAttribute("title", "Apply color and close");
-  }
-
+  refreshColorPickerTranslations();
   wireHexInput();
   wireGradientControls();
   wirePresetButtons();

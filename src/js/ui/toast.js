@@ -1,4 +1,6 @@
 // @ts-check
+import { t } from "../i18n.js";
+
 let undoData = null;
 let undoTimer = null;
 let undoToastInitialized = false;
@@ -40,13 +42,20 @@ export function showUndoToast(msg, onUndo) {
   const btn = document.createElement("button");
   btn.id = "undo-toast-btn";
   btn.type = "button";
-  btn.textContent = "UNDO";
+  btn.textContent = t("toast.undo");
   toast.append(label, btn);
   toast.classList.remove("hidden");
   undoData = onUndo;
   if (undoTimer) clearTimeout(undoTimer);
   undoTimer = setTimeout(hideUndoToast, 5000);
 }
+
+export function refreshToastTranslations() {
+  const button = document.getElementById("undo-toast-btn");
+  if (button) button.textContent = t("toast.undo");
+}
+
+document.addEventListener("app:localechange", refreshToastTranslations);
 
 function hideUndoToast() {
   const toast = document.getElementById("undo-toast");

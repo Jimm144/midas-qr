@@ -1,4 +1,5 @@
 import { openPopover, closePopover } from "./popover.js";
+import { t } from "../i18n.js";
 
 let selectCounter = 0;
 
@@ -50,7 +51,7 @@ export function initCustomSelect(select) {
     wrapper.getAttribute("data-label") ||
     select.getAttribute("aria-label") ||
     select.options[select.selectedIndex]?.text ||
-    "Option";
+    t("select.option");
 
   trigger.setAttribute("role", "combobox");
   trigger.setAttribute("aria-haspopup", "listbox");
@@ -60,7 +61,7 @@ export function initCustomSelect(select) {
   if (!trigger.hasAttribute("tabindex")) trigger.setAttribute("tabindex", "0");
 
   optionsDiv.setAttribute("role", "listbox");
-  optionsDiv.setAttribute("aria-label", `${label} options`);
+  optionsDiv.setAttribute("aria-label", t("select.options", { label }));
 
   Array.from(optionsDiv.children).forEach((optDiv, idx) => {
     optDiv.setAttribute("role", "option");
@@ -113,12 +114,7 @@ export function initCustomSelect(select) {
     const optDiv = optionsDiv.children[idx];
     const option = select.options[idx];
     if (!option) return true;
-    const isHidden =
-      optDiv &&
-      (optDiv.classList.contains("hidden") ||
-        (optDiv.classList.contains("full-only") &&
-          document.querySelector(".full-only")?.classList.contains("hidden")));
-    return !!isHidden || option.disabled;
+    return Boolean(optDiv?.classList.contains("hidden")) || option.disabled;
   };
 
   /** Move to the next selectable option in `dir` (wraps around). */
@@ -186,19 +182,11 @@ export function refreshCustomSelect(select) {
 
   const optionEls = Array.from(optionsDiv.children);
   const options = Array.from(select.options);
-  const aligned =
-    optionEls.length === options.length &&
-    options.every(
-      (opt, idx) =>
-        optionEls[idx].getAttribute("data-index") === String(idx) &&
-        optionEls[idx].textContent.trim() === opt.text.trim()
-    );
-
-  if (!aligned) {
+  const labelsChanged = options.some((opt, idx) => optionEls[idx]?.textContent.trim() !== opt.text.trim());
+  if (optionEls.length !== options.length || (labelsChanged && !optionEls.some((opt) => opt.querySelector("svg, .theme-dot")))) {
     optionsDiv.innerHTML = "";
     options.forEach((opt, idx) => {
       const optDiv = document.createElement("div");
-      // Matches the markup the scanner used to rebuild by hand.
       optDiv.className = "custom-select-option text-xs font-bold" + (opt.selected ? " selected" : "");
       optDiv.setAttribute("data-index", idx);
       optDiv.setAttribute("role", "option");
@@ -206,8 +194,36 @@ export function refreshCustomSelect(select) {
       optDiv.textContent = opt.textContent;
       optionsDiv.appendChild(optDiv);
     });
+  } else {
+    options.forEach((opt, idx) => {
+      const optDiv = optionEls[idx];
+      const icon = optDiv.querySelector("svg, .theme-dot");
+      if (icon) {
+        const label = optDiv.querySelector("span:not(.theme-dot)") || document.createElement("span");
+        label.textContent = opt.textContent;
+        if (!label.parentElement) optDiv.appendChild(label);
+      } else {
+        optDiv.className = "custom-select-option text-xs font-bold";
+        optDiv.textContent = opt.textContent;
+      }
+      optDiv.setAttribute("data-index", String(idx));
+      optDiv.setAttribute("role", "option");
+      optDiv.setAttribute("aria-selected", opt.selected ? "true" : "false");
+      if (opt.disabled) optDiv.setAttribute("aria-disabled", "true");
+      else optDiv.removeAttribute("aria-disabled");
+    });
   }
 
+  const label =
+    wrapper.getAttribute("data-label") ||
+    select.getAttribute("aria-label") ||
+    select.options[select.selectedIndex]?.text ||
+    t("select.option");
+  const trigger = wrapper.querySelector(".custom-select-trigger");
+  if (trigger) {
+    trigger.setAttribute("aria-label", label);
+    optionsDiv.setAttribute("aria-label", t("select.options", { label }));
+  }
   syncCustomSelect(select);
 }
 
@@ -228,12 +244,13 @@ export function syncCustomSelect(select) {
   const selectedOptEl = optionEls[select.selectedIndex];
   const optText = select.options[select.selectedIndex]?.text || "";
   const iconEl = selectedOptEl ? selectedOptEl.querySelector("svg, .theme-dot") : null;
+  const persistentIcon = trigger.querySelector("[data-persistent-icon]");
 
-  if (iconEl) {
+  if (iconEl || persistentIcon) {
     trigger.innerHTML = "";
     const span = document.createElement("span");
     span.className = "trigger-content flex items-center gap-2 overflow-hidden text-ellipsis";
-    span.appendChild(iconEl.cloneNode(true));
+    span.appendChild((iconEl || persistentIcon).cloneNode(true));
     const txtNode = document.createElement("span");
     txtNode.className = "truncate";
     txtNode.textContent = optText;

@@ -5,6 +5,7 @@ import { getQrCode } from "./qr-instance.js";
 import { renderOnce } from "./generator.js";
 import { copyTextToClipboard, snapshot } from "../utils.js";
 import { announce } from "../ui/announce.js";
+import { t } from "../i18n.js";
 import { flashButton } from "../ui/components.js";
 import { getRenderInfo } from "./render-info.js";
 import { ensureQrcodeLoaded, generateUnicodeQR } from "./encoder.js";
@@ -211,13 +212,38 @@ function overrideValue(overrides, key, fallback) {
   return overrides && overrides[key] !== undefined ? overrides[key] : fallback;
 }
 
+/**
+ * Suggested file name: something a person would recognise, derived from the
+ * payload — the host of a URL, a Wi-Fi SSID, a contact name. It used to be
+ * `qr-url-2026-09-26-1505`, which said nothing and changed every minute, so the
+ * placeholder kept shifting under the user.
+ */
 function getDefaultFilename() {
-  const type = state.generator.dataType || "qr";
-  const now = new Date();
-  const pad = (value) => String(value).padStart(2, "0");
-  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  const time = `${pad(now.getHours())}${pad(now.getMinutes())}`;
-  return `qr-${type}-${date}-${time}`;
+  const raw = (state.generator.dataString || "").trim();
+  const host = () => {
+    try {
+      return new URL(raw).hostname.replace(/^www\./, "");
+    } catch {
+      return "";
+    }
+  };
+  const derived = (() => {
+    if (/^https?:\/\//i.test(raw)) return host();
+    const wifi = raw.match(/^WIFI:S:([^;]*)/i);
+    if (wifi && wifi[1]) return wifi[1];
+    if (/^BEGIN:VCARD/i.test(raw)) {
+      const name = raw.match(/^FN:(.+)$/m);
+      if (name) return name[1];
+    }
+    if (/^mailto:/i.test(raw)) return raw.slice(7).split("?")[0];
+    if (/^tel:/i.test(raw)) return raw.slice(4);
+    if (/^SMSTO:/i.test(raw)) return raw.slice(6).split(":")[0];
+    if (/^geo:/i.test(raw)) return raw.slice(4).replace(",", "-");
+    return raw.replace(/\s+/g, " ").slice(0, 32).trim();
+  })();
+  // Sanitized here as well as at download time so the placeholder shows exactly
+  // what the file will be called.
+  return sanitizeFilename(derived, "qr-code");
 }
 
 // Windows refuses these as file names regardless of extension.
@@ -272,12 +298,12 @@ async function handleDownloadClick() {
     await ensureQrcodeLoaded();
     const ascii = generateUnicodeQR(state.generator.dataString, state.generator.ecc);
     if (!ascii) {
-      announce("QR code is too large to render as text");
+      announce(t("export.tooLargeText"));
       return;
     }
     const blob = new Blob([ascii], { type: "text/plain;charset=utf-8" });
     downloadBlob(blob, `${filename}.txt`);
-    announce("QR code downloaded as text file");
+    announce(t("export.downloadedText"));
     return;
   }
   try {
@@ -287,10 +313,10 @@ async function handleDownloadClick() {
     } else {
       getQrCode().download({ name: filename, extension: ext });
     }
-    announce(`QR code downloaded as ${ext.toUpperCase()}`);
+    announce(t("export.downloadedFormat", { format: ext.toUpperCase() }));
   } catch (err) {
     console.error("[QR] export failed:", err);
-    announce(`Could not export the QR code as ${ext.toUpperCase()}`);
+    announce(t("export.failedFormat", { format: ext.toUpperCase() }));
   }
 }
 
@@ -301,9 +327,15 @@ async function handleCopyClick() {
     flashButton(DOM.btnCopy, label, time, classes);
     announce(announcement);
   };
+  const notifyCopySuccess = () => {
+    notifyCopy(t("controls.copied"), ["bg-white", "text-black"], 1500, t("export.copiedClipboard"));
+  };
+  const notifyCopyFailure = () => {
+    notifyCopy(t("export.copyFailed"), ["bg-red-500", "text-white"], 2000, t("export.copyFailed"));
+  };
   const notifyResult = (ok) => {
-    if (ok) notifyCopy("Copied", ["bg-white", "text-black"], 1500, "Copied to clipboard");
-    else notifyCopy("Copy failed", ["bg-red-500", "text-white"], 2000, "Copy failed");
+    if (ok) notifyCopySuccess();
+    else notifyCopyFailure();
   };
   try {
     const ext = normalizeFormat(DOM.exportFormat.value || "png");
@@ -311,12 +343,7 @@ async function handleCopyClick() {
       await ensureQrcodeLoaded();
       const ascii = generateUnicodeQR(state.generator.dataString, state.generator.ecc);
       if (!ascii) {
-        notifyCopy(
-          "Too large",
-          ["bg-red-500", "text-white"],
-          2000,
-          "This QR code is too large to copy as text"
-        );
+        notifyCopy(t("export.tooLarge"), ["bg-red-500", "text-white"], 2000, t("export.tooLargeCopy"));
         return;
       }
       notifyResult(await copyTextToClipboard(ascii));
@@ -329,7 +356,7 @@ async function handleCopyClick() {
       const blob = await exportRenderedBlob("svg", info);
       const text = (blob ? await blob.text() : info?.svg) || "";
       if (!text) {
-        notifyCopy("Copy failed", ["bg-red-500", "text-white"], 2000, "Copy failed");
+        notifyCopyFailure();
         return;
       }
       notifyResult(await copyTextToClipboard(text));
@@ -353,18 +380,18 @@ async function handleCopyClick() {
       console.warn("Clipboard image write failed, falling back to SVG text:", err);
     }
     if (imageOk) {
-      notifyCopy("Copied", ["bg-white", "text-black"], 1500, "Copied to clipboard");
+      notifyCopySuccess();
       return;
     }
     const svgText = (info && info.svg) || (await (await getQrCode().getRawData("svg")).text());
     if (!svgText) {
-      notifyCopy("Copy failed", ["bg-red-500", "text-white"], 2000, "Copy failed");
+      notifyCopyFailure();
       return;
     }
     notifyResult(await copyTextToClipboard(svgText));
   } catch (err) {
     console.error(err);
-    notifyCopy("Copy failed", ["bg-red-500", "text-white"], 2000, "Copy failed");
+    notifyCopyFailure();
   }
 }
 

@@ -1,3 +1,5 @@
+import { t } from "../i18n.js";
+
 /**
  * Lightweight modal helper: manages focus trap and restore for an overlay modal.
  * Returns helpers to open/close the modal while keeping keyboard focus contained.
@@ -31,7 +33,7 @@ export function openModal(modal, triggerEl) {
     if (!labelEl.id) labelEl.id = labelId;
     modal.setAttribute("aria-labelledby", labelEl.id);
   } else {
-    modal.setAttribute("aria-label", "Dialog");
+    modal.setAttribute("aria-label", t("modal.dialog"));
   }
   // `document.body` is not focus-restorable (scanner errors open with it), so
   // fall back to whatever held focus; if nothing did, closeModal clears focus.
@@ -78,9 +80,18 @@ export function openModal(modal, triggerEl) {
   trapStack.push({ modal, handler, previouslyFocused, addedTabindex });
 }
 
+export function refreshModalTranslations() {
+  trapStack.forEach(({ modal }) => {
+    const labelEl = modal.querySelector("h2, [data-modal-label]");
+    if (!labelEl) modal.setAttribute("aria-label", t("modal.dialog"));
+  });
+}
+
+document.addEventListener("app:localechange", refreshModalTranslations);
+
 export function closeModal(modal) {
   if (!modal) return;
-  const idx = trapStack.findIndex((t) => t.modal === modal);
+  const idx = trapStack.findIndex((entry) => entry.modal === modal);
   if (idx !== -1) {
     const trap = trapStack[idx];
     trapStack.splice(idx, 1);

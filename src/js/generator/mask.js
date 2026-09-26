@@ -471,8 +471,9 @@ function prepareDocForMask(svgEl, w, h, targetDx, targetDy) {
   let bgRect = null;
   const childrenToMove = [];
   for (const child of Array.from(svgEl.children)) {
-    if (child.tagName === "defs") continue;
-    if (!bgRect && child.tagName === "rect") {
+    const tag = child.tagName.toLowerCase();
+    if (tag === "defs") continue;
+    if (!bgRect && tag === "rect") {
       bgRect = child;
       continue;
     }

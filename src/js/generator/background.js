@@ -9,7 +9,7 @@ import { SVG_NS, findMaskSilhouette, clipToShape } from "./mask.js";
 function backgroundRect(parent, w, h) {
   let first = null;
   for (const child of parent.children) {
-    if (child.tagName !== "rect") continue;
+    if (child.tagName.toLowerCase() !== "rect") continue;
     if (!first) first = child;
     const cw = Number(child.getAttribute("width"));
     const ch = Number(child.getAttribute("height"));
@@ -21,7 +21,7 @@ function backgroundRect(parent, w, h) {
 /** The radius pass' content group, when one is present. */
 function radiusGroup(container) {
   for (const child of container.children) {
-    if (child.tagName !== "g") continue;
+    if (child.tagName.toLowerCase() !== "g") continue;
     if ((child.getAttribute("clip-path") || "").includes("qr-canvas-radius-clip")) return child;
   }
   return null;
@@ -38,7 +38,7 @@ export function applyBackgroundImageToDoc(doc, w, h) {
 
   const root = doc.documentElement;
   // Framed renders nest the library SVG, so the background rect is one level in.
-  const container = Array.from(root.children).find((child) => child.tagName === "svg") || root;
+  const container = Array.from(root.children).find((child) => child.tagName.toLowerCase() === "svg") || root;
   const image = doc.createElementNS(SVG_NS, "image");
   image.setAttribute("x", "0");
   image.setAttribute("y", "0");

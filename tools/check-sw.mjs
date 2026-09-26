@@ -70,13 +70,61 @@ if (!listMatch) {
   }
 }
 
-// 4. The stylesheet version in PRECACHE must match index.html's link.
+// 4. Every versioned asset must agree between the shell and the precache list.
+// The stylesheet was the only pair checked; the favicon (and any future asset)
+// could drift, and a `.match()`-once check silently ignored a second reference.
 const html = read("index.html") || "";
-const htmlCss = (html.match(/style\.min\.css\?v=(\d+)/) || [])[1];
-const swCss = (src.match(/style\.min\.css\?v=(\d+)/) || [])[1];
-if (!htmlCss || !swCss) problems.push("missing style.min.css version in index.html or sw.js");
-else if (htmlCss !== swCss)
-  problems.push(`stylesheet version mismatch: index.html v=${htmlCss}, sw.js v=${swCss}`);
+const versionedAssets = new Map();
+for (const match of html.matchAll(/([\w./-]+)\?v=(\d+)/g)) {
+  const [, path, version] = match;
+  const key = path.replace(/^\.\//, "");
+  if (!versionedAssets.has(key)) versionedAssets.set(key, new Set());
+  versionedAssets.get(key).add(version);
+}
+for (const [path, versions] of versionedAssets) {
+  if (versions.size > 1) {
+    problems.push(`${path}: conflicting ?v= versions in index.html (${[...versions].join(", ")})`);
+  }
+  for (const version of versions) {
+    const wanted = `./${path}?v=${version}`;
+    if (!precacheEntries.includes(wanted)) {
+      problems.push(`index.html requests ${path}?v=${version} but PRECACHE has no matching entry`);
+    }
+  }
+}
+
+// 4a. A stale bundle ships silently: the service worker would keep serving the
+// previous dist/bundle.js or style.min.css for two reloads while every check
+// above stays green. Compare mtimes against the newest source file.
+const newestMtime = (dir, exts) => {
+  let newest = 0;
+  const walk = (current) => {
+    for (const dirent of fs.readdirSync(current, { withFileTypes: true })) {
+      const path = current + "/" + dirent.name;
+      if (dirent.isDirectory()) walk(path);
+      else if (exts.some((ext) => dirent.name.endsWith(ext))) {
+        newest = Math.max(newest, fs.statSync(path).mtimeMs);
+      }
+    }
+  };
+  walk(dir);
+  return newest;
+};
+const builtArtifacts = [
+  { built: "dist/bundle.js", source: newestMtime("src/js", [".js", ".ts"]) },
+  { built: "src/css/style.min.css", source: fs.statSync("src/css/style.css").mtimeMs },
+];
+for (const artifact of builtArtifacts) {
+  if (!fs.existsSync(artifact.built)) {
+    problems.push(`built artifact missing: ${artifact.built} (run npm run build)`);
+    continue;
+  }
+  if (fs.statSync(artifact.built).mtimeMs + 1000 < artifact.source) {
+    problems.push(
+      `${artifact.built} is older than its sources — run npm run build before shipping`
+    );
+  }
+}
 
 // 4b. Every local asset the shell pages reference must exist and be precached
 // under exactly the requested URL (query included): an unprecached first-load

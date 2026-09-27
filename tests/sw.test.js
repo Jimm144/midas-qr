@@ -227,7 +227,7 @@ describe("sw.js install", () => {
 
   it("rejects the install when an entry cannot be fetched (old worker stays active)", async () => {
     h.network.resolve = async (url) =>
-      url.endsWith("dist/bundle.js") ? new MockResponse("", { status: 404 }) : new MockResponse("ok");
+      url.includes("dist/bundle.js") ? new MockResponse("", { status: 404 }) : new MockResponse("ok");
     const event = h.makeEvent(new MockRequest(BASE));
     h.dispatch("install", event);
     const results = await Promise.allSettled(event.waits);
@@ -245,7 +245,7 @@ describe("sw.js activate", () => {
   it("deletes every old cache, trims runtime entries, and claims clients", async () => {
     h.stores.set("midas-qr-v157", { entries: new Map() });
     const cache = await h.caches.open(h.sw.CACHE_NAME);
-    await cache.put(`${BASE}dist/bundle.js`, new MockResponse("precache"));
+    await cache.put(`${BASE}dist/bundle.js?v=1`, new MockResponse("precache"));
     for (let i = 0; i < h.sw.RUNTIME_CACHE_LIMIT + 7; i++) {
       await cache.put(`${BASE}runtime/${i}.woff2`, new MockResponse("runtime"));
     }
@@ -259,7 +259,7 @@ describe("sw.js activate", () => {
     expect(h.claimCalls.length).toBe(1);
 
     const keys = [...cache.entries.keys()];
-    expect(keys).toContain(`${BASE}dist/bundle.js`);
+    expect(keys).toContain(`${BASE}dist/bundle.js?v=1`);
     const runtimeKeys = keys.filter((key) => key.includes("/runtime/"));
     expect(runtimeKeys.length).toBe(h.sw.RUNTIME_CACHE_LIMIT);
     // Oldest runtime entries are the ones dropped.
@@ -293,7 +293,7 @@ describe("sw.js version bumps", () => {
 
     expect(newWorker.network.calls.every((call) => call.cache === "no-cache")).toBe(true);
     const fresh = await newWorker.caches.open(nextCacheName);
-    expect(await fresh.entries.get(`${BASE}dist/bundle.js`).text()).toBe("NEW-BYTES");
+    expect(await fresh.entries.get(`${BASE}dist/bundle.js?v=1`).text()).toBe("NEW-BYTES");
 
     const newActivate = newWorker.makeEvent(new MockRequest(BASE));
     newWorker.dispatch("activate", newActivate);
@@ -377,7 +377,7 @@ describe("sw.js fetch", () => {
   });
 
   it("serves stale-while-revalidate and refreshes the cache in the background", async () => {
-    const url = `${BASE}dist/bundle.js`;
+    const url = `${BASE}dist/bundle.js?v=1`;
     const cache = await h.caches.open(h.sw.CACHE_NAME);
     await cache.put(url, new MockResponse("OLD-BUNDLE"));
     h.network.handler = async () => new MockResponse("NEW-BUNDLE");
@@ -428,7 +428,7 @@ describe("sw.js fetch", () => {
   });
 
   it("still serves the network response when the cache write fails", async () => {
-    const url = `${BASE}dist/bundle.js`;
+    const url = `${BASE}dist/bundle.js?v=1`;
     const cache = await h.caches.open(h.sw.CACHE_NAME);
     cache.put = async () => {
       throw new Error("quota");
@@ -440,6 +440,25 @@ describe("sw.js fetch", () => {
     const response = await h.settle(event);
 
     // A failing cache.put must never swallow the response the user asked for.
+    expect(await response.text()).toBe("FRESH-BUNDLE");
+  });
+
+  it("serves the fresh bundle for a versioned URL the precache predates", async () => {
+    // The deploy-skew guard. Navigations are network-first, so after a deploy the
+    // page gets the new index.html immediately while every other asset still
+    // comes from the previous precache. Because the bundle URL carries a ?v=,
+    // the new HTML asks for a URL that cache cannot satisfy, so the worker goes
+    // to the network rather than pairing new markup with the previous bundle —
+    // which crashed the app when a release dropped DOM ids the old bundle needed.
+    const stale = `${BASE}dist/bundle.js?v=1`;
+    const cache = await h.caches.open(h.sw.CACHE_NAME);
+    await cache.put(stale, new MockResponse("STALE-BUNDLE"));
+    h.network.handler = async () => new MockResponse("FRESH-BUNDLE");
+
+    const event = h.makeEvent(new MockRequest(`${BASE}dist/bundle.js?v=2`));
+    h.dispatch("fetch", event);
+    const response = await h.settle(event);
+
     expect(await response.text()).toBe("FRESH-BUNDLE");
   });
 });

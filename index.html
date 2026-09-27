@@ -3,7 +3,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1b1b1b">
     <script>(function(){try{var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var s=document.documentElement.style;var tc=document.querySelector('meta[name="theme-color"]');var stored=null;try{stored=JSON.parse(localStorage.getItem('qr-theme-tokens')||'null')}catch(e2){}if(stored&&typeof stored==='object'){for(var k in stored){if(k.indexOf('--')===0&&typeof stored[k]==='string')s.setProperty(k,stored[k])}var scheme=localStorage.getItem('qr-scheme');if(scheme)s.colorScheme=scheme;if(tc&&stored['--bg'])tc.setAttribute('content',stored['--bg']);return}var bg=localStorage.getItem('qr-bg')||(d?'#1b1b1b':'#f1f1f1');var accent=localStorage.getItem('qr-accent')||(d?'#ebebeb':'#262626');s.setProperty('--bg',bg);s.setProperty('--accent',accent);s.setProperty('--text',d?'#fafafa':'#171717');s.setProperty('--surface',d?'#262626':'#ffffff');s.setProperty('--bg-elevated',d?'#363636':'#ebebeb');s.setProperty('--inset',d?'#212121':'#fafafa');s.setProperty('--border',d?'rgba(255, 255, 255, 0.10)':'rgba(0, 0, 0, 0.08)');s.setProperty('--border-strong',d?'#525252':'#d4d4d4');s.setProperty('--muted',d?'#a3a3a3':'#525252');s.setProperty('--accent-contrast',d?'#171717':'#ffffff');s.setProperty('--accent-soft',d?'rgba(255, 255, 255, 0.06)':'rgba(0, 0, 0, 0.05)');s.setProperty('--danger',d?'#ffc6c1':'#a50c25');s.setProperty('--success',d?'#9fe59b':'#007004');s.setProperty('--warning',d?'#fdcf4f':'#745b00');if(tc){tc.setAttribute('content',bg)}}catch(e){}})();</script>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-i3e6+6Zpyta0K+VZw2LD87buYZYELWbuRjkhsA6fzPk=' 'sha256-7wgGxatGCuMeYWrJ8JtZjKhLSPr9rQL+znZEhnS0y9E=' 'sha256-yT9eFw0MdE2y8FDhzR2VfAaqsFiSP79emTsDgTrZr94=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-i3e6+6Zpyta0K+VZw2LD87buYZYELWbuRjkhsA6fzPk=' 'sha256-Ep4vm7FWYxGT2xSchai/oTKHpJ4P44VNKZ+JJnzET4w=' 'sha256-yT9eFw0MdE2y8FDhzR2VfAaqsFiSP79emTsDgTrZr94=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
     <meta name="description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no cookies.">
     <meta name="color-scheme" content="dark light">
     <meta name="robots" content="index,follow">
@@ -32,7 +32,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Midas QR">
-    <link rel="preload" href="dist/bundle.js" as="script">
+    <link rel="preload" href="dist/bundle.js?v=1" as="script">
     <link rel="preload" href="src/lib/qr-code-styling.min.js" as="script">
     <link rel="preload" href="src/lib/jsqr.min.js" as="script">
     <link rel="preload" href="src/lib/qrcode.min.js" as="script">
@@ -910,7 +910,7 @@
 
     <footer class="site-footer">
       <div class="footer-inner">
-        <span>Midas QR <span class="footer-sep">·</span> GPL-3.0 <span class="footer-sep">·</span> <button id="btn-credits" aria-haspopup="dialog" data-i18n="footer.credits">Credits</button> <span class="footer-sep">·</span> <span id="build-version" title="Service-worker cache version" data-i18n-title="footer.cacheVersion">v259</span></span>
+        <span>Midas QR <span class="footer-sep">·</span> GPL-3.0 <span class="footer-sep">·</span> <button id="btn-credits" aria-haspopup="dialog" data-i18n="footer.credits">Credits</button> <span class="footer-sep">·</span> <span id="build-version" title="Service-worker cache version" data-i18n-title="footer.cacheVersion">v260</span></span>
         <button id="btn-install" class="hidden" data-i18n="footer.install">Install app</button>
         <span><span data-i18n="footer.noCookies">No cookies</span> <span class="footer-sep">·</span> <a href="https://github.com/Jimm144/midas-qr" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a></span>
       </div>
@@ -1056,7 +1056,7 @@
         window.__qrLibsLoaded = Promise.all([
           loadScript('src/lib/qr-code-styling.min.js'),
           loadScript('src/lib/jsqr.min.js'),
-          loadScript('dist/bundle.js'),
+          loadScript('dist/bundle.js?v=1'),
         ])
           .then(function () {})
           .catch(function (err) {

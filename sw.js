@@ -3,6 +3,13 @@
 // style.min.css ?v= query here AND in index.html in the same commit;
 // tools/check-sw.mjs fails the build if those two versions drift.
 //
+// The bundle carries its own ?v= for the same reason, bumped whenever the
+// bundle changes. Navigations are network-first (below), so a deploy serves the
+// new index.html immediately while every other asset still comes from the
+// previous precache — without a version on the bundle URL, the new markup would
+// be paired with the previous bundle until the second reload, which crashed the
+// app outright when a release removed DOM ids the old bundle required.
+//
 // Update flow (verified by tests/sw.test.js): install always revalidates
 // (`no-cache`), so a CACHE_NAME bump precaches the current bytes — reused from
 // the HTTP cache on a 304, fetched in full when the file changed — even when
@@ -11,7 +18,7 @@
 // the previously cached bundle while the update installs, and the *next*
 // reload is served entirely from the new precache: the installed app updates
 // reliably within two reloads.
-const CACHE_NAME = "midas-qr-v259";
+const CACHE_NAME = "midas-qr-v260";
 // Runtime additions (theme fonts, offline navigation targets) are capped so a
 // long-lived worker cannot grow storage without bound. Precache is never pruned.
 const RUNTIME_CACHE_LIMIT = 60;
@@ -30,7 +37,7 @@ const PRECACHE = [
   "./favicon.svg?v=11",
   "./icon-192x192.png",
   "./icon-512x512.png",
-  "./dist/bundle.js",
+  "./dist/bundle.js?v=1",
   // Precache the exact versioned stylesheet URL the page requests so the
   // first controlled load is both fresh and offline-capable.
   "./src/css/style.min.css?v=156",

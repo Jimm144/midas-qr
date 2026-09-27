@@ -245,7 +245,10 @@ describe("sw.js activate", () => {
   it("deletes every old cache, trims runtime entries, and claims clients", async () => {
     h.stores.set("midas-qr-v157", { entries: new Map() });
     const cache = await h.caches.open(h.sw.CACHE_NAME);
-    await cache.put(`${BASE}dist/bundle.js?v=1`, new MockResponse("precache"));
+    // Derived from PRECACHE rather than hardcoded: the bundle's ?v= is a content
+    // hash, and this test is about precached entries surviving the trim.
+    const bundleUrl = new URL(h.sw.PRECACHE.find((e) => e.includes("dist/bundle.js")), BASE).href;
+    await cache.put(bundleUrl, new MockResponse("precache"));
     for (let i = 0; i < h.sw.RUNTIME_CACHE_LIMIT + 7; i++) {
       await cache.put(`${BASE}runtime/${i}.woff2`, new MockResponse("runtime"));
     }
@@ -259,7 +262,7 @@ describe("sw.js activate", () => {
     expect(h.claimCalls.length).toBe(1);
 
     const keys = [...cache.entries.keys()];
-    expect(keys).toContain(`${BASE}dist/bundle.js?v=1`);
+    expect(keys).toContain(bundleUrl);
     const runtimeKeys = keys.filter((key) => key.includes("/runtime/"));
     expect(runtimeKeys.length).toBe(h.sw.RUNTIME_CACHE_LIMIT);
     // Oldest runtime entries are the ones dropped.
@@ -293,7 +296,12 @@ describe("sw.js version bumps", () => {
 
     expect(newWorker.network.calls.every((call) => call.cache === "no-cache")).toBe(true);
     const fresh = await newWorker.caches.open(nextCacheName);
-    expect(await fresh.entries.get(`${BASE}dist/bundle.js?v=1`).text()).toBe("NEW-BYTES");
+    // Derived from PRECACHE: the bundle's ?v= is a content hash, not a counter.
+    const bundleUrl = new URL(
+      newWorker.sw.PRECACHE.find((entry) => entry.includes("dist/bundle.js")),
+      BASE
+    ).href;
+    expect(await fresh.entries.get(bundleUrl).text()).toBe("NEW-BYTES");
 
     const newActivate = newWorker.makeEvent(new MockRequest(BASE));
     newWorker.dispatch("activate", newActivate);

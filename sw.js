@@ -1,14 +1,15 @@
 // Midas QR Service Worker — offline-first caching.
-// Cache-bump policy: on every shipped change, bump CACHE_NAME and the
-// style.min.css ?v= query here AND in index.html in the same commit;
-// tools/check-sw.mjs fails the build if those two versions drift.
+// Cache-bump policy: on every shipped change, bump CACHE_NAME. The asset ?v=
+// queries below (favicon, bundle, stylesheet) are NOT hand-maintained: the build
+// stamps each one with a hash of the file's own bytes (tools/stamp-assets.mjs),
+// and tools/check-sw.mjs re-derives it, so a version that fails to move when its
+// file changes fails the build instead of shipping.
 //
-// The bundle carries its own ?v= for the same reason, bumped whenever the
-// bundle changes. Navigations are network-first (below), so a deploy serves the
-// new index.html immediately while every other asset still comes from the
-// previous precache — without a version on the bundle URL, the new markup would
-// be paired with the previous bundle until the second reload, which crashed the
-// app outright when a release removed DOM ids the old bundle required.
+// Those versions matter because navigations are network-first (below): a deploy
+// serves the new index.html immediately while every other asset still comes from
+// the previous precache. Without a version that moves, the new markup is paired
+// with the previous bundle until the second reload, which crashed the app
+// outright when a release removed DOM ids the old bundle required.
 //
 // Update flow (verified by tests/sw.test.js): install always revalidates
 // (`no-cache`), so a CACHE_NAME bump precaches the current bytes — reused from
@@ -18,7 +19,7 @@
 // the previously cached bundle while the update installs, and the *next*
 // reload is served entirely from the new precache: the installed app updates
 // reliably within two reloads.
-const CACHE_NAME = "midas-qr-v260";
+const CACHE_NAME = "midas-qr-v261";
 // Runtime additions (theme fonts, offline navigation targets) are capped so a
 // long-lived worker cannot grow storage without bound. Precache is never pruned.
 const RUNTIME_CACHE_LIMIT = 60;
@@ -34,13 +35,13 @@ const PRECACHE = [
   "./sitemap.xml",
   "./manifest.json",
   "./favicon.svg",
-  "./favicon.svg?v=11",
+  "./favicon.svg?v=76aeff07",
   "./icon-192x192.png",
   "./icon-512x512.png",
-  "./dist/bundle.js?v=1",
+  "./dist/bundle.js?v=fe0dc016",
   // Precache the exact versioned stylesheet URL the page requests so the
   // first controlled load is both fresh and offline-capable.
-  "./src/css/style.min.css?v=156",
+  "./src/css/style.min.css?v=0128239e",
   // Figtree is the default theme font; the other theme families are cached on
   // first use of their theme (stale-while-revalidate below), which keeps the
   // install payload small.

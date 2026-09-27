@@ -75,7 +75,7 @@ if (!listMatch) {
 // could drift, and a `.match()`-once check silently ignored a second reference.
 const html = read("index.html") || "";
 const versionedAssets = new Map();
-for (const match of html.matchAll(/([\w./-]+)\?v=(\d+)/g)) {
+for (const match of html.matchAll(/([\w./-]+)\?v=([0-9a-z]+)/g)) {
   const [, path, version] = match;
   const key = path.replace(/^\.\//, "");
   if (!versionedAssets.has(key)) versionedAssets.set(key, new Set());
@@ -89,6 +89,27 @@ for (const [path, versions] of versionedAssets) {
     const wanted = `./${path}?v=${version}`;
     if (!precacheEntries.includes(wanted)) {
       problems.push(`index.html requests ${path}?v=${version} but PRECACHE has no matching entry`);
+    }
+  }
+}
+
+// 4-ii. Each ?v= must be a hash of the file's own bytes, re-derived here rather
+// than trusted. Agreement between index.html and PRECACHE is not enough: a
+// version that never moves keeps satisfying the previous cache, which is how the
+// new markup got paired with the old bundle and crashed the app. The build
+// stamps these (tools/stamp-assets.mjs); this check is the independent verifier.
+for (const [path, versions] of versionedAssets) {
+  if (!fs.existsSync(path)) continue;
+  const expected = crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(path))
+    .digest("hex")
+    .slice(0, 8);
+  for (const version of versions) {
+    if (version !== expected) {
+      problems.push(
+        `${path}: ?v=${version} does not match the file's content hash — run npm run build (expected ?v=${expected})`
+      );
     }
   }
 }

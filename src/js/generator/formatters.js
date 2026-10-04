@@ -216,6 +216,14 @@ export function formatVCard(c) {
   if (telVal && !isValidPhone(telVal)) {
     return invalid("", "validation.phoneInvalid");
   }
+  const workVal = typeof work === "string" ? work.trim() : "";
+  if (workVal && !isValidPhone(workVal)) {
+    return invalid("", "validation.phoneInvalid");
+  }
+  const faxVal = typeof fax === "string" ? fax.trim() : "";
+  if (faxVal && !isValidPhone(faxVal)) {
+    return invalid("", "validation.phoneInvalid");
+  }
   const esc = escapeVCard;
   // FN is required by strict parsers and must never be a bare space: prefer
   // the display name, fall back to org/email/phone when only those exist.
@@ -289,8 +297,7 @@ export function formatCrypto({ coin, address, amount }) {
   // A payment amount must be a strictly positive finite number: reject `0`,
   // `0.0`, a leading `+`, and anything the decimal regex doesn't cover.
   const amountNum = /^\d*\.?\d+$/.test(amountVal) ? Number(amountVal) : NaN;
-  const isAmountInvalid =
-    Boolean(amountVal) && (!Number.isFinite(amountNum) || amountNum <= 0);
+  const isAmountInvalid = Boolean(amountVal) && (!Number.isFinite(amountNum) || amountNum <= 0);
   const hasAnyCrypto = (address || "").trim() || amountVal;
   if ((hasAnyCrypto && !(address || "").trim()) || isAmountInvalid) {
     return invalid("", isAmountInvalid ? "validation.invalidAmount" : "validation.walletRequired");

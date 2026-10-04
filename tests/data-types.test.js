@@ -200,3 +200,17 @@ describe("DATA_TYPES — sms warning is attached to the right field", () => {
     expect(calls[0].related).toBe(message);
   });
 });
+
+describe("DATA_TYPES — sms hydration", () => {
+  it("decodes percent-encoded characters in message payload", () => {
+    const phone = document.createElement("input");
+    const msg = document.createElement("textarea");
+    /** @type {Record<string, HTMLElement>} */
+    const fields = { smsPhone: phone, smsMsg: msg };
+    DATA_TYPES.sms.hydrate("SMSTO:+15551234567:Hello%3F%26%23world", {
+      field: (id) => /** @type {any} */ (fields[id] || null),
+    });
+    expect(phone.value).toBe("+15551234567");
+    expect(msg.value).toBe("Hello?&#world");
+  });
+});

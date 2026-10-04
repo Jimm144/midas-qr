@@ -71,7 +71,7 @@ export function initInputHandlers() {
   inputHandlersReady = true;
   if (DOM.inputText) {
     DOM.inputText.addEventListener("blur", () => compileDataString(true, true));
-    DOM.inputText.addEventListener("keypress", (e) => {
+    DOM.inputText.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) compileDataString(true, true);
     });
     DOM.inputText.addEventListener("input", () => compileDataString(true, false));
@@ -92,7 +92,7 @@ export function initInputHandlers() {
 
   if (DOM.phoneNumber) {
     DOM.phoneNumber.addEventListener("blur", () => compileDataString(true, true));
-    DOM.phoneNumber.addEventListener("keypress", (e) => {
+    DOM.phoneNumber.addEventListener("keydown", (e) => {
       if (e.key === "Enter") compileDataString(true, true);
     });
     DOM.phoneNumber.addEventListener("input", () => compileDataString(true, false));

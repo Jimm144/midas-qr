@@ -234,10 +234,16 @@ async function handleDownloadClick() {
     const blob = await exportRenderedBlob(ext, await currentRenderInfo());
     if (blob) {
       downloadBlob(blob, `${filename}.${ext}`);
+      announce(t("export.downloadedFormat", { format: ext.toUpperCase() }));
     } else {
-      getQrCode().download({ name: filename, extension: ext });
+      const qr = getQrCode();
+      if (!qr || typeof qr.download !== "function") {
+        announce(t("export.failedFormat", { format: ext.toUpperCase() }));
+        return;
+      }
+      await qr.download({ name: filename, extension: ext });
+      announce(t("export.downloadedFormat", { format: ext.toUpperCase() }));
     }
-    announce(t("export.downloadedFormat", { format: ext.toUpperCase() }));
   } catch (err) {
     console.error("[QR] export failed:", err);
     announce(t("export.failedFormat", { format: ext.toUpperCase() }));

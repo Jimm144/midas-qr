@@ -98,8 +98,7 @@ export function resolveLayout(gen, moduleCount) {
 export function resolveFrameGeometry(frameStyle, frameText, frameTextEnabled) {
   const frameConfig = framesConfig[frameStyle];
   if (!frameConfig) return null;
-  const hasText =
-    typeof frameText === "string" && frameText.trim().length > 0;
+  const hasText = typeof frameText === "string" && frameText.trim().length > 0;
   const showText = hasText && Boolean(frameTextEnabled) && Boolean(frameConfig.textArea);
   const vbHeight = showText ? frameConfig.vbHeight : 24;
   const qrArea = showText ? frameConfig.qrArea : (frameConfig.noTextQrArea ?? frameConfig.qrArea);

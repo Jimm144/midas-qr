@@ -5,15 +5,21 @@ export default {
   "app.sections": "Midas QR sections",
   "app.skip": "Skip to content",
   "app.themeSettings": "Theme and language settings",
-  "app.noJsTitle": "JavaScript is required to run Midas QR. Please enable JavaScript in your browser to generate or scan QR codes.",
-  "app.noJsOverview": "Midas QR is a free, offline-first QR code generator and scanner. Create custom QR codes for URLs, text, Wi-Fi networks, contacts, crypto addresses, geolocation, events, SMS, and phone numbers.",
-  "app.noJsStyling": "Customize your QR codes with different colors, gradient fills, dot shapes, corner styles, overall masks, frame styles, background images, and logo overlays. Choose from multiple error correction levels (L, M, Q, H) to ensure scannability even when partially damaged.",
-  "app.noJsOutput": "Export finished codes as PNG, SVG, JPEG, WebP, or text, download your whole generator history at once, or batch-generate one QR code per row from a CSV file.",
-  "app.noJsScanning": "Scan QR codes using your webcam or by uploading an image file. Works entirely offline — no cookies, no ads, no tracking.",
+  "app.noJsTitle":
+    "JavaScript is required to run Midas QR. Please enable JavaScript in your browser to generate or scan QR codes.",
+  "app.noJsOverview":
+    "Midas QR is a free, offline-first QR code generator and scanner. Create custom QR codes for URLs, text, Wi-Fi networks, contacts, crypto addresses, geolocation, events, SMS, and phone numbers.",
+  "app.noJsStyling":
+    "Customize your QR codes with different colors, gradient fills, dot shapes, corner styles, overall masks, frame styles, background images, and logo overlays. Choose from multiple error correction levels (L, M, Q, H) to ensure scannability even when partially damaged.",
+  "app.noJsOutput":
+    "Export finished codes as PNG, SVG, JPEG, WebP, or text, download your whole generator history at once, or batch-generate one QR code per row from a CSV file.",
+  "app.noJsScanning":
+    "Scan QR codes using your webcam or by uploading an image file. Works entirely offline — no cookies, no ads, no tracking.",
   "color.picker": "Color",
   "color.closePicker": "Close color picker",
   "color.spectrumField": "Saturation and brightness color field",
-  "color.spectrumKeyboard": "Saturation and brightness field: Left/Right adjust saturation, Up/Down adjust brightness, Ctrl+Left/Right adjust hue",
+  "color.spectrumKeyboard":
+    "Saturation and brightness field: Left/Right adjust saturation, Up/Down adjust brightness, Ctrl+Left/Right adjust hue",
   "color.mode": "Color mode",
   "color.start": "Start color",
   "color.end": "End color",
@@ -39,6 +45,7 @@ export default {
   "color.green": "Green",
   "color.blue": "Blue",
   "color.yellow": "Yellow",
+  "header.home": "Midas QR Home",
   "header.language": "Language",
   "header.themeToggle": "Toggle dark or light mode",
   "header.themeToggleTitle": "Toggle dark/light mode",
@@ -89,7 +96,8 @@ export default {
   "tabs.switched": "Switched to {tab} tab",
   "tabs.dataType": "Data type to encode",
   "content.heading": "Content",
-  "content.seo": "Midas QR is a free offline QR code generator and scanner supporting URL, text, Wi-Fi, vCard contact, cryptocurrency, geolocation, calendar event, SMS, and phone number QR codes. Features include customizable colors and gradients, dot shapes, corner styles, overall masks, frame styles, background images, logo overlays, PNG/SVG/JPEG/WebP/TXT export, batch CSV/TSV/TXT generation, and error correction levels.",
+  "content.seo":
+    "Midas QR is a free offline QR code generator and scanner supporting URL, text, Wi-Fi, vCard contact, cryptocurrency, geolocation, calendar event, SMS, and phone number QR codes. Features include customizable colors and gradients, dot shapes, corner styles, overall masks, frame styles, background images, logo overlays, PNG/SVG/JPEG/WebP/TXT export, batch CSV/TSV/TXT generation, and error correction levels.",
   "data.url": "URL",
   "data.text": "Text",
   "data.wifi": "Wi-Fi",
@@ -257,7 +265,8 @@ export default {
   "params.marginTooLarge": "Margin is too large for this size",
   "params.errorCorrection": "Error correction",
   "params.eccHelp": "Error correction level help",
-  "params.eccDescription": "Allows a QR code to remain readable even when it is partially damaged or obscured.",
+  "params.eccDescription":
+    "Allows a QR code to remain readable even when it is partially damaged or obscured.",
   "params.eccLevel": "Error correction level",
   "ecc.low": "Low (7%)",
   "ecc.medium": "Medium (15%)",
@@ -286,7 +295,8 @@ export default {
   "preview.shareLink": "Share link",
   "batch.button": "Batch",
   "batch.chooseFile": "Choose a CSV, TSV or TXT file for batch generation",
-  "batch.buttonTitle": "Batch generate from CSV, TSV or TXT — one code per line (first column for CSV/TSV), saved as the selected format. Your browser may ask to allow multiple downloads.",
+  "batch.buttonTitle":
+    "Batch generate from CSV, TSV or TXT — one code per line (first column for CSV/TSV), saved as the selected format. Your browser may ask to allow multiple downloads.",
   "scanner.source": "Source",
   "scanner.sourceAria": "Scanner source",
   "scanner.webcam": "Webcam",
@@ -327,7 +337,7 @@ export default {
   "footer.install": "Install app",
   "footer.noCookies": "No cookies",
   "footer.lucideNote": "The frame-style picker icons use Lucide artwork verbatim.",
-  "footer.wikipediaNote": "Text regarding error correction was adapted from the Wikipedia article \"QR code\".",
+  "footer.wikipediaNote": 'Text regarding error correction was adapted from the Wikipedia article "QR code".',
   "footer.fontLicense": "All bundled typefaces are licensed under the SIL Open Font License 1.1.",
   "modal.credits": "Third-party notices",
   "modal.libraries": "Libraries",
@@ -405,7 +415,8 @@ export default {
   "generator.fixField": "Fix the highlighted field to generate a QR code",
   "generator.enterContent": "Enter content to generate a QR code",
   "generator.librariesFailed": "Required libraries failed to load. Please reload or check your connection.",
-  "generator.dataTooLarge": "Data is too large for ECC level {ecc}. Try lowering error correction or shortening text.",
+  "generator.dataTooLarge":
+    "Data is too large for ECC level {ecc}. Try lowering error correction or shortening text.",
   "generator.dataTooLargeGeneric": "Data too large for this QR configuration",
   "generator.marginTooLarge": "Margin is too large — the maximum is {max}",
   "generator.scannable": "Scannable",
@@ -457,5 +468,5 @@ export default {
   "scanner.detected": "Detected",
   "scanner.error": "Error",
   "scanner.historyItemDeleted": "Scan item deleted",
-  "scanner.historyCleared": "Scan history cleared"
+  "scanner.historyCleared": "Scan history cleared",
 };

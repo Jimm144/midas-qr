@@ -1399,14 +1399,35 @@ label[for="logo-file"],
 .wordmark {
   display: flex;
   align-items: center;
-  gap: 10px;
   margin: 0;
+  padding: 0;
+  line-height: 1;
+}
+.wordmark-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--font-family-display);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.02em;
   color: var(--text);
   white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--duration-fast) var(--ease-standard);
+  user-select: none;
+}
+.wordmark-link:hover {
+  opacity: 0.82;
+}
+.wordmark-link:active {
+  opacity: 0.68;
+}
+.wordmark-link:focus-visible {
+  outline: var(--focus-outline-width) solid var(--accent);
+  outline-offset: 4px;
 }
 .wordmark-glyph {
   width: 22px;
@@ -1449,7 +1470,8 @@ label[for="logo-file"],
   font-size: var(--font-size-sm);
   padding: 0 28px 0 12px;
 }
-.header-console .custom-select-trigger:hover {
+.header-console .custom-select-trigger:hover,
+.header-console .custom-select-trigger:active {
   background: var(--accent-soft) !important;
 }
 .header-console .custom-select-wrapper.open .custom-select-trigger {
@@ -1473,15 +1495,16 @@ label[for="logo-file"],
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color var(--duration-fast) var(--ease-standard),
-    color var(--duration-fast) var(--ease-standard),
-    transform var(--duration-fast) var(--ease-standard);
+    color var(--duration-fast) var(--ease-standard);
 }
 .header-icon-btn:hover {
   background: var(--accent-soft) !important;
   color: var(--accent) !important;
 }
 .header-icon-btn:active {
-  transform: scale(0.92);
+  background: color-mix(in srgb, var(--text) 14%, transparent) !important;
+  color: var(--text) !important;
+  transform: none;
 }
 .header-icon-btn:focus-visible {
   outline: var(--focus-outline-width) solid var(--accent) !important;

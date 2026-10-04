@@ -32,11 +32,12 @@ function resetScanThrottle() {
 }
 
 /** Enable the Open/Visit action for a safe href. */
-function setVisitAction(href, label) {
+function setVisitAction(href, label, isExternal = true) {
   DOM.btnVisitResult.setAttribute("aria-disabled", "false");
   DOM.btnVisitResult.classList.remove("opacity-50", "pointer-events-none");
   DOM.btnVisitResult.removeAttribute("tabindex");
   DOM.btnVisitResult.href = href;
+  DOM.btnVisitResult.target = isExternal ? "_blank" : "_self";
   DOM.btnVisitResult.textContent = label;
 }
 
@@ -50,6 +51,7 @@ function clearVisitAction() {
   DOM.btnVisitResult.classList.add("opacity-50", "pointer-events-none");
   DOM.btnVisitResult.setAttribute("tabindex", "-1");
   DOM.btnVisitResult.href = "#";
+  DOM.btnVisitResult.target = "_blank";
   DOM.btnVisitResult.textContent = t("common.open");
 }
 
@@ -67,14 +69,14 @@ export function renderScanResult(text) {
 
   const safeUrl = getSafeHttpUrl(text);
   if (safeUrl) {
-    setVisitAction(safeUrl, t("scanner.visitUrl"));
+    setVisitAction(safeUrl, t("scanner.visitUrl"), true);
   } else if (/^tel:/i.test(text)) {
-    setVisitAction(text, t("scanner.call"));
+    setVisitAction(text, t("scanner.call"), false);
   } else if (/^mailto:/i.test(text)) {
-    setVisitAction(text, t("scanner.email"));
+    setVisitAction(text, t("scanner.email"), false);
   } else if (/^SMSTO:/i.test(text)) {
     const parts = text.split(":");
-    setVisitAction(`sms:${parts[1] || ""}`, t("data.sms"));
+    setVisitAction(`sms:${parts[1] || ""}`, t("data.sms"), false);
   } else {
     clearVisitAction();
   }

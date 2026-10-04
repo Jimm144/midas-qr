@@ -5,15 +5,21 @@ export default {
   "app.sections": "Midas QRのセクション",
   "app.skip": "コンテンツへ移動",
   "app.themeSettings": "テーマと言語の設定",
-  "app.noJsTitle": "Midas QRの実行にはJavaScriptが必要です。QRコードを生成または読み取るには、ブラウザでJavaScriptを有効にしてください。",
-  "app.noJsOverview": "Midas QRは、オフライン優先の無料QRコード生成・読み取りアプリです。URL、テキスト、Wi-Fiネットワーク、連絡先、暗号資産アドレス、位置情報、イベント、SMS、電話番号のカスタムQRコードを作成できます。",
-  "app.noJsStyling": "色、グラデーション、ドットの形状、角のスタイル、全体のマスク、フレーム、背景画像、ロゴオーバーレイを使ってQRコードをカスタマイズできます。誤り訂正レベル（L、M、Q、H）を選び、部分的に破損しても読み取りやすくできます。",
-  "app.noJsOutput": "完成したコードをPNG、SVG、JPEG、WebP、テキスト形式で書き出せます。生成履歴を一括でダウンロードしたり、CSVファイルの1行につき1つのQRコードをまとめて生成したりできます。",
-  "app.noJsScanning": "ウェブカメラまたは画像ファイルのアップロードでQRコードを読み取れます。完全オフラインで動作し、クッキーの使用、広告、追跡はありません。",
+  "app.noJsTitle":
+    "Midas QRの実行にはJavaScriptが必要です。QRコードを生成または読み取るには、ブラウザでJavaScriptを有効にしてください。",
+  "app.noJsOverview":
+    "Midas QRは、オフライン優先の無料QRコード生成・読み取りアプリです。URL、テキスト、Wi-Fiネットワーク、連絡先、暗号資産アドレス、位置情報、イベント、SMS、電話番号のカスタムQRコードを作成できます。",
+  "app.noJsStyling":
+    "色、グラデーション、ドットの形状、角のスタイル、全体のマスク、フレーム、背景画像、ロゴオーバーレイを使ってQRコードをカスタマイズできます。誤り訂正レベル（L、M、Q、H）を選び、部分的に破損しても読み取りやすくできます。",
+  "app.noJsOutput":
+    "完成したコードをPNG、SVG、JPEG、WebP、テキスト形式で書き出せます。生成履歴を一括でダウンロードしたり、CSVファイルの1行につき1つのQRコードをまとめて生成したりできます。",
+  "app.noJsScanning":
+    "ウェブカメラまたは画像ファイルのアップロードでQRコードを読み取れます。完全オフラインで動作し、クッキーの使用、広告、追跡はありません。",
   "color.picker": "カラー",
   "color.closePicker": "カラーピッカーを閉じる",
   "color.spectrumField": "彩度と明度のカラーフィールド",
-  "color.spectrumKeyboard": "彩度と明度フィールド：Left/Rightで彩度、Up/Downで明度、Ctrl+Left/Rightで色相を調整",
+  "color.spectrumKeyboard":
+    "彩度と明度フィールド：Left/Rightで彩度、Up/Downで明度、Ctrl+Left/Rightで色相を調整",
   "color.mode": "カラーモード",
   "color.start": "開始色",
   "color.end": "終了色",
@@ -39,6 +45,7 @@ export default {
   "color.green": "緑",
   "color.blue": "青",
   "color.yellow": "黄",
+  "header.home": "Midas QR ホーム",
   "header.language": "言語",
   "header.themeToggle": "ダークモードとライトモードを切り替え",
   "header.themeToggleTitle": "ダーク／ライトモードを切り替え",
@@ -89,7 +96,8 @@ export default {
   "tabs.switched": "{tab}タブに切り替えました",
   "tabs.dataType": "符号化するデータの種類",
   "content.heading": "コンテンツ",
-  "content.seo": "Midas QRは、URL、テキスト、Wi-Fi、vCard連絡先、暗号資産、位置情報、カレンダー予定、SMS、電話番号のQRコードに対応した無料・オフラインQR生成・読み取りアプリです。色のカスタマイズ、グラデーション、ドットの形状、角のスタイル、全体のマスク、フレーム、背景画像、ロゴオーバーレイ、PNG／SVG／JPEG／WebP／TXTのエクスポート、CSV／TSV／TXTによる一括生成、誤り訂正レベルに対応しています。",
+  "content.seo":
+    "Midas QRは、URL、テキスト、Wi-Fi、vCard連絡先、暗号資産、位置情報、カレンダー予定、SMS、電話番号のQRコードに対応した無料・オフラインQR生成・読み取りアプリです。色のカスタマイズ、グラデーション、ドットの形状、角のスタイル、全体のマスク、フレーム、背景画像、ロゴオーバーレイ、PNG／SVG／JPEG／WebP／TXTのエクスポート、CSV／TSV／TXTによる一括生成、誤り訂正レベルに対応しています。",
   "data.url": "URL",
   "data.text": "テキスト",
   "data.wifi": "Wi-Fi",
@@ -286,7 +294,8 @@ export default {
   "preview.shareLink": "リンクを共有",
   "batch.button": "一括",
   "batch.chooseFile": "一括生成するCSV、TSV、TXTファイルを選択",
-  "batch.buttonTitle": "CSV、TSV、TXTから一括生成 — 1行につき1つのコード（CSV／TSVは先頭列）を作成し、選択した形式で保存します。ブラウザが複数ダウンロードを許可するよう求める場合があります。",
+  "batch.buttonTitle":
+    "CSV、TSV、TXTから一括生成 — 1行につき1つのコード（CSV／TSVは先頭列）を作成し、選択した形式で保存します。ブラウザが複数ダウンロードを許可するよう求める場合があります。",
   "scanner.source": "ソース",
   "scanner.sourceAria": "スキャナーのソース",
   "scanner.webcam": "ウェブカメラ",
@@ -382,10 +391,13 @@ export default {
   "image.unsupportedFormat": "サポートされていないファイル形式です。PNG、JPEG、WebPを使用してください。",
   "image.unsupportedImage": "サポートされていない画像形式です。PNG、JPEG、WebPを使用してください。",
   "image.logoSvgDisabled": "セキュリティのためSVGロゴは無効です。PNG、JPEG、WebPをアップロードしてください。",
-  "image.backgroundSvgDisabled": "セキュリティのためSVG画像は無効です。PNG、JPEG、WebPをアップロードしてください。",
-  "image.readFailed": "画像ファイルを読み取れませんでした。ファイルが破損しているか、アクセスできない可能性があります。",
+  "image.backgroundSvgDisabled":
+    "セキュリティのためSVG画像は無効です。PNG、JPEG、WebPをアップロードしてください。",
+  "image.readFailed":
+    "画像ファイルを読み取れませんでした。ファイルが破損しているか、アクセスできない可能性があります。",
   "image.logoUrlInvalid": "ロゴURLが無効です。画像URLまたはサポートされているdata URLである必要があります。",
-  "image.remoteLogo": "リモートロゴ：ホストがCORSをサポートしていない場合、エクスポートに失敗する可能性があります。",
+  "image.remoteLogo":
+    "リモートロゴ：ホストがCORSをサポートしていない場合、エクスポートに失敗する可能性があります。",
   "image.unsupportedBackground": "サポートされていない背景画像です",
   "controls.saved": "保存済み",
   "controls.savedToHistory": "QRコードを履歴に保存しました",
@@ -404,14 +416,17 @@ export default {
   "generator.rendering": "QRを描画中…",
   "generator.fixField": "QRコードを生成するには、強調表示された項目を修正してください",
   "generator.enterContent": "QRコードを生成するコンテンツを入力してください",
-  "generator.librariesFailed": "必要なライブラリを読み込めませんでした。再読み込みするか、接続を確認してください。",
-  "generator.dataTooLarge": "データがECCレベル{ecc}に対して大きすぎます。誤り訂正を下げるか、テキストを短くしてください。",
+  "generator.librariesFailed":
+    "必要なライブラリを読み込めませんでした。再読み込みするか、接続を確認してください。",
+  "generator.dataTooLarge":
+    "データがECCレベル{ecc}に対して大きすぎます。誤り訂正を下げるか、テキストを短くしてください。",
   "generator.dataTooLargeGeneric": "データが現在のQRコード設定に対して大きすぎます",
   "generator.marginTooLarge": "余白が大きすぎます — 最大値は{max}です",
   "generator.scannable": "読み取り可能",
   "generator.scannableOk": "読み取り可能：{count}×{count} モジュール、各 {size}px（現在のサイズ）。",
   "generator.lowReadability": "読み取り性が低い",
-  "generator.doesNotDecode": "読み取り性が低くなっています。このままではコードをデコードできません — モジュールあたり{size}pxです。",
+  "generator.doesNotDecode":
+    "読み取り性が低くなっています。このままではコードをデコードできません — モジュールあたり{size}pxです。",
   "generator.ready": "QRコードを生成しました。ダウンロードまたはコピーできます",
   "generator.failed": "QRの生成に失敗しました：{message}",
   "export.tooLargeText": "テキストとして描画するには大きすぎるQRコードです",
@@ -457,5 +472,5 @@ export default {
   "scanner.detected": "検出",
   "scanner.error": "エラー",
   "scanner.historyItemDeleted": "読み取り履歴を削除しました",
-  "scanner.historyCleared": "読み取り履歴をクリアしました"
+  "scanner.historyCleared": "読み取り履歴をクリアしました",
 };

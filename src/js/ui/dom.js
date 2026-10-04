@@ -40,6 +40,7 @@ export function initDOM(root = document) {
   missingIds.length = 0;
   const byId = (id) => safeGetElementById(id, root);
   Object.assign(DOM, {
+    brandHome: byId("brand-home"),
     themeSelect: byId("theme-select"),
     modeSelect: byId("mode-select"),
     languageSelect: byId("language-select"),

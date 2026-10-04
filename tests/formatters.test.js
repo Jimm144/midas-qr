@@ -228,6 +228,17 @@ describe("formatVCard", () => {
     expect(r.errorKey).toBe("validation.phoneInvalid");
     expect(r.str).toBe("");
   });
+  it("validates the work and fax phone fields when present", () => {
+    const rWork = formatVCard({ first: "A", work: "invalid-work-phone" });
+    expect(rWork.isValid).toBe(false);
+    expect(rWork.errorKey).toBe("validation.phoneInvalid");
+    expect(rWork.str).toBe("");
+
+    const rFax = formatVCard({ first: "A", fax: "invalid-fax-phone" });
+    expect(rFax.isValid).toBe(false);
+    expect(rFax.errorKey).toBe("validation.phoneInvalid");
+    expect(rFax.str).toBe("");
+  });
   it("accepts a valid email and phone together", () => {
     const r = formatVCard({ first: "A", tel: "+1 (555) 123-4567", email: "a@b.com" });
     expect(r.isValid).toBe(true);

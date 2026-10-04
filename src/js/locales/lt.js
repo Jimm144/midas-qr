@@ -1,19 +1,26 @@
 export default {
   "app.title": "Midas QR — nemokama neinterneto veikianti QR kodo kūrimo ir nuskaitymo priemonė",
-  "app.fatal": "Programėlės paleidimas nepavyko. Atidarykite puslapį iš naujo arba išvalykite svetainės duomenis.",
+  "app.fatal":
+    "Programėlės paleidimas nepavyko. Atidarykite puslapį iš naujo arba išvalykite svetainės duomenis.",
   "app.mainContent": "Midas QR pagrindinis turinys",
   "app.sections": "Midas QR skiltys",
   "app.skip": "Pereiti prie turinio",
   "app.themeSettings": "Temų ir kalbos nustatymai",
-  "app.noJsTitle": "Kad veiktų Midas QR, reikalinga JavaScript. Įjunkite JavaScript savo naršyklėje, kad galėtumėte kurti arba nuskaityti QR kodus.",
-  "app.noJsOverview": "Midas QR yra nemokama QR kodo kūrimo ir nuskaitymo priemonė, veikianti neinterneto režimu. Kurkite tinkintus QR kodus su URL, tekstu, Wi-Fi, kontaktais, kriptovaliutų adresais, geolokacija, renginiais, SMS ir telefono numeriais.",
-  "app.noJsStyling": "Tinkinkite QR kodus spalvomis, gradienčiais, taškelių formomis, kampų stiliais, bendros formos kaukėmis, rėmo stiliais, fono paveikslais ir logotipais. Pasirinkite klaidų korekcijos lygį (L, M, Q, H), kad kodas liktų skaitomas net kai jo dalis pažeista.",
-  "app.noJsOutput": "Eksportuokite baigtus kodus kaip PNG, SVG, JPEG, WebP arba tekstą, vienu metu atsisiųskite visą generatoriaus istoriją arba sukurkite iš CSV failo po vieną QR kodą kiekvienai eilutei.",
-  "app.noJsScanning": "Nuskaitykite QR kodus savo kamera arba įkėlę paveikslą. Viskas veikia neinterneto režimu — jokių slapukų, nėra reklamų nei stebėsenos.",
+  "app.noJsTitle":
+    "Kad veiktų Midas QR, reikalinga JavaScript. Įjunkite JavaScript savo naršyklėje, kad galėtumėte kurti arba nuskaityti QR kodus.",
+  "app.noJsOverview":
+    "Midas QR yra nemokama QR kodo kūrimo ir nuskaitymo priemonė, veikianti neinterneto režimu. Kurkite tinkintus QR kodus su URL, tekstu, Wi-Fi, kontaktais, kriptovaliutų adresais, geolokacija, renginiais, SMS ir telefono numeriais.",
+  "app.noJsStyling":
+    "Tinkinkite QR kodus spalvomis, gradienčiais, taškelių formomis, kampų stiliais, bendros formos kaukėmis, rėmo stiliais, fono paveikslais ir logotipais. Pasirinkite klaidų korekcijos lygį (L, M, Q, H), kad kodas liktų skaitomas net kai jo dalis pažeista.",
+  "app.noJsOutput":
+    "Eksportuokite baigtus kodus kaip PNG, SVG, JPEG, WebP arba tekstą, vienu metu atsisiųskite visą generatoriaus istoriją arba sukurkite iš CSV failo po vieną QR kodą kiekvienai eilutei.",
+  "app.noJsScanning":
+    "Nuskaitykite QR kodus savo kamera arba įkėlę paveikslą. Viskas veikia neinterneto režimu — jokių slapukų, nėra reklamų nei stebėsenos.",
   "color.picker": "Spalva",
   "color.closePicker": "Uždaryti spalvų parinkiklį",
   "color.spectrumField": "Sodrumo ir šviesumo spalvų laukas",
-  "color.spectrumKeyboard": "Sodrumo ir šviesumo laukas: Left/Right keičia sodrumą, Up/Down – šviesumą, Ctrl+Left/Right – atspalvį",
+  "color.spectrumKeyboard":
+    "Sodrumo ir šviesumo laukas: Left/Right keičia sodrumą, Up/Down – šviesumą, Ctrl+Left/Right – atspalvį",
   "color.mode": "Spalvų režimas",
   "color.start": "Pradinė spalva",
   "color.end": "Galinė spalva",
@@ -39,6 +46,7 @@ export default {
   "color.green": "Žalia",
   "color.blue": "Mėlyna",
   "color.yellow": "Geltona",
+  "header.home": "Midas QR Pradžia",
   "header.language": "Kalba",
   "header.themeToggle": "Perjungti tamsų ar šviesų režimą",
   "header.themeToggleTitle": "Perjungti tamsų ar šviesų režimą",
@@ -89,7 +97,8 @@ export default {
   "tabs.switched": "Perėta į „{tab}“ skirtą",
   "tabs.dataType": "Koduojamas duomenų tipas",
   "content.heading": "Turinys",
-  "content.seo": "Midas QR yra nemokama neinterneto veikianti QR kodo kūrimo ir nuskaitymo priemonė, palaikanti URL, teksto, Wi-Fi, vCard kontaktų, kriptovaliutų, geolokacijos, kalendoriaus renginių, SMS ir telefono numerių QR kodus. Siūlo tinkinamas spalvas ir gradienčius, taškelių formas, kampų stilius, bendros formos kaukeles, rėmo stilius, fono paveikslus, logotipus, PNG/SVG/JPEG/WebP/TXT eksportą, masinį CSV/TSV/TXT kūrimą ir klaidų korekcijos lygius.",
+  "content.seo":
+    "Midas QR yra nemokama neinterneto veikianti QR kodo kūrimo ir nuskaitymo priemonė, palaikanti URL, teksto, Wi-Fi, vCard kontaktų, kriptovaliutų, geolokacijos, kalendoriaus renginių, SMS ir telefono numerių QR kodus. Siūlo tinkinamas spalvas ir gradienčius, taškelių formas, kampų stilius, bendros formos kaukeles, rėmo stilius, fono paveikslus, logotipus, PNG/SVG/JPEG/WebP/TXT eksportą, masinį CSV/TSV/TXT kūrimą ir klaidų korekcijos lygius.",
   "data.url": "URL",
   "data.text": "Tekstas",
   "data.wifi": "Wi-Fi",
@@ -286,7 +295,8 @@ export default {
   "preview.shareLink": "Share nuoroda",
   "batch.button": "Partija",
   "batch.chooseFile": "Pasirinkite CSV, TSV arba TXT failą masiniam kūrimui",
-  "batch.buttonTitle": "Masinis kūrimas iš CSV, TSV arba TXT — po vieną kodą eilutėje (CSV/TSV atveju pirmame stulpe), išsaugant pasirinktu formatu. Naršyklė gali paprašyti leisti kelis atsisiuntimus.",
+  "batch.buttonTitle":
+    "Masinis kūrimas iš CSV, TSV arba TXT — po vieną kodą eilutėje (CSV/TSV atveju pirmame stulpe), išsaugant pasirinktu formatu. Naršyklė gali paprašyti leisti kelis atsisiuntimus.",
   "scanner.source": "Šaltinis",
   "scanner.sourceAria": "Skaikiklio šaltinis",
   "scanner.webcam": "Kamera",
@@ -384,7 +394,8 @@ export default {
   "image.logoSvgDisabled": "SVG logotipai išjungti saugumo sumetimais. Įkelkite PNG, JPEG arba WebP.",
   "image.backgroundSvgDisabled": "SVG paveikslai išjungti saugumo sumetimais. Įkelkite PNG, JPEG arba WebP.",
   "image.readFailed": "Nepavyko perskaityti paveikslo failo. Failas gali būti sugadintas arba nepasiekiamas.",
-  "image.logoUrlInvalid": "Neteisingas logotipo URL. Tai turi būti paveikslo URL arba palaikomas duomenų URL.",
+  "image.logoUrlInvalid":
+    "Neteisingas logotipo URL. Tai turi būti paveikslo URL arba palaikomas duomenų URL.",
   "image.remoteLogo": "Nuotolinis logotipas: eksportas gali nepavykti, jei serveris nepalaiko CORS.",
   "image.unsupportedBackground": "Nepalaikomas fono paveikslas",
   "controls.saved": "Išsaugota",
@@ -404,14 +415,17 @@ export default {
   "generator.rendering": "Atvaizduojamas QR…",
   "generator.fixField": "Kad būtų sukurtas QR kodas, ištaisykite pažymėtą lauką",
   "generator.enterContent": "Kad būtų sukurtas QR kodas, įveskite turinį",
-  "generator.librariesFailed": "Nepavyko įkelti reikalingų bibliotekų. Įkelkite puslapį iš naujo arba patikrinkite ryšį.",
-  "generator.dataTooLarge": "Duomenys per dideli ECC lygiui {ecc}. Pabandykite sumažinti klaidų korekciją arba sutrumpinti tekstą.",
+  "generator.librariesFailed":
+    "Nepavyko įkelti reikalingų bibliotekų. Įkelkite puslapį iš naujo arba patikrinkite ryšį.",
+  "generator.dataTooLarge":
+    "Duomenys per dideli ECC lygiui {ecc}. Pabandykite sumažinti klaidų korekciją arba sutrumpinti tekstą.",
   "generator.dataTooLargeGeneric": "Duomenys per dideli šiai QR konfigūracijai",
   "generator.marginTooLarge": "Paraštė per didelė — didžiausia reikšmė yra {max}",
   "generator.scannable": "Skaityti galima",
   "generator.scannableOk": "Skaityti galima: {count}×{count} moduliai, kiekvienas šiuo dydžiu {size}px.",
   "generator.lowReadability": "Prastas skaitomumas",
-  "generator.doesNotDecode": "Prastas skaitomumas. Kodas tokio pavidalo nėra nuskaitomas — {size}px vienam moduliui.",
+  "generator.doesNotDecode":
+    "Prastas skaitomumas. Kodas tokio pavidalo nėra nuskaitomas — {size}px vienam moduliui.",
   "generator.ready": "QR kodas sukurtas ir paruoštas atsisiuntimui arba kopijavimui",
   "generator.failed": "QR kodo kūrimas nepavyko: {message}",
   "export.tooLargeText": "QR kodas per didelis, kad būtų atvaizduotas kaip tekstas",
@@ -422,7 +436,8 @@ export default {
   "export.tooLarge": "Per didelis",
   "export.tooLargeCopy": "Šis QR kodas per didelis, kad būtų nukopijuotas kaip tekstas",
   "export.copiedClipboard": "Nukopijuota į iškarpinę",
-  "batch.started": "Pradėta partijos eksportacija: {count} kodų — jei naršyklė paprašys, leiskite kelis atsisiuntimus",
+  "batch.started":
+    "Pradėta partijos eksportacija: {count} kodų — jei naršyklė paprašys, leiskite kelis atsisiuntimus",
   "batch.finished": "Partijos eksportas baigtas: {done} iš {total} kodų",
   "batch.finishedFailed": "Partijos eksportas baigtas: {done} iš {total} kodų (nepavyko: {failed})",
   "batch.done": "Baigta: {done}/{total}",
@@ -457,5 +472,5 @@ export default {
   "scanner.detected": "Aptikta",
   "scanner.error": "Klaida",
   "scanner.historyItemDeleted": "NUSKAITYMO ĮRAŠAS IŠTRINTAS",
-  "scanner.historyCleared": "NUSKAITYMO ISTORIJA IŠVALYTA"
+  "scanner.historyCleared": "NUSKAITYMO ISTORIJA IŠVALYTA",
 };

@@ -3,8 +3,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1b1b1b">
     <script>(function(){try{var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var s=document.documentElement.style;var tc=document.querySelector('meta[name="theme-color"]');var stored=null;try{stored=JSON.parse(localStorage.getItem('qr-theme-tokens')||'null')}catch(e2){}if(stored&&typeof stored==='object'){for(var k in stored){if(k.indexOf('--')===0&&typeof stored[k]==='string')s.setProperty(k,stored[k])}var scheme=localStorage.getItem('qr-scheme');if(scheme)s.colorScheme=scheme;if(tc&&stored['--bg'])tc.setAttribute('content',stored['--bg']);return}var bg=localStorage.getItem('qr-bg')||(d?'#1b1b1b':'#f1f1f1');var accent=localStorage.getItem('qr-accent')||(d?'#ebebeb':'#262626');s.setProperty('--bg',bg);s.setProperty('--accent',accent);s.setProperty('--text',d?'#fafafa':'#171717');s.setProperty('--surface',d?'#262626':'#ffffff');s.setProperty('--bg-elevated',d?'#363636':'#ebebeb');s.setProperty('--inset',d?'#212121':'#fafafa');s.setProperty('--border',d?'rgba(255, 255, 255, 0.10)':'rgba(0, 0, 0, 0.08)');s.setProperty('--border-strong',d?'#525252':'#d4d4d4');s.setProperty('--muted',d?'#a3a3a3':'#525252');s.setProperty('--accent-contrast',d?'#171717':'#ffffff');s.setProperty('--accent-soft',d?'rgba(255, 255, 255, 0.06)':'rgba(0, 0, 0, 0.05)');s.setProperty('--danger',d?'#ffc6c1':'#a50c25');s.setProperty('--success',d?'#9fe59b':'#007004');s.setProperty('--warning',d?'#fdcf4f':'#745b00');if(tc){tc.setAttribute('content',bg)}}catch(e){}})();</script>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-i3e6+6Zpyta0K+VZw2LD87buYZYELWbuRjkhsA6fzPk=' 'sha256-tWnZ4Nnti1gHrwRu2e2mtkbADTnK7GfvsdEfyoSLSmg=' 'sha256-yT9eFw0MdE2y8FDhzR2VfAaqsFiSP79emTsDgTrZr94=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
-    <meta name="description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no cookies.">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-i3e6+6Zpyta0K+VZw2LD87buYZYELWbuRjkhsA6fzPk=' 'sha256-tWnZ4Nnti1gHrwRu2e2mtkbADTnK7GfvsdEfyoSLSmg=' 'sha256-ySgJi+o4tJbtQXeFuau29Dd7GoByuc34qmvHiUBP0aQ=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <meta name="description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no cookies, privacy-friendly analytics.">
     <meta name="color-scheme" content="dark light">
     <meta name="robots" content="index,follow">
     <!-- __SITE_URL__ REPLACE-ME: "https://midasqr.is-local.org/" is a placeholder. Replace every occurrence (canonical, og:url, og:image, twitter:image, JSON-LD) with the production domain before deploying. -->
@@ -16,14 +16,14 @@
     <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="Midas QR">
     <meta property="og:title" content="Midas QR — Free Offline QR Code Generator &amp; Scanner">
-    <meta property="og:description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no cookies.">
+    <meta property="og:description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no cookies, privacy-friendly analytics.">
     <meta property="og:image" content="https://midasqr.is-local.org/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Midas QR — free offline QR code generator and scanner, with a violet-to-cyan gradient QR code">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Midas QR — Free Offline QR Code Generator &amp; Scanner">
-    <meta name="twitter:description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no tracking, no cookies.">
+    <meta name="twitter:description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no cookies, privacy-friendly analytics.">
     <meta name="twitter:image" content="https://midasqr.is-local.org/og-image.png">
     <meta name="twitter:image:alt" content="Midas QR — free offline QR code generator and scanner, with a violet-to-cyan gradient QR code">
     <link rel="manifest" href="manifest.json">
@@ -32,12 +32,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Midas QR">
-    <link rel="preload" href="dist/bundle.js?v=fe0dc016" as="script">
+    <link rel="preload" href="dist/bundle.js?v=86b91aca" as="script">
     <link rel="preload" href="src/lib/qr-code-styling.min.js" as="script">
     <link rel="preload" href="src/lib/jsqr.min.js" as="script">
     <link rel="preload" href="src/lib/qrcode.min.js" as="script">
     <link rel="preload" href="src/fonts/figtree-var-latin.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="src/css/style.min.css?v=0128239e">
+    <link rel="stylesheet" href="src/css/style.min.css?v=878d3b55">
     <style>
       :root {
         --bg: #1b1b1b;
@@ -140,7 +140,7 @@
 
     <header class="site-header">
       <div class="header-inner">
-        <h1 class="wordmark">
+        <h1 class="wordmark"><a href="#generator" id="brand-home" class="wordmark-link" aria-label="Midas QR Home" data-i18n-aria-label="header.home">
           <svg class="wordmark-glyph" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="mq-gold" x1="0" y1="0" x2="1" y2="1">
@@ -162,7 +162,7 @@
             <circle cx="18" cy="18" r="1.5" fill="url(#mq-gold)"/>
           </svg>
           <span>Midas QR</span>
-        </h1>
+        </a></h1>
         <div class="header-console" role="group" aria-label="Theme and view settings" data-i18n-aria-label="app.themeSettings">
           <button id="btn-theme-toggle" type="button" class="header-icon-btn" aria-label="Toggle dark or light mode" data-i18n-aria-label="header.themeToggle" title="Toggle dark/light mode" data-i18n-title="header.themeToggleTitle">
             <svg id="icon-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
@@ -1078,7 +1078,7 @@
         "@type": "WebApplication",
         "name": "Midas QR",
         "url": "https://midasqr.is-local.org/",
-        "description": "Free offline QR code generator and scanner. Create custom QR codes for URLs, text, Wi-Fi, contacts, crypto, geolocation, events, SMS, and phone numbers. Customize colors, shapes, frames, and logos. Scan QR codes via webcam or image upload. No cookies, no ads, no tracking.",
+        "description": "Free offline QR code generator and scanner. Create custom QR codes for URLs, text, Wi-Fi, contacts, crypto, geolocation, events, SMS, and phone numbers. Customize colors, shapes, frames, and logos. Scan QR codes via webcam or image upload. No cookies, no ads, privacy-friendly analytics.",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Any (Web browser)",
         "browserRequirements": "Requires JavaScript and HTML5 Canvas",
@@ -1091,7 +1091,7 @@
           "Multiple error correction levels (L, M, Q, H)",
           "Export to PNG, SVG, JPEG, WebP, and TXT",
           "Offline-first: works without internet",
-          "Privacy-first: no cookies or tracking"
+          "Privacy-first: no cookies, privacy-friendly analytics"
         ],
         "screenshot": "https://midasqr.is-local.org/og-image.png"
       },
@@ -1119,7 +1119,7 @@
           {
             "@type": "Question",
             "name": "Does Midas QR collect my data?",
-            "acceptedAnswer": { "@type": "Answer", "text": "No. Midas QR collects no data. All processing happens locally in your browser. Nothing is sent to any server." }
+            "acceptedAnswer": { "@type": "Answer", "text": "All QR code generation and scanning happens locally in your browser — your QR code content is never sent to any server. We only use cookieless, privacy-friendly analytics to count aggregate page views." }
           },
           {
             "@type": "Question",

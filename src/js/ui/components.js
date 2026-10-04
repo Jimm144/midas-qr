@@ -183,7 +183,10 @@ export function refreshCustomSelect(select) {
   const optionEls = Array.from(optionsDiv.children);
   const options = Array.from(select.options);
   const labelsChanged = options.some((opt, idx) => optionEls[idx]?.textContent.trim() !== opt.text.trim());
-  if (optionEls.length !== options.length || (labelsChanged && !optionEls.some((opt) => opt.querySelector("svg, .theme-dot")))) {
+  if (
+    optionEls.length !== options.length ||
+    (labelsChanged && !optionEls.some((opt) => opt.querySelector("svg, .theme-dot")))
+  ) {
     optionsDiv.innerHTML = "";
     options.forEach((opt, idx) => {
       const optDiv = document.createElement("div");

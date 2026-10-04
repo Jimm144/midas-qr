@@ -5,15 +5,21 @@ export default {
   "app.sections": "Bereiche von Midas QR",
   "app.skip": "Zum Inhalt springen",
   "app.themeSettings": "Design- und Spracheinstellungen",
-  "app.noJsTitle": "Für Midas QR ist JavaScript erforderlich. Aktivieren Sie JavaScript in Ihrem Browser, um QR-Codes zu erstellen oder zu scannen.",
-  "app.noJsOverview": "Midas QR ist ein kostenloser, Offline-first-QR-Code-Generator und -Scanner. Erstellen Sie individuelle QR-Codes für URLs, Text, Wi-Fi-Netzwerke, Kontakte, Kryptowährungsadressen, Geokoordinaten, Termine, SMS und Telefonnummern.",
-  "app.noJsStyling": "Individualisieren Sie Ihre QR-Codes mit verschiedenen Farben, Farbverläufen, Punktformen, Eckenstilen, Gesamtmasken, Rahmenstilen, Hintergrundbildern und Logo-Overlays. Wählen Sie aus mehreren Fehlerkorrekturstufen (L, M, Q, H), um die Scanbarkeit auch bei teilweise beschädigten Codes zu gewährleisten.",
-  "app.noJsOutput": "Exportieren Sie fertige Codes als PNG, SVG, JPEG, WebP oder Text, laden Sie Ihren gesamten Generatorverlauf auf einmal herunter oder erzeugen Sie aus einer CSV-Datei stapelweise einen QR-Code pro Zeile.",
-  "app.noJsScanning": "Scannen Sie QR-Codes mit Ihrer Webcam oder durch Hochladen einer Bilddatei. Funktioniert vollständig offline — keine Cookies, keine Werbung, kein Tracking.",
+  "app.noJsTitle":
+    "Für Midas QR ist JavaScript erforderlich. Aktivieren Sie JavaScript in Ihrem Browser, um QR-Codes zu erstellen oder zu scannen.",
+  "app.noJsOverview":
+    "Midas QR ist ein kostenloser, Offline-first-QR-Code-Generator und -Scanner. Erstellen Sie individuelle QR-Codes für URLs, Text, Wi-Fi-Netzwerke, Kontakte, Kryptowährungsadressen, Geokoordinaten, Termine, SMS und Telefonnummern.",
+  "app.noJsStyling":
+    "Individualisieren Sie Ihre QR-Codes mit verschiedenen Farben, Farbverläufen, Punktformen, Eckenstilen, Gesamtmasken, Rahmenstilen, Hintergrundbildern und Logo-Overlays. Wählen Sie aus mehreren Fehlerkorrekturstufen (L, M, Q, H), um die Scanbarkeit auch bei teilweise beschädigten Codes zu gewährleisten.",
+  "app.noJsOutput":
+    "Exportieren Sie fertige Codes als PNG, SVG, JPEG, WebP oder Text, laden Sie Ihren gesamten Generatorverlauf auf einmal herunter oder erzeugen Sie aus einer CSV-Datei stapelweise einen QR-Code pro Zeile.",
+  "app.noJsScanning":
+    "Scannen Sie QR-Codes mit Ihrer Webcam oder durch Hochladen einer Bilddatei. Funktioniert vollständig offline — keine Cookies, keine Werbung, kein Tracking.",
   "color.picker": "Farbe",
   "color.closePicker": "Farbwähler schließen",
   "color.spectrumField": "Farbfeld für Sättigung und Helligkeit",
-  "color.spectrumKeyboard": "Sättigungs- und Helligkeitsfeld: Left/Right passt die Sättigung an, Up/Down die Helligkeit, Ctrl+Left/Right den Farbton",
+  "color.spectrumKeyboard":
+    "Sättigungs- und Helligkeitsfeld: Left/Right passt die Sättigung an, Up/Down die Helligkeit, Ctrl+Left/Right den Farbton",
   "color.mode": "Farbmodus",
   "color.start": "Startfarbe",
   "color.end": "Endfarbe",
@@ -39,6 +45,7 @@ export default {
   "color.green": "Grün",
   "color.blue": "Blau",
   "color.yellow": "Gelb",
+  "header.home": "Midas QR Startseite",
   "header.language": "Sprache",
   "header.themeToggle": "Zwischen dunklem und hellem Modus wechseln",
   "header.themeToggleTitle": "Dunklen/hellen Modus umschalten",
@@ -89,7 +96,8 @@ export default {
   "tabs.switched": "Zur Registerkarte {tab} gewechselt",
   "tabs.dataType": "Zu kodierender Datentyp",
   "content.heading": "Inhalt",
-  "content.seo": "Midas QR ist ein kostenloser Offline-QR-Code-Generator und -Scanner für URL-, Text-, Wi-Fi-, vCard-Kontakt-, Kryptowährungs-, Geokoordinaten-, Kalendertermin-, SMS- und Telefonnummern-QR-Codes. Zu den Funktionen gehören anpassbare Farben und Verläufe, Punktformen, Eckenstile, Gesamtmasken, Rahmenstile, Hintergrundbilder, Logo-Overlays, der Export als PNG/SVG/JPEG/WebP/TXT, die Stapelerstellung aus CSV/TSV/TXT und verschiedene Fehlerkorrekturstufen.",
+  "content.seo":
+    "Midas QR ist ein kostenloser Offline-QR-Code-Generator und -Scanner für URL-, Text-, Wi-Fi-, vCard-Kontakt-, Kryptowährungs-, Geokoordinaten-, Kalendertermin-, SMS- und Telefonnummern-QR-Codes. Zu den Funktionen gehören anpassbare Farben und Verläufe, Punktformen, Eckenstile, Gesamtmasken, Rahmenstile, Hintergrundbilder, Logo-Overlays, der Export als PNG/SVG/JPEG/WebP/TXT, die Stapelerstellung aus CSV/TSV/TXT und verschiedene Fehlerkorrekturstufen.",
   "data.url": "URL",
   "data.text": "Text",
   "data.wifi": "Wi-Fi",
@@ -257,7 +265,8 @@ export default {
   "params.marginTooLarge": "Rand ist für diese Größe zu groß",
   "params.errorCorrection": "Fehlerkorrektur",
   "params.eccHelp": "Hilfe zu Fehlerkorrekturstufen",
-  "params.eccDescription": "Ermöglicht es, einen QR-Code auch dann lesbar zu halten, wenn er teilweise beschädigt oder verdeckt ist.",
+  "params.eccDescription":
+    "Ermöglicht es, einen QR-Code auch dann lesbar zu halten, wenn er teilweise beschädigt oder verdeckt ist.",
   "params.eccLevel": "Fehlerkorrekturstufe",
   "ecc.low": "Niedrig (7%)",
   "ecc.medium": "Mittel (15%)",
@@ -286,11 +295,13 @@ export default {
   "preview.shareLink": "Link teilen",
   "batch.button": "Stapelverarbeitung",
   "batch.chooseFile": "CSV-, TSV- oder TXT-Datei für die Stapelverarbeitung auswählen",
-  "batch.buttonTitle": "Stapelverarbeitung aus CSV, TSV oder TXT – ein Code pro Zeile (bei CSV/TSV die erste Spalte), gespeichert im ausgewählten Format. Ihr Browser muss ggf. mehrere Downloads erlauben.",
+  "batch.buttonTitle":
+    "Stapelverarbeitung aus CSV, TSV oder TXT – ein Code pro Zeile (bei CSV/TSV die erste Spalte), gespeichert im ausgewählten Format. Ihr Browser muss ggf. mehrere Downloads erlauben.",
   "scanner.source": "Quelle",
   "scanner.sourceAria": "Scanner-Quelle",
   "scanner.webcam": "Webcam",
-  "scanner.dropAria": "Bild per Drag-and-drop ablegen oder Enter drücken, um eine QR-Code-Datei zum Dekodieren auszuwählen",
+  "scanner.dropAria":
+    "Bild per Drag-and-drop ablegen oder Enter drücken, um eine QR-Code-Datei zum Dekodieren auszuwählen",
   "scanner.chooseImage": "Bilddatei eines QR-Codes zum Dekodieren auswählen",
   "scanner.dropTitle": "Bild per Drag & Drop ablegen",
   "scanner.dropHint": "oder zum Auswählen klicken",
@@ -381,9 +392,12 @@ export default {
   "image.tooLarge": "Bild überschreitet das Limit von 4MB ({size}MB). Bitte wählen Sie eine kleinere Datei.",
   "image.unsupportedFormat": "Nicht unterstütztes Dateiformat. Bitte verwenden Sie PNG, JPEG oder WebP.",
   "image.unsupportedImage": "Nicht unterstütztes Bildformat. Bitte verwenden Sie PNG, JPEG oder WebP.",
-  "image.logoSvgDisabled": "SVG-Logos sind aus Sicherheitsgründen deaktiviert. Bitte laden Sie PNG, JPEG oder WebP hoch.",
-  "image.backgroundSvgDisabled": "SVG-Bilder sind aus Sicherheitsgründen deaktiviert. Bitte laden Sie PNG, JPEG oder WebP hoch.",
-  "image.readFailed": "Bilddatei konnte nicht gelesen werden. Die Datei ist möglicherweise beschädigt oder nicht zugänglich.",
+  "image.logoSvgDisabled":
+    "SVG-Logos sind aus Sicherheitsgründen deaktiviert. Bitte laden Sie PNG, JPEG oder WebP hoch.",
+  "image.backgroundSvgDisabled":
+    "SVG-Bilder sind aus Sicherheitsgründen deaktiviert. Bitte laden Sie PNG, JPEG oder WebP hoch.",
+  "image.readFailed":
+    "Bilddatei konnte nicht gelesen werden. Die Datei ist möglicherweise beschädigt oder nicht zugänglich.",
   "image.logoUrlInvalid": "Ungültige Logo-URL. Es muss eine Bild-URL oder eine unterstützte Data-URL sein.",
   "image.remoteLogo": "Remote-Logo: Der Export kann fehlschlagen, wenn der Host CORS nicht unterstützt.",
   "image.unsupportedBackground": "Nicht unterstütztes Hintergrundbild",
@@ -393,7 +407,8 @@ export default {
   "controls.shareDone": "Link geteilt",
   "controls.shareCopied": "Link in die Zwischenablage kopiert",
   "controls.copied": "Kopiert",
-  "storage.backgroundFull": "Der Speicher ist voll – Ihr Hintergrundbild wird für den nächsten Besuch nicht gespeichert",
+  "storage.backgroundFull":
+    "Der Speicher ist voll – Ihr Hintergrundbild wird für den nächsten Besuch nicht gespeichert",
   "storage.logoFull": "Der Speicher ist voll – das Logo wird für den nächsten Besuch nicht gespeichert",
   "pwa.updateAvailable": "Eine neue Version ist verfügbar",
   "pwa.reload": "Neu laden",
@@ -404,14 +419,17 @@ export default {
   "generator.rendering": "QR-Code wird gerendert …",
   "generator.fixField": "Korrigieren Sie das markierte Feld, um einen QR-Code zu erstellen",
   "generator.enterContent": "Geben Sie Inhalt ein, um einen QR-Code zu erstellen",
-  "generator.librariesFailed": "Erforderliche Bibliotheken konnten nicht geladen werden. Bitte laden Sie die Seite neu oder prüfen Sie Ihre Verbindung.",
-  "generator.dataTooLarge": "Daten sind für die ECC-Stufe {ecc} zu groß. Senken Sie die Fehlerkorrektur oder kürzen Sie den Text.",
+  "generator.librariesFailed":
+    "Erforderliche Bibliotheken konnten nicht geladen werden. Bitte laden Sie die Seite neu oder prüfen Sie Ihre Verbindung.",
+  "generator.dataTooLarge":
+    "Daten sind für die ECC-Stufe {ecc} zu groß. Senken Sie die Fehlerkorrektur oder kürzen Sie den Text.",
   "generator.dataTooLargeGeneric": "Daten sind für diese QR-Konfiguration zu groß",
   "generator.marginTooLarge": "Rand ist zu groß – das Maximum ist {max}",
   "generator.scannable": "Scanbar",
   "generator.scannableOk": "Scanbar: {count}×{count} Module, jedes bei dieser Größe {size}px groß.",
   "generator.lowReadability": "Schwierig zu scannen",
-  "generator.doesNotDecode": "Schwierig zu scannen. Der Code lässt sich so nicht dekodieren – {size}px pro Modul.",
+  "generator.doesNotDecode":
+    "Schwierig zu scannen. Der Code lässt sich so nicht dekodieren – {size}px pro Modul.",
   "generator.ready": "QR-Code erstellt und bereit zum Herunterladen oder Kopieren",
   "generator.failed": "QR-Code konnte nicht erstellt werden: {message}",
   "export.tooLargeText": "QR-Code ist zu groß, um als Text gerendert zu werden",
@@ -422,7 +440,8 @@ export default {
   "export.tooLarge": "Zu groß",
   "export.tooLargeCopy": "Dieser QR-Code ist zu groß, um als Text kopiert zu werden",
   "export.copiedClipboard": "In die Zwischenablage kopiert",
-  "batch.started": "Stapelexport gestartet: {count} Codes – erlauben Sie mehrere Downloads, falls Ihr Browser danach fragt",
+  "batch.started":
+    "Stapelexport gestartet: {count} Codes – erlauben Sie mehrere Downloads, falls Ihr Browser danach fragt",
   "batch.finished": "Stapelexport abgeschlossen: {done} von {total} Codes",
   "batch.finishedFailed": "Stapelexport abgeschlossen: {done} von {total} Codes ({failed} fehlgeschlagen)",
   "batch.done": "Abgeschlossen: {done}/{total}",
@@ -434,7 +453,8 @@ export default {
   "batch.readFailed": "Diese Datei konnte nicht gelesen werden",
   "scanner.clipboardUnsupported": "Bilder aus der Zwischenablage werden von diesem Browser nicht unterstützt",
   "scanner.clipboardEmpty": "Kein Bild in der Zwischenablage gefunden",
-  "scanner.clipboardFailed": "Zwischenablage konnte nicht gelesen werden – prüfen Sie die Berechtigung und versuchen Sie es erneut",
+  "scanner.clipboardFailed":
+    "Zwischenablage konnte nicht gelesen werden – prüfen Sie die Berechtigung und versuchen Sie es erneut",
   "scanner.statusIdle": "Bereit",
   "scanner.statusStarting": "Wird gestartet …",
   "scanner.statusScanning": "Scannen …",
@@ -457,5 +477,5 @@ export default {
   "scanner.detected": "Erkannt",
   "scanner.error": "Fehler",
   "scanner.historyItemDeleted": "Scaneintrag gelöscht",
-  "scanner.historyCleared": "Scanverlauf gelöscht"
+  "scanner.historyCleared": "Scanverlauf gelöscht",
 };

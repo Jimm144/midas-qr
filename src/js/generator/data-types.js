@@ -280,7 +280,7 @@ export const DATA_TYPES = {
         const parts = data.slice("SMSTO:".length).split(":");
         phone.value = parts[0] || "";
         const msg = field("smsMsg");
-        if (msg) msg.value = parts.slice(1).join(":") || "";
+        if (msg) msg.value = safeDecodeURIComponent(parts.slice(1).join(":") || "");
       }
     },
   },

@@ -253,20 +253,26 @@ function showQrUnavailable(message) {
   if (DOM.qrReadabilityBadge) {
     DOM.qrReadabilityBadge.classList.add("hidden");
   }
-  if (message) {
+  if (message && DOM.emptyStateQr) {
     DOM.emptyStateQr.textContent = message;
     DOM.emptyStateQr.classList.remove("hidden");
     DOM.emptyStateQr.classList.remove("bg-black/90");
     DOM.emptyStateQr.classList.add("bg-black");
   }
-  DOM.qrCanvasContainer.style.display = "none";
-  DOM.qrCanvasContainer.classList.remove("is-framed");
-  DOM.qrPreviewContainer.classList.remove("has-qr");
-  DOM.btnDownload.disabled = true;
-  DOM.btnCopy.disabled = true;
-  DOM.btnSave.disabled = true;
-  DOM.btnShareLink.disabled = true;
-  DOM.btnSave.textContent = t("common.save");
+  if (DOM.qrCanvasContainer) {
+    DOM.qrCanvasContainer.style.display = "none";
+    DOM.qrCanvasContainer.classList.remove("is-framed");
+  }
+  if (DOM.qrPreviewContainer) {
+    DOM.qrPreviewContainer.classList.remove("has-qr");
+  }
+  if (DOM.btnDownload) DOM.btnDownload.disabled = true;
+  if (DOM.btnCopy) DOM.btnCopy.disabled = true;
+  if (DOM.btnSave) {
+    DOM.btnSave.disabled = true;
+    DOM.btnSave.textContent = t("common.save");
+  }
+  if (DOM.btnShareLink) DOM.btnShareLink.disabled = true;
   setRenderInfo(null);
 }
 
@@ -429,10 +435,12 @@ export function generateQR(immediate = false) {
         settleRenderWaiters(null, new Error("QR config is not renderable"));
         return;
       }
-      DOM.qrCanvasContainer.style.display = "flex";
+      if (DOM.qrCanvasContainer) {
+        DOM.qrCanvasContainer.style.display = "flex";
+      }
       // Keep the current code on screen while the next one renders; the
       // skeleton is only for the very first render (nothing to show yet).
-      if (DOM.qrLoading && !DOM.qrCanvasContainer.querySelector("svg")) {
+      if (DOM.qrLoading && (!DOM.qrCanvasContainer || !DOM.qrCanvasContainer.querySelector("svg"))) {
         DOM.qrLoading.classList.remove("hidden");
         DOM.qrLoading.classList.add("flex");
       }
@@ -494,8 +502,8 @@ export function generateQR(immediate = false) {
           settleRenderWaiters(null, new Error("Margin is too large to render"));
           return;
         } else {
-          DOM.marginWarning.classList.add("hidden");
-          DOM.qrCanvasContainer.style.display = "flex";
+          if (DOM.marginWarning) DOM.marginWarning.classList.add("hidden");
+          if (DOM.qrCanvasContainer) DOM.qrCanvasContainer.style.display = "flex";
         }
       }
 
@@ -517,7 +525,8 @@ export function generateQR(immediate = false) {
       // The memo is only safe while the container still shows the cached SVG:
       // an unavailable-margin/message clears the preview, and any other config
       // overwrites the key. `reused` skips the DOM rewrite too (same markup).
-      const reused = renderKey === lastRenderKey && Boolean(DOM.qrCanvasContainer.querySelector("svg"));
+      const hasSvg = DOM.qrCanvasContainer ? Boolean(DOM.qrCanvasContainer.querySelector("svg")) : false;
+      const reused = renderKey === lastRenderKey && hasSvg;
       let renderedSvg;
       try {
         if (reused) {
@@ -568,15 +577,17 @@ export function generateQR(immediate = false) {
 
       if (!isCurrent()) return;
 
-      DOM.qrCanvasContainer.classList.toggle("is-framed", state.generator.frameStyle !== "none");
-      if (!reused) {
-        DOM.qrCanvasContainer.innerHTML = renderedSvg;
+      if (DOM.qrCanvasContainer) {
+        DOM.qrCanvasContainer.classList.toggle("is-framed", state.generator.frameStyle !== "none");
+        if (!reused) {
+          DOM.qrCanvasContainer.innerHTML = renderedSvg;
+        }
       }
       // Publish the exact rendered SVG so exports match the preview (masks
       // included) and use the computed dimensions rather than requested ones.
       setRenderInfo({ svg: renderedSvg, w, h, moduleCount, userMarginPx });
       settleRenderWaiters({ svg: renderedSvg, layout, w, h, moduleCount, userMarginPx }, null);
-      const svgEl = DOM.qrCanvasContainer.querySelector("svg");
+      const svgEl = DOM.qrCanvasContainer ? DOM.qrCanvasContainer.querySelector("svg") : null;
       if (svgEl) {
         if (!svgEl.getAttribute("viewBox")) {
           svgEl.setAttribute("viewBox", `0 0 ${w} ${h}`);
@@ -593,19 +604,23 @@ export function generateQR(immediate = false) {
         DOM.qrLoading.classList.add("hidden");
         DOM.qrLoading.classList.remove("flex");
       }
-      DOM.emptyStateQr.classList.add("hidden");
-      DOM.emptyStateQr.classList.remove("bg-black");
-      DOM.emptyStateQr.classList.add("bg-black/90");
-      DOM.qrPreviewContainer.classList.add("has-qr");
-      DOM.btnDownload.disabled = false;
-      DOM.btnCopy.disabled = false;
-      DOM.btnShareLink.disabled = false;
-      if (isCurrentConfigSaved()) {
-        DOM.btnSave.disabled = true;
-        DOM.btnSave.textContent = t("controls.saved");
-      } else {
-        DOM.btnSave.disabled = false;
-        DOM.btnSave.textContent = t("common.save");
+      if (DOM.emptyStateQr) {
+        DOM.emptyStateQr.classList.add("hidden");
+        DOM.emptyStateQr.classList.remove("bg-black");
+        DOM.emptyStateQr.classList.add("bg-black/90");
+      }
+      if (DOM.qrPreviewContainer) DOM.qrPreviewContainer.classList.add("has-qr");
+      if (DOM.btnDownload) DOM.btnDownload.disabled = false;
+      if (DOM.btnCopy) DOM.btnCopy.disabled = false;
+      if (DOM.btnShareLink) DOM.btnShareLink.disabled = false;
+      if (DOM.btnSave) {
+        if (isCurrentConfigSaved()) {
+          DOM.btnSave.disabled = true;
+          DOM.btnSave.textContent = t("controls.saved");
+        } else {
+          DOM.btnSave.disabled = false;
+          DOM.btnSave.textContent = t("common.save");
+        }
       }
       announce(t("generator.ready"));
       validateQrReadability();

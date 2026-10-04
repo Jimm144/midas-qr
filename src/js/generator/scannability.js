@@ -71,10 +71,7 @@ export async function svgDecodes(svg, w, h, moduleCount = 0) {
   // squashing it into the QR canvas size would distort the code. The caller's
   // size is the fallback for an SVG that carries no width/height.
   const intrinsic = svgIntrinsicSize(svg);
-  const { w: cw, h: ch } = decodeCanvasSize(
-    intrinsic ? intrinsic.w : w,
-    intrinsic ? intrinsic.h : h
-  );
+  const { w: cw, h: ch } = decodeCanvasSize(intrinsic ? intrinsic.w : w, intrinsic ? intrinsic.h : h);
   const canvas = document.createElement("canvas");
   canvas.width = cw;
   canvas.height = ch;
@@ -102,9 +99,7 @@ export async function svgDecodes(svg, w, h, moduleCount = 0) {
   // the code's own background models that surface; the verdict would otherwise
   // condemn every default render.
   const pad =
-    moduleCount > 0
-      ? Math.max(2, Math.round((4 * cw) / moduleCount))
-      : Math.max(2, Math.round(cw * 0.12));
+    moduleCount > 0 ? Math.max(2, Math.round((4 * cw) / moduleCount)) : Math.max(2, Math.round(cw * 0.12));
   const out = document.createElement("canvas");
   out.width = cw + pad * 2;
   out.height = ch + pad * 2;
@@ -121,9 +116,7 @@ export async function svgDecodes(svg, w, h, moduleCount = 0) {
     octx.drawImage(canvas, pad, pad);
 
     const imageData = octx.getImageData(0, 0, out.width, out.height);
-    return Boolean(
-      decode(imageData.data, out.width, out.height, { inversionAttempts: "attemptBoth" })
-    );
+    return Boolean(decode(imageData.data, out.width, out.height, { inversionAttempts: "attemptBoth" }));
   } catch (err) {
     console.warn("[QR] Scannability decode failed:", err);
     return null;

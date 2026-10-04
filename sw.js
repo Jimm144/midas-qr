@@ -38,10 +38,10 @@ const PRECACHE = [
   "./favicon.svg?v=76aeff07",
   "./icon-192x192.png",
   "./icon-512x512.png",
-  "./dist/bundle.js?v=fe0dc016",
+  "./dist/bundle.js?v=86b91aca",
   // Precache the exact versioned stylesheet URL the page requests so the
   // first controlled load is both fresh and offline-capable.
-  "./src/css/style.min.css?v=0128239e",
+  "./src/css/style.min.css?v=878d3b55",
   // Figtree is the default theme font; the other theme families are cached on
   // first use of their theme (stale-while-revalidate below), which keeps the
   // install payload small.
@@ -187,7 +187,9 @@ self.addEventListener("activate", (event) => {
       const keys = await caches.keys();
       // A failed stale-cache delete must not block the new worker from
       // activating: settle every delete instead of rejecting the event.
-      await Promise.all(keys.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name).catch(() => {})));
+      await Promise.all(
+        keys.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name).catch(() => {}))
+      );
       // Clear runtime clutter accumulated under earlier behavior; precache stays.
       const cache = await caches.open(CACHE_NAME);
       await trimRuntimeCache(cache);

@@ -35,7 +35,11 @@ function storedLocale() {
 
 function browserLocale() {
   const languages = typeof navigator !== "undefined" && navigator.languages ? navigator.languages : [];
-  const candidates = [...languages, typeof navigator !== "undefined" ? navigator.language : "", DEFAULT_LOCALE];
+  const candidates = [
+    ...languages,
+    typeof navigator !== "undefined" ? navigator.language : "",
+    DEFAULT_LOCALE,
+  ];
   for (const candidate of candidates) {
     if (typeof candidate !== "string") continue;
     const lower = candidate.toLowerCase();
@@ -103,7 +107,8 @@ export function applyStaticTranslations(root = document) {
     root.querySelectorAll(`[data-i18n-${attribute}]`).forEach((node) => {
       setAttributeTranslation(node, attribute, null);
     });
-  });}
+  });
+}
 
 let localeChangeHandler = null;
 

@@ -5,15 +5,21 @@ export default {
   "app.sections": "Sections de Midas QR",
   "app.skip": "Aller au contenu",
   "app.themeSettings": "Paramètres du thème et de la langue",
-  "app.noJsTitle": "JavaScript est nécessaire pour exécuter Midas QR. Activez JavaScript dans votre navigateur pour générer ou scanner des QR codes.",
-  "app.noJsOverview": "Midas QR est un générateur et scanner de QR codes gratuit et hors ligne. Créez des QR codes personnalisés pour les URL, le texte, les réseaux Wi-Fi, les contacts, les adresses crypto, la géolocalisation, les événements, les SMS et les numéros de téléphone.",
-  "app.noJsStyling": "Personnalisez vos QR codes avec différentes couleurs, dégradés, formes de points, styles de coins, masques globaux, styles de cadre, images d’arrière-plan et logos superposés. Choisissez parmi plusieurs niveaux de correction d’erreur (L, M, Q, H) pour garantir une bonne lisibilité, même si le code est partiellement endommagé.",
-  "app.noJsOutput": "Exportez vos QR codes finalisés au format PNG, SVG, JPEG, WebP ou texte, téléchargez tout votre historique d’un seul coup ou générez en lot un QR code par ligne à partir d’un fichier CSV.",
-  "app.noJsScanning": "Scannez des QR codes avec votre webcam ou en envoyant un fichier image. Fonctionne entièrement hors ligne — sans cookies, publicité ou suivi.",
+  "app.noJsTitle":
+    "JavaScript est nécessaire pour exécuter Midas QR. Activez JavaScript dans votre navigateur pour générer ou scanner des QR codes.",
+  "app.noJsOverview":
+    "Midas QR est un générateur et scanner de QR codes gratuit et hors ligne. Créez des QR codes personnalisés pour les URL, le texte, les réseaux Wi-Fi, les contacts, les adresses crypto, la géolocalisation, les événements, les SMS et les numéros de téléphone.",
+  "app.noJsStyling":
+    "Personnalisez vos QR codes avec différentes couleurs, dégradés, formes de points, styles de coins, masques globaux, styles de cadre, images d’arrière-plan et logos superposés. Choisissez parmi plusieurs niveaux de correction d’erreur (L, M, Q, H) pour garantir une bonne lisibilité, même si le code est partiellement endommagé.",
+  "app.noJsOutput":
+    "Exportez vos QR codes finalisés au format PNG, SVG, JPEG, WebP ou texte, téléchargez tout votre historique d’un seul coup ou générez en lot un QR code par ligne à partir d’un fichier CSV.",
+  "app.noJsScanning":
+    "Scannez des QR codes avec votre webcam ou en envoyant un fichier image. Fonctionne entièrement hors ligne — sans cookies, publicité ou suivi.",
   "color.picker": "Couleur",
   "color.closePicker": "Fermer le sélecteur de couleur",
   "color.spectrumField": "Nuancier de saturation et de luminosité",
-  "color.spectrumKeyboard": "Saturation et luminosité : Left/Right pour la saturation, Up/Down pour la luminosité, Ctrl+Left/Right pour la teinte",
+  "color.spectrumKeyboard":
+    "Saturation et luminosité : Left/Right pour la saturation, Up/Down pour la luminosité, Ctrl+Left/Right pour la teinte",
   "color.mode": "Mode de couleur",
   "color.start": "Couleur de début",
   "color.end": "Couleur de fin",
@@ -39,6 +45,7 @@ export default {
   "color.green": "Vert",
   "color.blue": "Bleu",
   "color.yellow": "Jaune",
+  "header.home": "Midas QR Accueil",
   "header.language": "Langue",
   "header.themeToggle": "Activer le mode sombre ou clair",
   "header.themeToggleTitle": "Basculer entre les modes sombre/clair",
@@ -89,7 +96,8 @@ export default {
   "tabs.switched": "Passage à l’onglet {tab}",
   "tabs.dataType": "Type de données à encoder",
   "content.heading": "Contenu",
-  "content.seo": "Midas QR est un générateur et scanner de QR codes gratuit et hors ligne, compatible avec les QR codes URL, texte, Wi-Fi, vCard, cryptomonnaie, géolocalisation, événement de calendrier, SMS et numéro de téléphone. Ses fonctionnalités comprennent des couleurs et dégradés personnalisables, des formes de points, des styles de coins, des masques globaux, des styles de cadre, des images d’arrière-plan, des logos superposés, l’export PNG/SVG/JPEG/WebP/TXT, la génération par lot depuis CSV/TSV/TXT et des niveaux de correction d’erreur.",
+  "content.seo":
+    "Midas QR est un générateur et scanner de QR codes gratuit et hors ligne, compatible avec les QR codes URL, texte, Wi-Fi, vCard, cryptomonnaie, géolocalisation, événement de calendrier, SMS et numéro de téléphone. Ses fonctionnalités comprennent des couleurs et dégradés personnalisables, des formes de points, des styles de coins, des masques globaux, des styles de cadre, des images d’arrière-plan, des logos superposés, l’export PNG/SVG/JPEG/WebP/TXT, la génération par lot depuis CSV/TSV/TXT et des niveaux de correction d’erreur.",
   "data.url": "URL",
   "data.text": "Texte",
   "data.wifi": "Wi-Fi",
@@ -257,7 +265,8 @@ export default {
   "params.marginTooLarge": "La marge est trop grande pour cette taille",
   "params.errorCorrection": "Correction d’erreur",
   "params.eccHelp": "Aide sur les niveaux de correction d’erreur",
-  "params.eccDescription": "Permet au QR code de rester lisible même s’il est partiellement endommagé ou masqué.",
+  "params.eccDescription":
+    "Permet au QR code de rester lisible même s’il est partiellement endommagé ou masqué.",
   "params.eccLevel": "Niveau de correction d’erreur",
   "ecc.low": "Faible (7%)",
   "ecc.medium": "Moyen (15%)",
@@ -286,7 +295,8 @@ export default {
   "preview.shareLink": "Partager le lien",
   "batch.button": "Lot",
   "batch.chooseFile": "Choisissez un fichier CSV, TSV ou TXT pour la génération par lot",
-  "batch.buttonTitle": "Générer en lot à partir de CSV, TSV ou TXT — un code par ligne (première colonne pour CSV/TSV), enregistré dans le format sélectionné. Votre navigateur peut demander l’autorisation de télécharger plusieurs fichiers.",
+  "batch.buttonTitle":
+    "Générer en lot à partir de CSV, TSV ou TXT — un code par ligne (première colonne pour CSV/TSV), enregistré dans le format sélectionné. Votre navigateur peut demander l’autorisation de télécharger plusieurs fichiers.",
   "scanner.source": "Source",
   "scanner.sourceAria": "Source du scanner",
   "scanner.webcam": "Webcam",
@@ -326,8 +336,10 @@ export default {
   "footer.cacheVersion": "Version du cache du service worker",
   "footer.install": "Installer l’application",
   "footer.noCookies": "Sans cookies",
-  "footer.lucideNote": "Les icônes du sélecteur de style de cadre utilisent les illustrations de Lucide telles quelles.",
-  "footer.wikipediaNote": "Le texte sur la correction d’erreur est adapté de l’article « QR code » de Wikipedia.",
+  "footer.lucideNote":
+    "Les icônes du sélecteur de style de cadre utilisent les illustrations de Lucide telles quelles.",
+  "footer.wikipediaNote":
+    "Le texte sur la correction d’erreur est adapté de l’article « QR code » de Wikipedia.",
   "footer.fontLicense": "Toutes les polices incluses sont sous licence SIL Open Font License 1.1.",
   "modal.credits": "Mentions tierces",
   "modal.libraries": "Bibliothèques",
@@ -381,10 +393,14 @@ export default {
   "image.tooLarge": "L’image dépasse la limite de 4MB ({size}MB). Choisissez un fichier plus petit.",
   "image.unsupportedFormat": "Format de fichier non pris en charge. Utilisez PNG, JPEG ou WebP.",
   "image.unsupportedImage": "Format d’image non pris en charge. Utilisez PNG, JPEG ou WebP.",
-  "image.logoSvgDisabled": "Les logos SVG sont désactivés pour des raisons de sécurité. Importez un fichier PNG, JPEG ou WebP.",
-  "image.backgroundSvgDisabled": "Les images SVG sont désactivées pour des raisons de sécurité. Importez un fichier PNG, JPEG ou WebP.",
-  "image.readFailed": "Impossible de lire le fichier image. Le fichier est peut-être corrompu ou inaccessible.",
-  "image.logoUrlInvalid": "URL de logo non valide. Elle doit pointer vers une image ou être une data URL prise en charge.",
+  "image.logoSvgDisabled":
+    "Les logos SVG sont désactivés pour des raisons de sécurité. Importez un fichier PNG, JPEG ou WebP.",
+  "image.backgroundSvgDisabled":
+    "Les images SVG sont désactivées pour des raisons de sécurité. Importez un fichier PNG, JPEG ou WebP.",
+  "image.readFailed":
+    "Impossible de lire le fichier image. Le fichier est peut-être corrompu ou inaccessible.",
+  "image.logoUrlInvalid":
+    "URL de logo non valide. Elle doit pointer vers une image ou être une data URL prise en charge.",
   "image.remoteLogo": "Logo distant : l’exportation peut échouer si l’hôte ne prend pas en charge CORS.",
   "image.unsupportedBackground": "Image d’arrière-plan non prise en charge",
   "controls.saved": "Enregistré",
@@ -393,7 +409,8 @@ export default {
   "controls.shareDone": "Lien de partage partagé",
   "controls.shareCopied": "Lien de partage copié dans le presse-papiers",
   "controls.copied": "Copié",
-  "storage.backgroundFull": "Le stockage est plein — votre image d’arrière-plan ne sera pas enregistrée pour votre prochaine visite",
+  "storage.backgroundFull":
+    "Le stockage est plein — votre image d’arrière-plan ne sera pas enregistrée pour votre prochaine visite",
   "storage.logoFull": "Le stockage est plein — le logo ne sera pas enregistré pour votre prochaine visite",
   "pwa.updateAvailable": "Une nouvelle version est disponible",
   "pwa.reload": "Recharger",
@@ -404,12 +421,15 @@ export default {
   "generator.rendering": "Génération du QR…",
   "generator.fixField": "Corrigez le champ en surbrillance pour générer un QR code",
   "generator.enterContent": "Saisissez du contenu pour générer un QR code",
-  "generator.librariesFailed": "Échec du chargement des bibliothèques requises. Rechargez la page ou vérifiez votre connexion.",
-  "generator.dataTooLarge": "Les données sont trop volumineuses pour le niveau ECC {ecc}. Réduisez le niveau de correction d’erreur ou raccourcissez le texte.",
+  "generator.librariesFailed":
+    "Échec du chargement des bibliothèques requises. Rechargez la page ou vérifiez votre connexion.",
+  "generator.dataTooLarge":
+    "Les données sont trop volumineuses pour le niveau ECC {ecc}. Réduisez le niveau de correction d’erreur ou raccourcissez le texte.",
   "generator.dataTooLargeGeneric": "Les données sont trop volumineuses pour cette configuration du QR code",
   "generator.marginTooLarge": "La marge est trop grande — le maximum est {max}",
   "generator.scannable": "Lisible par un scanner",
-  "generator.scannableOk": "Lisible par un scanner : {count}×{count} modules, chacun de {size}px à cette taille.",
+  "generator.scannableOk":
+    "Lisible par un scanner : {count}×{count} modules, chacun de {size}px à cette taille.",
   "generator.lowReadability": "Lisibilité faible",
   "generator.doesNotDecode": "Lisibilité faible. Le code ne se décode pas tel quel — {size}px par module.",
   "generator.ready": "QR code généré et prêt à être téléchargé ou copié",
@@ -422,7 +442,8 @@ export default {
   "export.tooLarge": "Trop volumineux",
   "export.tooLargeCopy": "Ce QR code est trop volumineux pour être copié sous forme de texte",
   "export.copiedClipboard": "Copié dans le presse-papiers",
-  "batch.started": "Exportation par lot démarrée : {count} codes — autorisez plusieurs téléchargements si votre navigateur le demande",
+  "batch.started":
+    "Exportation par lot démarrée : {count} codes — autorisez plusieurs téléchargements si votre navigateur le demande",
   "batch.finished": "Exportation par lot terminée : {done} codes sur {total}",
   "batch.finishedFailed": "Exportation par lot terminée : {done} codes sur {total} ({failed} échecs)",
   "batch.done": "Terminé : {done}/{total}",
@@ -432,7 +453,8 @@ export default {
   "batch.noDataRows": "Aucune ligne de données trouvée dans ce fichier",
   "batch.readFailedShort": "Impossible de lire le fichier",
   "batch.readFailed": "Impossible de lire ce fichier",
-  "scanner.clipboardUnsupported": "Les images du presse-papiers ne sont pas prises en charge par ce navigateur",
+  "scanner.clipboardUnsupported":
+    "Les images du presse-papiers ne sont pas prises en charge par ce navigateur",
   "scanner.clipboardEmpty": "Aucune image trouvée dans le presse-papiers",
   "scanner.clipboardFailed": "Impossible de lire le presse-papiers — vérifiez l’autorisation et réessayez",
   "scanner.statusIdle": "Inactif",
@@ -457,5 +479,5 @@ export default {
   "scanner.detected": "Détecté",
   "scanner.error": "Erreur",
   "scanner.historyItemDeleted": "Élément de scan supprimé",
-  "scanner.historyCleared": "Historique des scans effacé"
+  "scanner.historyCleared": "Historique des scans effacé",
 };

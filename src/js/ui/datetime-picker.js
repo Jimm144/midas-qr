@@ -86,9 +86,10 @@ function isoDate(value) {
 function localeFirstDay() {
   try {
     const locale = new Intl.Locale(getIntlLocale() || document.documentElement.lang || "en");
-    const probe = /** @type {{ weekInfo?: { firstDay?: number }, getWeekInfo?: () => { firstDay?: number } }} */ (
-      /** @type {unknown} */ (locale)
-    );
+    const probe =
+      /** @type {{ weekInfo?: { firstDay?: number }, getWeekInfo?: () => { firstDay?: number } }} */ (
+        /** @type {unknown} */ (locale)
+      );
     const info = typeof probe.getWeekInfo === "function" ? probe.getWeekInfo() : probe.weekInfo;
     const first = info && typeof info.firstDay === "number" ? info.firstDay : 1;
     return first === 7 ? 0 : first; // 1=Mon … 7=Sun -> 0=Sun … 6=Sat
@@ -208,9 +209,12 @@ function buildField(field, input) {
       const outside = cursor.getMonth() !== viewMonth;
       const selected = !outside && pending && iso === isoDate(pending);
       const current = !outside && iso === today;
-      const classes =
-        `dt-day btn-reset${outside ? " outside" : ""}${selected ? " selected" : ""}${current ? " today" : ""}`;
-      const label = cursor.toLocaleDateString(getIntlLocale(), { year: "numeric", month: "long", day: "numeric" });
+      const classes = `dt-day btn-reset${outside ? " outside" : ""}${selected ? " selected" : ""}${current ? " today" : ""}`;
+      const label = cursor.toLocaleDateString(getIntlLocale(), {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
       const currentAttr = current ? ' aria-current="date"' : "";
       html += `<button type="button" class="${classes}" data-date="${iso}" tabindex="-1" aria-pressed="${selected ? "true" : "false"}" aria-label="${label}"${currentAttr}>${cursor.getDate()}</button>`;
       cursor.setDate(cursor.getDate() + 1);

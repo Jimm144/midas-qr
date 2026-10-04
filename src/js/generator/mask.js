@@ -202,7 +202,6 @@ export function safeMaskPathD(path) {
   return movetos > 0 && pending === 0 ? sanitized : "";
 }
 
-
 /**
  * Paint every figure group (dots, corner squares, corner dots) with ONE shared
  * gradient so they register perfectly. The vendored library defines corner
@@ -589,7 +588,15 @@ function surroundRingFill(svgEl, w, h) {
     defs = doc.createElementNS(SVG_NS, "defs");
     svgEl.insertBefore(defs, svgEl.firstChild);
   }
-  const id = addGradientDef(doc, defs, "qr-global-grad", state.generator.dotsGradient, state.generator.dotsColor, w, h);
+  const id = addGradientDef(
+    doc,
+    defs,
+    "qr-global-grad",
+    state.generator.dotsGradient,
+    state.generator.dotsColor,
+    w,
+    h
+  );
   return id ? `url(#${id})` : state.generator.dotsColor;
 }
 

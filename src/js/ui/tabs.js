@@ -244,6 +244,26 @@ export function initTabs() {
     DOM.tabBtnHistory.addEventListener("click", () => switchTab("history"));
   }
 
+  const brandHome = DOM.brandHome || document.getElementById("brand-home");
+  if (brandHome) {
+    brandHome.addEventListener("click", (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      if (state.activeTab !== "generator") {
+        switchTab("generator", false, true);
+      } else {
+        if (typeof window.scrollTo === "function") {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        const heading = document.getElementById("panel-generator-heading");
+        if (heading) {
+          heading.setAttribute("tabindex", "-1");
+          heading.focus({ preventScroll: true });
+        }
+      }
+    });
+  }
+
   [DOM.tabBtnGenerator, DOM.tabBtnScanner, DOM.tabBtnHistory].filter(Boolean).forEach((btn, _idx, btns) => {
     btn.addEventListener("keydown", (e) => {
       const isArrow = e.key === "ArrowRight" || e.key === "ArrowLeft";

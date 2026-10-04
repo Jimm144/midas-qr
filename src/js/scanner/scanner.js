@@ -156,38 +156,72 @@ function wireDropZone() {
     DOM.dropZone.focus();
   });
 
-  ["dragenter", "dragover"].forEach((eventName) => {
-    DOM.dropZone.addEventListener(
-      eventName,
-      (e) => {
-        e.preventDefault();
-        DOM.dropZone.classList.add("dragover");
-      },
-      false
-    );
-  });
+  let dragCounter = 0;
+  DOM.dropZone.addEventListener(
+    "dragenter",
+    (e) => {
+      e.preventDefault();
+      dragCounter++;
+      DOM.dropZone.classList.add("dragover");
+    },
+    false
+  );
 
-  ["dragleave", "drop"].forEach((eventName) => {
-    DOM.dropZone.addEventListener(
-      eventName,
-      (e) => {
-        e.preventDefault();
+  DOM.dropZone.addEventListener(
+    "dragover",
+    (e) => {
+      e.preventDefault();
+      DOM.dropZone.classList.add("dragover");
+    },
+    false
+  );
+
+  DOM.dropZone.addEventListener(
+    "dragleave",
+    (e) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
         DOM.dropZone.classList.remove("dragover");
-      },
-      false
-    );
-  });
+      }
+    },
+    false
+  );
 
   DOM.dropZone.addEventListener(
     "drop",
     (e) => {
-      const file = e.dataTransfer.files[0];
+      e.preventDefault();
+      dragCounter = 0;
+      DOM.dropZone.classList.remove("dragover");
+      const file = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files[0] : null;
       // Route through processUploadFile so drops and picker selections share
       // one validation path (empty MIME included).
       if (file) processUploadFile(file);
     },
     false
   );
+
+  // Global paste handler: allows Ctrl+V pasting an image anytime the scanner is active.
+  document.addEventListener("paste", (e) => {
+    if (state.activeTab !== "scanner") return;
+    const active = document.activeElement;
+    if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === "file" && ALLOWED_SCAN_IMAGE_TYPES.includes(item.type)) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          processUploadFile(file);
+          return;
+        }
+      }
+    }
+  });
 
   // Paste an image straight from the clipboard (screenshots, copied images).
   if (DOM.btnScanPaste) {
@@ -530,12 +564,30 @@ function scheduleFallbackResume() {
 function ensureVisibilityResume() {
   if (visibilityHandlerBound) return;
   visibilityHandlerBound = true;
+  if (state.scanner.stream) {
+    try {
+      state.scanner.stream.getVideoTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    } catch {
+      // Ignore in environments where stream mock doesn't support track properties
+    }
+  }
   const onVisible = () => {
     if (document.hidden) return;
     visibilityHandlerBound = false;
     document.removeEventListener("visibilitychange", onVisible);
-    if (state.scanner.stream && !state.scanner.animationFrameId) {
-      state.scanner.animationFrameId = requestAnimationFrame(scanTick);
+    if (state.scanner.stream) {
+      try {
+        state.scanner.stream.getVideoTracks().forEach((track) => {
+          track.enabled = true;
+        });
+      } catch {
+        // Ignore
+      }
+      if (!state.scanner.animationFrameId) {
+        state.scanner.animationFrameId = requestAnimationFrame(scanTick);
+      }
     }
   };
   document.addEventListener("visibilitychange", onVisible);

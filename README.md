@@ -4,8 +4,8 @@ A QR code generator and scanner that runs entirely in the browser. It works offl
 
 ### [Open the app](https://midasqr.is-local.org/)
 
-| Desktop | Mobile |
-| --- | --- |
+| Desktop                                                                                                                                                | Mobile                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | <img src="docs/screenshots/generator-desktop.png" width="620" alt="Generator view with content options on the left and the live preview on the right"> | <img src="docs/screenshots/generator-mobile.png" width="230" alt="The same app on a phone"> |
 
 ## Features
@@ -36,14 +36,14 @@ npm run build   # bundles JS and CSS, validates the offline layer
 npm start       # serves the app on http://localhost:5000
 ```
 
-| Command             | Description                                 |
-| ------------------- | ------------------------------------------- |
-| `npm start`         | Serve the built app on port 5000            |
-| `npm run dev`       | Build, then serve                           |
+| Command             | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `npm start`         | Serve the built app on port 5000             |
+| `npm run dev`       | Build, then serve                            |
 | `npm run build`     | Bundle JS/CSS and validate the offline layer |
-| `npm test`          | Run the test suite                          |
-| `npm run lint`      | Lint the source                             |
-| `npm run typecheck` | Type-check the typed modules                |
+| `npm test`          | Run the test suite                           |
+| `npm run lint`      | Lint the source                              |
+| `npm run typecheck` | Type-check the typed modules                 |
 
 Run `npm run lint`, `npm run typecheck`, and `npm test` before opening a pull request.
 

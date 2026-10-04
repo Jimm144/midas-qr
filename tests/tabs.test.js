@@ -32,12 +32,15 @@ async function setupTablist({ keepHash = false } = {}) {
   vi.resetModules();
   document.body.innerHTML = `
     <div id="announcements" role="status" aria-live="polite"></div>
+    <a href="#generator" id="brand-home" class="wordmark-link"><span>Midas QR</span></a>
     <div class="tab-rail" role="tablist">
       <button id="tab-btn-generator" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="panel-generator"></button>
       <button id="tab-btn-scanner" role="tab" aria-selected="false" aria-controls="panel-scanner"></button>
       <button id="tab-btn-history" role="tab" aria-selected="false" aria-controls="panel-history"></button>
     </div>
-    <section id="panel-generator" role="tabpanel" aria-labelledby="tab-btn-generator"></section>
+    <section id="panel-generator" role="tabpanel" aria-labelledby="tab-btn-generator">
+      <h2 id="panel-generator-heading" tabindex="-1">Content</h2>
+    </section>
     <section id="panel-scanner" role="tabpanel" aria-labelledby="tab-btn-scanner" class="hidden"></section>
     <section id="panel-history" role="tabpanel" aria-labelledby="tab-btn-history" class="hidden"></section>
   `;
@@ -45,6 +48,7 @@ async function setupTablist({ keepHash = false } = {}) {
   // A share payload lives in the hash, so callers testing that path opt out.
   if (!keepHash) window.history.replaceState(null, "", window.location.pathname);
   const { DOM } = await import("../src/js/ui/dom.js");
+  DOM.brandHome = document.getElementById("brand-home");
   DOM.tabBtnGenerator = document.getElementById("tab-btn-generator");
   DOM.tabBtnScanner = document.getElementById("tab-btn-scanner");
   DOM.tabBtnHistory = document.getElementById("tab-btn-history");
@@ -221,5 +225,43 @@ describe("share links keep their payload in the hash", () => {
     expect(window.location.hash).toBe("#generator");
     tabs.switchTab("scanner");
     expect(window.location.hash).toBe("#scanner");
+  });
+});
+
+describe("logo / brand home navigation", () => {
+  it("navigates back to generator home when clicked from another tab", async () => {
+    const { state } = await setupTablist();
+    document.getElementById("tab-btn-scanner").click();
+    expect(state.activeTab).toBe("scanner");
+
+    const brandHome = document.getElementById("brand-home");
+    brandHome.click();
+
+    expect(state.activeTab).toBe("generator");
+    expect(document.getElementById("panel-generator").classList.contains("hidden")).toBe(false);
+  });
+
+  it("scrolls to top and keeps generator active when clicked while already home", async () => {
+    const { state } = await setupTablist();
+    expect(state.activeTab).toBe("generator");
+    const scrollToSpy = vi.fn();
+    window.scrollTo = scrollToSpy;
+
+    const brandHome = document.getElementById("brand-home");
+    brandHome.click();
+
+    expect(state.activeTab).toBe("generator");
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+  });
+
+  it("does not prevent default on modified clicks (Ctrl, Cmd, etc.)", async () => {
+    const { state } = await setupTablist();
+    document.getElementById("tab-btn-scanner").click();
+    const brandHome = document.getElementById("brand-home");
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true });
+    brandHome.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(state.activeTab).toBe("scanner");
   });
 });

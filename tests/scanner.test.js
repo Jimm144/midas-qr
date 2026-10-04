@@ -253,7 +253,7 @@ async function freshScannerHarness() {
 }
 
 function fakeTrack(settings = {}) {
-  return { stop: vi.fn(), getSettings: vi.fn(() => settings), addEventListener: vi.fn() };
+  return { enabled: true, stop: vi.fn(), getSettings: vi.fn(() => settings), addEventListener: vi.fn() };
 }
 
 function fakeStream({ video } = {}) {
@@ -675,10 +675,12 @@ describe("scanner camera lifecycle (deep sweep)", () => {
     Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
     h.raf.runNext(1);
     expect(h.raf.pending()).toBe(0);
+    expect(h.state.scanner.stream.getVideoTracks()[0].enabled).toBe(false);
 
     hidden = false;
     document.dispatchEvent(new Event("visibilitychange"));
     expect(h.raf.pending()).toBe(1);
+    expect(h.state.scanner.stream.getVideoTracks()[0].enabled).toBe(true);
 
     h.scanner.stopWebcamScan();
   });
@@ -1223,22 +1225,27 @@ describe("scanner result handling", () => {
     expect(h.DOM.btnVisitResult.getAttribute("href")).toBe("https://example.com/a");
     expect(h.DOM.btnVisitResult.textContent).toBe("Visit URL");
     expect(h.DOM.btnVisitResult.getAttribute("aria-disabled")).toBe("false");
+    expect(h.DOM.btnVisitResult.target).toBe("_blank");
 
     h.result.handleScanSuccess("tel:+15551234");
     expect(h.DOM.btnVisitResult.getAttribute("href")).toBe("tel:+15551234");
     expect(h.DOM.btnVisitResult.textContent).toBe("Call");
+    expect(h.DOM.btnVisitResult.target).toBe("_self");
 
     h.result.handleScanSuccess("mailto:a@b.c");
     expect(h.DOM.btnVisitResult.getAttribute("href")).toBe("mailto:a@b.c");
     expect(h.DOM.btnVisitResult.textContent).toBe("Email");
+    expect(h.DOM.btnVisitResult.target).toBe("_self");
 
     h.result.handleScanSuccess("SMSTO:+1555:hello");
     expect(h.DOM.btnVisitResult.getAttribute("href")).toBe("sms:+1555");
     expect(h.DOM.btnVisitResult.textContent).toBe("SMS");
+    expect(h.DOM.btnVisitResult.target).toBe("_self");
 
     h.result.handleScanSuccess("plain text payload");
     expect(h.DOM.btnVisitResult.getAttribute("aria-disabled")).toBe("true");
     expect(h.DOM.btnVisitResult.textContent).toBe("Open");
+    expect(h.DOM.btnVisitResult.target).toBe("_blank");
   });
 
   it("throttles duplicate detections until the output is cleared", async () => {
@@ -1484,5 +1491,49 @@ describe("scanner history — escaping, persistence and actions", () => {
     expect(h.DOM.btnCopyResult.disabled).toBe(false);
     expect(h.DOM.btnVisitResult.getAttribute("href")).toBe("https://example.com/h");
     expect(h.DOM.btnVisitResult.textContent).toBe("Visit URL");
+  });
+
+  it("handles dragenter and dragleave counter without flickering", async () => {
+    const h = await freshScannerHarness();
+    h.scanner.initScanner();
+
+    h.DOM.dropZone.dispatchEvent(new Event("dragenter"));
+    expect(h.DOM.dropZone.classList.contains("dragover")).toBe(true);
+
+    // Entering a child element fires another dragenter
+    h.DOM.dropZone.dispatchEvent(new Event("dragenter"));
+    expect(h.DOM.dropZone.classList.contains("dragover")).toBe(true);
+
+    // Leaving parent for child element fires dragleave
+    h.DOM.dropZone.dispatchEvent(new Event("dragleave"));
+    expect(h.DOM.dropZone.classList.contains("dragover")).toBe(true);
+
+    // Leaving the dropzone entirely
+    h.DOM.dropZone.dispatchEvent(new Event("dragleave"));
+    expect(h.DOM.dropZone.classList.contains("dragover")).toBe(false);
+  });
+
+  it("handles global paste events with image files on the scanner tab", async () => {
+    const h = await freshScannerHarness();
+    h.state.activeTab = "scanner";
+    h.scanner.initScanner();
+
+    const fakeFile = new File(["dummy"], "pasted.png", { type: "image/png" });
+    const pasteEvent = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(pasteEvent, "clipboardData", {
+      value: {
+        items: [
+          {
+            kind: "file",
+            type: "image/png",
+            getAsFile: () => fakeFile,
+          },
+        ],
+      },
+    });
+
+    document.dispatchEvent(pasteEvent);
+    expect(pasteEvent.defaultPrevented).toBe(true);
+    expect(h.DOM.uploadedFilename.textContent).toBe("pasted.png");
   });
 });

@@ -29,6 +29,7 @@ export function saveGeneratorHistory() {
       renderGeneratorHistory();
       showUndoToast(t("history.trimmed"), () => {
         state.generatorHistory = snapshot;
+        persistAppState(false);
         renderGeneratorHistory();
       });
     }
@@ -109,8 +110,7 @@ function previewRing(shape, x, y, size, stroke) {
  * tile edge.
  */
 function designPreview(config) {
-  const source =
-    config && typeof config === "object" && !Array.isArray(config) ? config : {};
+  const source = config && typeof config === "object" && !Array.isArray(config) ? config : {};
   const hex = (value, fallback) =>
     typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
   const shape = (value, fallback) =>
@@ -197,7 +197,9 @@ const TYPE_DETAIL_FIELDS = {
 
 /** Trim a payload fragment to something a row can show. */
 function clipDetail(value, max = 48) {
-  const text = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+  const text = String(value == null ? "" : value)
+    .replace(/\s+/g, " ")
+    .trim();
   if (!text) return "";
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1).trimEnd()}…`;
@@ -278,19 +280,14 @@ function downloadName(config) {
 
 function generatorHistoryRow(item, idx) {
   const config =
-    item && item.config && typeof item.config === "object" && !Array.isArray(item.config)
-      ? item.config
-      : {};
+    item && item.config && typeof item.config === "object" && !Array.isArray(item.config) ? item.config : {};
   const rawContent = config.dataString == null ? "" : String(config.dataString);
   const safeContent = escapeHTML(rawContent || t("history.emptyValue"));
   // Re-derive from the id with the *current* locale, like the scanner list:
   // the stored string was formatted in whichever language was active at save
   // time, so a language switch left the two lists disagreeing.
-  const derivedTime =
-    item && item.id != null ? formatHistoryTimestamp(item.id) : "";
-  const safeTime = escapeHTML(
-    derivedTime || (item && item.time != null ? String(item.time) : "")
-  );
+  const derivedTime = item && item.id != null ? formatHistoryTimestamp(item.id) : "";
+  const safeTime = escapeHTML(derivedTime || (item && item.time != null ? String(item.time) : ""));
   const loadLabel = escapeHTML(t("common.load"));
   const exportLabel = escapeHTML(t("common.export"));
   const deleteLabel = escapeHTML(t("common.delete"));

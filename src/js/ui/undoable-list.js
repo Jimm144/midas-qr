@@ -25,8 +25,7 @@ export function createUndoableList({
     const el = resolveContainer();
     if (!el) return;
     const items = getItems() || [];
-    el.innerHTML =
-      items.length === 0 ? emptyMarkup : items.map((item, idx) => renderRow(item, idx)).join("");
+    el.innerHTML = items.length === 0 ? emptyMarkup : items.map((item, idx) => renderRow(item, idx)).join("");
     if (onRender) onRender(items);
   }
 

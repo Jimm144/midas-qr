@@ -59,10 +59,11 @@ export function initGlobalListeners() {
   if (skipLink) {
     skipLink.addEventListener("click", (e) => {
       e.preventDefault();
-      let headingId = null;
-      if (state.activeTab === "generator") headingId = "panel-generator-heading";
-      else if (state.activeTab === "scanner") headingId = "panel-scanner-heading";
-      else if (state.activeTab === "history") headingId = "panel-history-gen-heading";
+      const headingId = {
+        generator: "panel-generator-heading",
+        scanner: "panel-scanner-heading",
+        history: "panel-history-gen-heading",
+      }[state.activeTab];
       if (headingId) {
         const heading = document.getElementById(headingId);
         if (heading) {

@@ -38,6 +38,11 @@ function setVisitAction(href, label, isExternal = true) {
   DOM.btnVisitResult.removeAttribute("tabindex");
   DOM.btnVisitResult.href = href;
   DOM.btnVisitResult.target = isExternal ? "_blank" : "_self";
+  if (isExternal) {
+    DOM.btnVisitResult.rel = "noopener noreferrer";
+  } else {
+    DOM.btnVisitResult.removeAttribute("rel");
+  }
   DOM.btnVisitResult.textContent = label;
 }
 
@@ -52,6 +57,7 @@ function clearVisitAction() {
   DOM.btnVisitResult.setAttribute("tabindex", "-1");
   DOM.btnVisitResult.href = "#";
   DOM.btnVisitResult.target = "_blank";
+  DOM.btnVisitResult.removeAttribute("rel");
   DOM.btnVisitResult.textContent = t("common.open");
 }
 

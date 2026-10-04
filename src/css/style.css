@@ -123,10 +123,6 @@
   .inset-0 { inset: 0 }
   .inset-x-0 { inset-inline: 0 }
   .top-0 { top: 0 }
-  .top-1\/2 { top: 50% }
-  .right-2 { right: .5rem }
-  .bottom-4 { bottom: 1rem }
-  .left-4 { left: 1rem }
   .z-10 { z-index: 10 }
   .z-20 { z-index: 20 }
   .z-50 { z-index: 50 }
@@ -139,15 +135,10 @@
   .mb-2 { margin-bottom: .5rem }
   .mb-4 { margin-bottom: 1rem }
   .block { display: block }
-  .empty\:hidden:empty { display: none }
   .flex { display: flex }
   .grid { display: grid }
   .inline-block { display: inline-block }
-  .aspect-square { aspect-ratio: 1 }
-  .aspect-video { aspect-ratio: 16 / 9 }
-  .h-5 { height: 1.25rem }
   .h-6 { height: 1.5rem }
-  .h-7 { height: 1.75rem }
   .h-8 { height: 2rem }
   .h-10 { height: 2.5rem }
   .h-20 { height: 5rem }
@@ -161,9 +152,7 @@
   .min-h-\[100px\] { min-height: 100px }
   .w-1\/3 { width: 33.3333% }
   .w-2\/3 { width: 66.6667% }
-  .w-5 { width: 1.25rem }
   .w-6 { width: 1.5rem }
-  .w-16 { width: 4rem }
   .w-20 { width: 5rem }
   .w-24 { width: 6rem }
   .w-\[300px\] { width: 300px }
@@ -174,14 +163,12 @@
   .max-w-\[1400px\] { max-width: 1400px }
   .max-w-sm { max-width: 24rem }
   .min-w-0 { min-width: 0 }
-  .min-w-\[115px\] { min-width: 115px }
   .min-w-\[124px\] { min-width: 124px }
   .min-w-\[155px\] { min-width: 155px }
   .flex-1 { flex: 1 }
   .flex-shrink-0 { flex-shrink: 0 }
   .shrink-0 { flex-shrink: 0 }
   .flex-grow { flex-grow: 1 }
-  .-translate-y-1\/2 { translate: 0 -50% }
   .scale-95 { scale: 95% }
   .transform { transform: none }
   .cursor-crosshair { cursor: crosshair }
@@ -235,13 +222,11 @@
   .leading-relaxed { line-height: 1.625 }
   .leading-tight { line-height: 1.25 }
   .font-bold { font-weight: 700 }
-  .font-medium { font-weight: 500 }
   .font-semibold { font-weight: 600 }
   .font-mono { font-family: var(--font-family-code) }
   .tracking-wider { letter-spacing: .05em }
   .tracking-widest { letter-spacing: .1em }
   .text-ellipsis { text-overflow: ellipsis }
-  .text-current { color: currentColor }
   .text-inherit { color: inherit }
   .text-accent { color: var(--accent) }
   .normal-case { text-transform: none }
@@ -254,19 +239,9 @@
   .duration-200 { transition-duration: .2s }
   .outline-none { outline-style: none }
   .select-none { -webkit-user-select: none; user-select: none }
-  @media (hover:hover) { .hover\:border-red-500:hover { border-color: oklch(63.7% .237 25.331) } }
-  @media (hover:hover) { .hover\:text-white:hover { color: #fff } }
-  @media (hover:hover) { .hover\:opacity-100:hover { opacity: 1 } }
-  .focus-visible\:outline-2:focus-visible { outline-style: solid; outline-width: 2px }
-  .focus-visible\:outline-offset-2:focus-visible { outline-offset: 2px }
-  @media (min-width:40rem) { .sm\:col-span-2 { grid-column: span 2/span 2 } }
-  @media (min-width:40rem) { .sm\:grid-cols-2 { grid-template-columns: repeat(2,minmax(0,1fr)) } }
-  @media (min-width:40rem) { .sm\:grid-cols-4 { grid-template-columns: repeat(4,minmax(0,1fr)) } }
-  @media (min-width:40rem) { .sm\:flex-row { flex-direction: row } }
-  @media (min-width:48rem) { .md\:p-6 { padding: 1.5rem } }
-  @media (min-width:48rem) { .md\:text-base { font-size: var(--font-size-base); line-height: calc(1.5 / 1) } }
-  @media (min-width:64rem) { .lg\:col-span-4 { grid-column: span 4/span 4 } }
-  @media (min-width:64rem) { .lg\:grid-cols-4 { grid-template-columns: repeat(4,minmax(0,1fr)) } }
+  @media (min-width:40rem) { .sm\:col-span-2 { grid-column: span 2/span 2 } .sm\:grid-cols-2 { grid-template-columns: repeat(2,minmax(0,1fr)) } .sm\:grid-cols-4 { grid-template-columns: repeat(4,minmax(0,1fr)) } .sm\:flex-row { flex-direction: row } }
+  @media (min-width:48rem) { .md\:p-6 { padding: 1.5rem } .md\:text-base { font-size: var(--font-size-base); line-height: calc(1.5 / 1) } }
+  @media (min-width:64rem) { .lg\:col-span-4 { grid-column: span 4/span 4 } .lg\:grid-cols-4 { grid-template-columns: repeat(4,minmax(0,1fr)) } }
 }
 
 /* ---------- Figtree (SIL OFL 1.1, see src/fonts/OFL.txt) ---------- */
@@ -984,11 +959,6 @@ input[type="range"]::-moz-range-thumb {
    touch target. */
 #logo-size {
   height: 40px;
-}
-@media (pointer: coarse) {
-  #logo-size {
-    height: 44px;
-  }
 }
 /* Readout beside the ratio label: tabular figures so it doesn't jitter. */
 #logo-size-value {
@@ -2593,12 +2563,6 @@ label[for="logo-file"],
     opacity: 0.55;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .qr-skeleton span {
-    animation: none;
-    opacity: 0.75;
-  }
-}
 
 /* Export block */
 .export-block {
@@ -2620,17 +2584,6 @@ label[for="logo-file"],
 #export-filename {
   text-align: center;
   font-size: var(--font-size-sm);
-}
-@media (max-width: 420px) {
-  /* Keep Copy / Save / Share link on one row: three stacked full-width
-     buttons pushed the preview card far too tall on phones. */
-  .export-row-sub {
-    gap: 6px;
-  }
-  .export-row-sub button {
-    padding: 6px;
-    font-size: var(--font-size-sm);
-  }
 }
 
 /* ---------- Scanner ---------- */
@@ -3083,24 +3036,6 @@ label[for="logo-file"],
   letter-spacing: normal;
   color: var(--text);
 }
-/* The hint used to open above the trigger, so on a phone — where the error
-   correction row sits near the top of the viewport — the panel was clipped
-   off-screen. Below 720px it becomes a sheet pinned to the bottom of the
-   viewport instead: always fully on screen and clear of the sticky header. */
-@media (max-width: 720px) {
-  .tooltip-content {
-    position: fixed;
-    top: auto;
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
-    width: auto;
-    max-width: none;
-    transform: none;
-    margin: 0;
-    z-index: 220;
-  }
-}
 
 /* ---------- Modals ---------- */
 #credits-modal,
@@ -3494,6 +3429,10 @@ label[for="logo-file"],
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+  .qr-skeleton span {
+    animation: none;
+    opacity: 0.75;
+  }
 }
 
 @media print {
@@ -3674,6 +3613,18 @@ label[for="logo-file"],
     min-width: 0;
     flex: 1 1 auto;
   }
+  .tooltip-content {
+    position: fixed;
+    top: auto;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    margin: 0;
+    z-index: 220;
+  }
 }
 
 /* Very small phones: keep the three tab labels from overflowing the rail. */
@@ -3715,6 +3666,13 @@ label[for="logo-file"],
   }
   .export-row-main {
     grid-template-columns: minmax(84px, auto) minmax(0, 1fr);
+  }
+  .export-row-sub {
+    gap: 6px;
+  }
+  .export-row-sub button {
+    padding: 6px;
+    font-size: var(--font-size-sm);
   }
 }
 
@@ -3857,7 +3815,8 @@ label[for="logo-file"],
   .custom-checkbox-label {
     min-height: 44px;
   }
-  input[type="range"] {
+  input[type="range"],
+  #logo-size {
     height: 44px;
   }
   .custom-select-trigger,

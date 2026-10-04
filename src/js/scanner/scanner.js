@@ -367,6 +367,7 @@ export function stopWebcamScan() {
     cancelAnimationFrame(state.scanner.animationFrameId);
     state.scanner.animationFrameId = null;
   }
+  clearVisibilityResume();
   DOM.btnToggleCamera.textContent = t("common.start");
   DOM.btnToggleCamera.setAttribute("aria-pressed", "false");
   setScanStatus("idle", t("scanner.statusIdle"));
@@ -537,6 +538,7 @@ let lastScanTime = 0;
 let canvasBuffer = null;
 let bufferCtx = null;
 let visibilityHandlerBound = false;
+let visibilityChangeHandler = null;
 // In main-thread fallback mode a successful decode pauses the loop for the
 // dedupe cooldown instead of hammering jsQR every frame forever.
 let fallbackResumeTimer = null;
@@ -546,6 +548,14 @@ function clearFallbackResume() {
     clearTimeout(fallbackResumeTimer);
     fallbackResumeTimer = null;
   }
+}
+
+function clearVisibilityResume() {
+  if (visibilityChangeHandler) {
+    document.removeEventListener("visibilitychange", visibilityChangeHandler);
+    visibilityChangeHandler = null;
+  }
+  visibilityHandlerBound = false;
 }
 
 function scheduleFallbackResume() {
@@ -573,10 +583,9 @@ function ensureVisibilityResume() {
       // Ignore in environments where stream mock doesn't support track properties
     }
   }
-  const onVisible = () => {
+  visibilityChangeHandler = () => {
     if (document.hidden) return;
-    visibilityHandlerBound = false;
-    document.removeEventListener("visibilitychange", onVisible);
+    clearVisibilityResume();
     if (state.scanner.stream) {
       try {
         state.scanner.stream.getVideoTracks().forEach((track) => {
@@ -590,7 +599,7 @@ function ensureVisibilityResume() {
       }
     }
   };
-  document.addEventListener("visibilitychange", onVisible);
+  document.addEventListener("visibilitychange", visibilityChangeHandler);
 }
 
 function scanTick(timestamp) {

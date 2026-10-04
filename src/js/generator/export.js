@@ -313,7 +313,18 @@ async function handleCopyClick() {
       notifyCopySuccess();
       return;
     }
-    const svgText = (info && info.svg) || (await (await getQrCode().getRawData("svg")).text());
+    let svgText = (info && info.svg) || "";
+    if (!svgText) {
+      try {
+        const qr = getQrCode();
+        if (qr && typeof qr.getRawData === "function") {
+          const raw = await qr.getRawData("svg");
+          if (raw && typeof raw.text === "function") svgText = await raw.text();
+        }
+      } catch (e) {
+        console.warn("[QR] raw SVG fallback failed:", e);
+      }
+    }
     if (!svgText) {
       notifyCopyFailure();
       return;

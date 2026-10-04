@@ -69,13 +69,14 @@ let inputHandlersReady = false;
 export function initInputHandlers() {
   if (inputHandlersReady) return;
   inputHandlersReady = true;
-  if (DOM.inputText) {
-    DOM.inputText.addEventListener("blur", () => compileDataString(true, true));
-    DOM.inputText.addEventListener("keydown", (e) => {
+  [DOM.inputText, DOM.phoneNumber].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("blur", () => compileDataString(true, true));
+    el.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) compileDataString(true, true);
     });
-    DOM.inputText.addEventListener("input", () => compileDataString(true, false));
-  }
+    el.addEventListener("input", () => compileDataString(true, false));
+  });
 
   [
     { c: DOM.inputContainerUrl, gen: false },
@@ -89,14 +90,6 @@ export function initInputHandlers() {
   ].forEach(({ c, gen }) => {
     if (c) wireContainerListeners(c, gen);
   });
-
-  if (DOM.phoneNumber) {
-    DOM.phoneNumber.addEventListener("blur", () => compileDataString(true, true));
-    DOM.phoneNumber.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") compileDataString(true, true);
-    });
-    DOM.phoneNumber.addEventListener("input", () => compileDataString(true, false));
-  }
 
   const btnTogglePass = document.getElementById("btn-toggle-pass");
   if (btnTogglePass) {

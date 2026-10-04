@@ -38,10 +38,10 @@ const PRECACHE = [
   "./favicon.svg?v=76aeff07",
   "./icon-192x192.png",
   "./icon-512x512.png",
-  "./dist/bundle.js?v=86b91aca",
+  "./dist/bundle.js?v=97d62712",
   // Precache the exact versioned stylesheet URL the page requests so the
   // first controlled load is both fresh and offline-capable.
-  "./src/css/style.min.css?v=878d3b55",
+  "./src/css/style.min.css?v=1ecb5223",
   // Figtree is the default theme font; the other theme families are cached on
   // first use of their theme (stale-while-revalidate below), which keeps the
   // install payload small.

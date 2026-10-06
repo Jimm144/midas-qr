@@ -124,6 +124,13 @@ function setupHarness({ stores = new Map(), source = SW_SOURCE } = {}) {
   network.resolve = async (url) => {
     const rel = new URL(url).pathname.slice(1).split("?")[0];
     const file = rel === "" || rel === "index.html" ? "index.html" : rel;
+    // Generated build outputs are not part of the source tree, so a clean
+    // checkout has no copy on disk (CI runs the tests before the build). Treat
+    // them as fetchable here; their real existence is enforced by the build's
+    // check-sw.mjs, which runs against the built tree before deploy.
+    if (/^(dist\/bundle\.js|src\/css\/style\.min\.css)$/.test(file)) {
+      return new MockResponse(file, { status: 200 });
+    }
     try {
       fs.statSync(file);
       return new MockResponse(file, { status: 200 });
@@ -201,6 +208,10 @@ describe("sw.js precache list", () => {
     for (const entry of allEntries) {
       const path = entry.replace(/\?.*$/, "");
       if (path === "./") continue;
+      // Generated build outputs live in the built tree, not in source control
+      // (dist/ is gitignored), so a clean checkout has no copy. Their real
+      // existence is enforced by the build's check-sw.mjs before deploy.
+      if (/^(\.\/)?(dist\/bundle\.js|src\/css\/style\.min\.css)$/.test(path)) continue;
       expect(fs.existsSync(path), `missing ${entry}`).toBe(true);
     }
     const refs = [

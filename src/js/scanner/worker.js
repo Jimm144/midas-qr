@@ -12,9 +12,31 @@ importScripts("../../lib/jsqr.min.js");
  */
 self.addEventListener("message", function (e) {
   const payload = e && e.data && typeof e.data === "object" ? e.data : {};
-  const { imageData, width, height, inversionAttempts, mode, id, session } = payload;
+  let { imageData, width, height, inversionAttempts, mode, id, session } = payload;
 
   try {
+    // Prefer a transferred ImageBitmap decoded via OffscreenCanvas when the
+    // sender used the createImageBitmap fast path: no main-thread
+    // getImageData, no 2MB copy. Falls back to the ImageData path below.
+    if (!imageData && payload.bitmap && width && height && typeof OffscreenCanvas !== "undefined") {
+      try {
+        const canvas = new OffscreenCanvas(width, height);
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (ctx) {
+          ctx.drawImage(payload.bitmap, 0, 0, width, height);
+          imageData = ctx.getImageData(0, 0, width, height);
+        }
+        if (payload.bitmap.close) {
+          try {
+            payload.bitmap.close();
+          } catch (_closeErr) {
+            // Already neutered by transfer.
+          }
+        }
+      } catch (_bitmapErr) {
+        // Fall through to invalid-image-data below.
+      }
+    }
     if (!imageData || !imageData.data || !width || !height) {
       self.postMessage({ success: false, error: "invalid-image-data", mode, id, session });
       return;

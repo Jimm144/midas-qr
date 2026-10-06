@@ -37,8 +37,9 @@
 const stack = [];
 let outsideBound = false;
 
-/** Color-picker parity: buttons and inputs participate in the Tab wrap. */
-const TRAP_SELECTOR = 'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+/** Color-picker parity: buttons, inputs, selects, textareas, links participate in the Tab wrap. */
+const TRAP_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** True when `target` is `node` or inside it. @param {Node|null|undefined} node @param {EventTarget|null} target @returns {boolean} */
 function containsTarget(node, target) {

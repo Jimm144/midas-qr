@@ -1,9 +1,8 @@
 import { DOM } from "../ui/dom.js";
 import { state } from "../state";
 import { resolveFrameGeometry, frameOutputSize } from "./layout.js";
-import { getQrCode } from "./qr-instance.js";
 import { renderOnce } from "./generator.js";
-import { copyTextToClipboard, snapshot } from "../utils.js";
+import { copyTextToClipboard } from "../utils.js";
 import { announce } from "../ui/announce.js";
 import { t } from "../i18n.js";
 import { flashButton } from "../ui/components.js";
@@ -82,16 +81,23 @@ async function rasterizeSvg(svgStr, ext, w, h, backgroundFill) {
 
 /**
  * Render the live config through the queued one-off renderer and return the
- * info shape exportRenderedBlob consumes. Using getRenderInfo() directly races
- * a state change that is still rendering (or debounced): a removed logo could
- * still appear in the downloaded file when Download was clicked before the
- * re-render finished. The renderer's memo makes this a no-op when the preview
- * is already current.
+ * info shape exportRenderedBlob consumes. Called with no overrides so the
+ * render reads the live state at execution time: snapshotting the whole
+ * generator here and replaying it as overrides used to clobber edits the user
+ * made between the click and the render. Callers export the returned artifact
+ * itself, never the published global (which a concurrent render may replace).
  */
 async function currentRenderInfo() {
   try {
-    const result = await renderOnce(snapshot(state.generator));
-    return { svg: result.svg, w: result.w, h: result.h };
+    const result = await renderOnce();
+    if (!result || typeof result.svg !== "string") return null;
+    return {
+      svg: result.svg,
+      w: result.w,
+      h: result.h,
+      moduleCount: result.moduleCount,
+      userMarginPx: result.userMarginPx,
+    };
   } catch {
     return null;
   }
@@ -236,13 +242,10 @@ async function handleDownloadClick() {
       downloadBlob(blob, `${filename}.${ext}`);
       announce(t("export.downloadedFormat", { format: ext.toUpperCase() }));
     } else {
-      const qr = getQrCode();
-      if (!qr || typeof qr.download !== "function") {
-        announce(t("export.failedFormat", { format: ext.toUpperCase() }));
-        return;
-      }
-      await qr.download({ name: filename, extension: ext });
-      announce(t("export.downloadedFormat", { format: ext.toUpperCase() }));
+      // Fail closed: falling back to the library's raw download (or to the
+      // stale published SVG) shipped different artwork than the preview —
+      // masks, frames and logos silently missing. No render, no file.
+      announce(t("export.failedFormat", { format: ext.toUpperCase() }));
     }
   } catch (err) {
     console.error("[QR] export failed:", err);
@@ -313,18 +316,10 @@ async function handleCopyClick() {
       notifyCopySuccess();
       return;
     }
-    let svgText = (info && info.svg) || "";
-    if (!svgText) {
-      try {
-        const qr = getQrCode();
-        if (qr && typeof qr.getRawData === "function") {
-          const raw = await qr.getRawData("svg");
-          if (raw && typeof raw.text === "function") svgText = await raw.text();
-        }
-      } catch (e) {
-        console.warn("[QR] raw SVG fallback failed:", e);
-      }
-    }
+    // The freshly awaited render above is the only source: a raw library
+    // re-read here would ship different artwork than the preview (fail
+    // closed instead).
+    const svgText = (info && info.svg) || "";
     if (!svgText) {
       notifyCopyFailure();
       return;

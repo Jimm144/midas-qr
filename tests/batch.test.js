@@ -156,7 +156,11 @@ describe("runBatchExport progress and failure isolation", () => {
 
     await runBatchExport(["row-value"]);
 
-    expect(exportRenderedBlob).toHaveBeenCalledWith("png", null, { dataString: "row-value", ecc: "H" });
+    expect(exportRenderedBlob).toHaveBeenCalledWith(
+      "png",
+      expect.objectContaining({ svg: "<svg/>" }),
+      expect.objectContaining({ dataString: "row-value", ecc: "H" })
+    );
   });
 
   it("sanitizes each batch filename with the shared filename sanitizer", async () => {

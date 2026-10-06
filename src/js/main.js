@@ -50,18 +50,28 @@ const initApp = () => {
   try {
     initDOM();
     initI18n();
+    // Boot spinner: the first generateQR is async (encoder load + debounce),
+    // so show the loading veil immediately instead of a blank plate.
+    if (DOM.qrLoading) {
+      setLoadingStepFallback();
+      DOM.qrLoading.classList.remove("hidden");
+    }
     refreshDateTimePickers();
     if (DOM.languageSelect) DOM.languageSelect.value = getLocale();
     resetSampleForms();
-    loadState();
+    const loadedSchemaVersion = loadState();
     // Restore what the user typed before the reload (share URLs decoded next
     // still win, since decodeStateFromUrl repopulates from the payload).
     applyGeneratorFields(state.generator.fields);
-    // Stale-state guard: a mask saved by an older session used to come back as
-    // a circle trapping the code inside frames. Clear it before share URLs
-    // decode, so an explicit ?mask= link still wins.
-    state.generator.maskType = "none";
-    state.generator.qrRadius = 0;
+    // Stale-state guard: a mask saved by an older (pre-versioned, schema 0)
+    // session used to come back as a circle trapping the code inside frames.
+    // Only legacy blobs get the reset — clearing it unconditionally would wipe
+    // a current-schema design (or a share-URL mask) on every boot. Runs before
+    // share URLs decode, so an explicit ?mask= link still wins.
+    if (loadedSchemaVersion === 0) {
+      state.generator.maskType = "none";
+      state.generator.qrRadius = 0;
+    }
     decodeStateFromUrl();
     // Pin the frame color to what it currently resolves to, so later body
     // colour changes can't drag the frame along.
@@ -98,21 +108,15 @@ const initApp = () => {
     applyHydratedPayload();
     generateQR(true);
     initInstallButton();
+    // Every locale-dependent repaint subscribes to app:localechange, so a
+    // locale change from ANY source (language select, share-link locale,
+    // future auto-detect) refreshes the UI — not just the select's change
+    // event. The select itself only sets the locale now.
+    document.addEventListener("app:localechange", refreshLocaleDependentUI);
     if (DOM.languageSelect) {
       DOM.languageSelect.addEventListener("change", (event) => {
         const select = /** @type {HTMLSelectElement} */ (event.currentTarget);
-        if (setLocale(select.value)) {
-          document.querySelectorAll(".custom-select-wrapper select").forEach((customSelect) => {
-            refreshCustomSelect(/** @type {HTMLSelectElement} */ (customSelect));
-          });
-          document.querySelectorAll("[data-searchable-select] select").forEach((searchSelect) => {
-            syncSearchableSelect(/** @type {HTMLSelectElement} */ (searchSelect));
-          });
-          refreshDateTimePickers();
-          renderHistoryList();
-          renderGeneratorHistory();
-          generateQR(true);
-        }
+        setLocale(select.value);
       });
     }
   } catch (err) {
@@ -120,6 +124,33 @@ const initApp = () => {
     showFatalError(err);
   }
 };
+
+/** Loading label before i18n is ready (initI18n runs first, so usually translated). */
+function setLoadingStepFallback() {
+  if (!DOM.qrLoading) return;
+  const label = DOM.qrLoading.querySelector("span");
+  if (label && !label.textContent.trim()) label.textContent = "Generating…";
+  DOM.qrLoading.classList.remove("hidden");
+}
+
+/**
+ * Repaint everything that embeds locale-specific strings after a locale
+ * change: translated selects, date/time pickers, history timestamps/names
+ * (re-derived from ids in the active locale) and the live preview.
+ */
+function refreshLocaleDependentUI() {
+  if (DOM.languageSelect) DOM.languageSelect.value = getLocale();
+  document.querySelectorAll(".custom-select-wrapper select").forEach((customSelect) => {
+    refreshCustomSelect(/** @type {HTMLSelectElement} */ (customSelect));
+  });
+  document.querySelectorAll("[data-searchable-select] select").forEach((searchSelect) => {
+    syncSearchableSelect(/** @type {HTMLSelectElement} */ (searchSelect));
+  });
+  refreshDateTimePickers();
+  renderHistoryList();
+  renderGeneratorHistory();
+  generateQR(true);
+}
 
 /** Visible fallback UI if init crashes — keeps users from staring at a blank shell. */
 function showFatalError(err) {

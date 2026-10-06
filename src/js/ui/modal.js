@@ -92,8 +92,9 @@ document.addEventListener("app:localechange", refreshModalTranslations);
 export function closeModal(modal) {
   if (!modal) return;
   const idx = trapStack.findIndex((entry) => entry.modal === modal);
+  let trap = null;
   if (idx !== -1) {
-    const trap = trapStack[idx];
+    trap = trapStack[idx];
     trapStack.splice(idx, 1);
     modal.removeEventListener("keydown", trap.handler);
     if (trap.addedTabindex) modal.removeAttribute("tabindex");
@@ -109,8 +110,19 @@ export function closeModal(modal) {
   }
   const prev = trapStack[trapStack.length - 1];
   if (prev) {
-    const f = getFocusable(prev.modal);
-    if (f.length > 0) f[0].focus();
+    // Stacked restore: the closed entry already restored its opener (often
+    // inside the previous dialog). Only fall back to the previous dialog's
+    // first focusable when there was nothing restorable, so the opener keeps
+    // focus instead of being clobbered.
+    const restored =
+      trap &&
+      trap.previouslyFocused &&
+      trap.previouslyFocused.isConnected !== false &&
+      document.activeElement === trap.previouslyFocused;
+    if (!restored) {
+      const f = getFocusable(prev.modal);
+      if (f.length > 0) f[0].focus();
+    }
   }
   // Never leave focus on content inside a now-hidden dialog (e.g. when the
   // modal was opened without a restorable trigger such as document.body).

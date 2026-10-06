@@ -36,17 +36,34 @@ export function createUndoableList({
   }
 
   function removeAt(idx) {
-    const removed = getItems().splice(idx, 1)[0];
-    if (removed === undefined) return;
+    const live = getItems();
+    if (!Array.isArray(live)) return;
+    // Copy-on-write: never splice the live array in place — callers hold that
+    // reference (state lists do), so an in-place splice mutates shared state
+    // even when persist()/render throws midway.
+    const at = Number(idx);
+    if (!Number.isInteger(at) || at < 0 || at >= live.length) return;
+    const removed = live[at];
     const removedSnapshot = snapshot(removed);
+    const removedId = removed && typeof removed === "object" ? removed.id : removed;
+    setItems(live.slice(0, at).concat(live.slice(at + 1)));
     persist();
     render();
     showUndoToast(undoLabels.remove, () => {
-      // The list may have changed while the toast was visible: clamp the old
-      // index so undoing a delete can never corrupt the array shape.
-      const live = getItems();
-      const insertAt = Math.min(Math.max(0, idx), live.length);
-      live.splice(insertAt, 0, removedSnapshot);
+      // Merge by stable id: if the removed id is already back (re-added while
+      // the toast was visible), don't duplicate it; else clamp-insert.
+      const current = getItems();
+      if (!Array.isArray(current)) return;
+      if (
+        removedId !== undefined &&
+        current.some((it) => (it && typeof it === "object" ? it.id : it) === removedId)
+      ) {
+        persist();
+        render();
+        return;
+      }
+      const insertAt = Math.min(Math.max(0, at), current.length);
+      setItems(current.slice(0, insertAt).concat([removedSnapshot], current.slice(insertAt)));
       persist();
       render();
     });
@@ -57,7 +74,20 @@ export function createUndoableList({
     if (!items || items.length === 0) return false;
     const clearedSnapshot = snapshot(items);
     replaceAll([]);
-    showUndoToast(undoLabels.clear, () => replaceAll(clearedSnapshot));
+    showUndoToast(undoLabels.clear, () => {
+      // Merge, don't overwrite: items added after Clear (Clear+add+Undo) must
+      // survive — restore only cleared ids that are still missing, keeping
+      // current (newer) items first.
+      const current = getItems() || [];
+      const currentIds = new Set(
+        current.map((it) => (it && typeof it === "object" ? it.id : it))
+      );
+      const missing = clearedSnapshot.filter((it) => {
+        const id = it && typeof it === "object" ? it.id : it;
+        return !currentIds.has(id);
+      });
+      replaceAll(current.concat(missing));
+    });
     return true;
   }
 

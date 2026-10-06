@@ -28,7 +28,8 @@ import { checkUrlValid } from "./formatters.js";
 import { cpActiveTarget, updateFromHex, updateColorState, paintSwatch } from "../ui/color-picker.js";
 import { announce } from "../ui/announce.js";
 import { t } from "../i18n.js";
-import { flashButton } from "../ui/components.js";
+import { flashButton, refreshCustomSelect, syncCustomSelect } from "../ui/components.js";
+import { syncSearchableSelect } from "../ui/searchable-select.js";
 import { generateQR, syncLogoSizeReadout } from "./generator.js";
 import { renderGeneratorHistory, saveGeneratorHistory } from "./history.js";
 import { encodeStateToUrl } from "../share.js";
@@ -92,55 +93,106 @@ export function initColorControls() {
 
 let dimensionControlsReady = false;
 
+/**
+ * Validate on `input` (flag range errors, keep the user's draft text), commit
+ * the clamped value on `change`/`blur`/`Enter` with writeback + render.
+ */
+function wireNumericInput(el, { parse, fallback, bounds, commit, mirror } = {}) {
+  if (!el) return;
+  const readRaw = () => parse(el.value);
+  el.addEventListener("input", () => {
+    // Validate only: the draft stays untouched (no clamping, no writeback, no
+    // render) so partially typed values like "1" on the way to "1000" survive.
+    const raw = readRaw();
+    if (raw === null || Number.isNaN(raw)) el.setAttribute("aria-invalid", "true");
+    else el.removeAttribute("aria-invalid");
+  });
+  const commitFromField = () => {
+    const raw = readRaw();
+    const value = clampNumber(raw === null || Number.isNaN(raw) ? fallback : raw, bounds);
+    el.removeAttribute("aria-invalid");
+    commit(value, { writeback: true });
+    if (mirror) mirror(value);
+  };
+  el.addEventListener("change", commitFromField);
+  el.addEventListener("blur", commitFromField);
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitFromField();
+    }
+  });
+}
+
 /** Width / height / border-radius / margin. */
 export function initDimensionControls() {
   if (dimensionControlsReady) return;
   dimensionControlsReady = true;
   // QR modules are square, so width and height are linked: editing either
-  // updates the other. Both are clamped to the shared numeric bounds and the
-  // clamped value is written back, so an out-of-range entry can never render,
-  // export or travel in a share link at a size the recipient would change.
-  if (DOM.qrWidth) {
-    DOM.qrWidth.addEventListener("input", (e) => {
-      const val = parseInt(e.target.value, 10);
-      const width = clampNumber(isNaN(val) ? DEFAULT_WIDTH : val, GENERATOR_NUMERIC_BOUNDS.width);
-      state.generator.width = width;
-      state.generator.height = width;
-      e.target.value = String(width);
-      if (DOM.qrHeight) DOM.qrHeight.value = String(width);
+  // updates the other. Values are validated live on input (draft preserved)
+  // and clamped + written back on commit (change/blur/Enter), so an
+  // out-of-range entry can never render, export or travel in a share link.
+  const parseInt10 = (v) => {
+    if (String(v).trim() === "") return null;
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? n : null;
+  };
+  if (DOM.qrWidth || DOM.qrHeight) {
+    const commitLinked = (value, { writeback }) => {
+      state.generator.width = value;
+      state.generator.height = value;
+      if (writeback) {
+        if (DOM.qrWidth) DOM.qrWidth.value = String(value);
+        if (DOM.qrHeight) DOM.qrHeight.value = String(value);
+      }
       generateQR();
-    });
-  }
-  if (DOM.qrHeight) {
-    DOM.qrHeight.addEventListener("input", (e) => {
-      const val = parseInt(e.target.value, 10);
-      const height = clampNumber(isNaN(val) ? DEFAULT_HEIGHT : val, GENERATOR_NUMERIC_BOUNDS.height);
-      state.generator.height = height;
-      state.generator.width = height;
-      e.target.value = String(height);
-      if (DOM.qrWidth) DOM.qrWidth.value = String(height);
-      generateQR();
-    });
+    };
+    const mirror = (value) => {
+      if (DOM.qrWidth) DOM.qrWidth.value = String(value);
+      if (DOM.qrHeight) DOM.qrHeight.value = String(value);
+    };
+    if (DOM.qrWidth)
+      wireNumericInput(DOM.qrWidth, {
+        parse: parseInt10,
+        fallback: DEFAULT_WIDTH,
+        bounds: GENERATOR_NUMERIC_BOUNDS.width,
+        commit: commitLinked,
+        mirror,
+      });
+    if (DOM.qrHeight)
+      wireNumericInput(DOM.qrHeight, {
+        parse: parseInt10,
+        fallback: DEFAULT_HEIGHT,
+        bounds: GENERATOR_NUMERIC_BOUNDS.height,
+        commit: commitLinked,
+        mirror,
+      });
   }
   if (DOM.qrRadius) {
-    DOM.qrRadius.addEventListener("input", (e) => {
-      const val = parseInt(e.target.value, 10);
-      // Clamp and write back, like width/height above: the HTML `max` does not
-      // stop typing, and an unclamped value would survive in state until the
-      // next load silently changed it.
-      const radius = clampNumber(isNaN(val) ? 0 : val, GENERATOR_NUMERIC_BOUNDS.qrRadius);
-      state.generator.qrRadius = radius;
-      e.target.value = String(radius);
-      generateQR();
+    wireNumericInput(DOM.qrRadius, {
+      parse: parseInt10,
+      fallback: 0,
+      bounds: GENERATOR_NUMERIC_BOUNDS.qrRadius,
+      commit: (value, { writeback }) => {
+        // Clamp and write back on commit, like width/height: the HTML `max`
+        // does not stop typing, and an unclamped value would survive in state
+        // until the next load silently changed it.
+        state.generator.qrRadius = value;
+        if (writeback) DOM.qrRadius.value = String(value);
+        generateQR();
+      },
     });
   }
   if (DOM.qrMargin) {
-    DOM.qrMargin.addEventListener("input", (e) => {
-      const val = parseInt(e.target.value, 10);
-      const margin = clampNumber(isNaN(val) ? 0 : val, GENERATOR_NUMERIC_BOUNDS.margin);
-      state.generator.margin = margin;
-      e.target.value = String(margin);
-      generateQR();
+    wireNumericInput(DOM.qrMargin, {
+      parse: parseInt10,
+      fallback: 0,
+      bounds: GENERATOR_NUMERIC_BOUNDS.margin,
+      commit: (value, { writeback }) => {
+        state.generator.margin = value;
+        if (writeback) DOM.qrMargin.value = String(value);
+        generateQR();
+      },
     });
   }
 }
@@ -232,11 +284,23 @@ export function initShapeAndFrameControls() {
     if (state.generator.frameStyle !== "none") generateQR();
   });
   on(DOM.qrFrameSize, "input", (e) => {
+    // Validate only; the clamped commit + writeback happen on change/blur so
+    // partially typed drafts are preserved while typing.
     const val = parseFloat(e.target.value);
-    if (!Number.isFinite(val)) return;
-    state.generator.frameTextSize = clampNumber(val, FRAME_TEXT_SIZE_BOUNDS);
-    if (state.generator.frameStyle !== "none") generateQR();
+    if (!Number.isFinite(val)) e.target.setAttribute("aria-invalid", "true");
+    else e.target.removeAttribute("aria-invalid");
   });
+  const commitFrameSize = () => {
+    if (!DOM.qrFrameSize) return;
+    const val = parseFloat(DOM.qrFrameSize.value);
+    const committed = clampNumber(Number.isFinite(val) ? val : FRAME_TEXT_SIZE_BOUNDS.min, FRAME_TEXT_SIZE_BOUNDS);
+    DOM.qrFrameSize.removeAttribute("aria-invalid");
+    DOM.qrFrameSize.value = String(committed);
+    state.generator.frameTextSize = committed;
+    if (state.generator.frameStyle !== "none") generateQR();
+  };
+  on(DOM.qrFrameSize, "change", commitFrameSize);
+  on(DOM.qrFrameSize, "blur", commitFrameSize);
   on(DOM.qrFrameTextEnabled, "change", (e) => {
     state.generator.frameTextEnabled = Boolean(e.target.checked);
     syncFrameTextControls();
@@ -258,7 +322,10 @@ function forceEccHighForLogo() {
   if (state.generator.ecc !== "H") {
     if (DOM.qrEcc) DOM.qrEcc.value = "H";
     state.generator.ecc = "H";
-    if (DOM.qrEcc) DOM.qrEcc.dispatchEvent(new Event("change"));
+    // Never cascade during a programmatic sync: the caller already refreshes
+    // widgets, and a change event here would re-enter shape/frame handlers.
+    if (!isSyncSuppressing() && DOM.qrEcc) DOM.qrEcc.dispatchEvent(new Event("change"));
+    else if (DOM.qrEcc) refreshSelectWidgets(DOM.qrEcc);
   }
 }
 
@@ -335,7 +402,9 @@ export function initLogoControls() {
     if (file.size > MAX_LOGO_BYTES) {
       if (DOM.qrLoading) DOM.qrLoading.classList.add("hidden");
       showWarning(t("image.tooLarge", { size: (file.size / (1024 * 1024)).toFixed(1) }));
-      if (DOM.btnClearLogo) DOM.btnClearLogo.classList.remove("hidden");
+      // Only reveal Clear when a logo actually exists: an oversized reject
+      // with no previous logo must not unhide a dead button.
+      if (state.generator.logoDataUrl && DOM.btnClearLogo) DOM.btnClearLogo.classList.remove("hidden");
       return;
     }
     if (file.type && !file.type.startsWith("image/")) {
@@ -369,8 +438,8 @@ export function initLogoControls() {
     reader.readAsDataURL(file);
   });
 
-  on(DOM.logoUrl, "input", (e) => {
-    const val = e.target.value.trim();
+  const commitLogoUrl = (rawValue, { fromChange } = {}) => {
+    const val = String(rawValue == null ? "" : rawValue).trim();
     if (val === "") {
       clearWarning();
       // Emptying the box clears the logo outright: the old guard also required
@@ -385,7 +454,29 @@ export function initLogoControls() {
       return;
     }
     if (val.startsWith("http://") || val.startsWith("https://")) {
-      showWarning(t("image.remoteLogo"));
+      // A remote URL fetches (and leaks IP/UA) the moment it renders. Confirm
+      // like share.js's remote-logo path; deny (empty confirm) keeps state.
+      let host;
+      try {
+        host = new URL(val).host || val;
+      } catch {
+        showWarning(t("image.logoUrlInvalid"));
+        return;
+      }
+      let confirmed;
+      try {
+        confirmed =
+          typeof window !== "undefined" && typeof window.confirm === "function"
+            ? window.confirm(t("share.remoteLogoConfirm", { host }))
+            : false;
+      } catch {
+        confirmed = false;
+      }
+      if (!confirmed) {
+        showWarning(t("image.remoteLogo"));
+        return;
+      }
+      clearWarning();
     } else {
       clearWarning();
     }
@@ -395,22 +486,58 @@ export function initLogoControls() {
     if (DOM.btnClearLogo) DOM.btnClearLogo.classList.remove("hidden");
     forceEccHighForLogo();
     generateQR(true);
+    void fromChange;
+  };
+
+  on(DOM.logoUrl, "input", (e) => {
+    // Live-validate only: committing an http(s) URL on every keystroke would
+    // fetch (IP leak) before the user finishes typing. Commit on change/blur.
+    const val = e.target.value.trim();
+    if (val !== "" && !isSafeLogoDataUrl(val)) showWarning(t("image.logoUrlInvalid"));
   });
+  on(DOM.logoUrl, "change", (e) => commitLogoUrl(e.target.value, { fromChange: true }));
 
   on(DOM.logoMargin, "input", (e) => {
+    // Validate only; commit (clamp + writeback + render) on change/blur.
     const val = parseInt(e.target.value, 10);
-    const margin = clampNumber(isNaN(val) ? 0 : val, GENERATOR_NUMERIC_BOUNDS.imageMargin);
-    state.generator.imageMargin = margin;
-    e.target.value = String(margin);
-    generateQR();
+    if (!Number.isFinite(val)) e.target.setAttribute("aria-invalid", "true");
+    else e.target.removeAttribute("aria-invalid");
   });
+  const commitLogoMargin = () => {
+    if (!DOM.logoMargin) return;
+    const val = parseInt(DOM.logoMargin.value, 10);
+    const margin = clampNumber(Number.isFinite(val) ? val : 0, GENERATOR_NUMERIC_BOUNDS.imageMargin);
+    DOM.logoMargin.removeAttribute("aria-invalid");
+    DOM.logoMargin.value = String(margin);
+    state.generator.imageMargin = margin;
+    generateQR();
+  };
+  on(DOM.logoMargin, "change", commitLogoMargin);
+  on(DOM.logoMargin, "blur", commitLogoMargin);
   on(DOM.logoSize, "input", (e) => {
-    const val = parseFloat(e.target.value) || DEFAULT_LOGO_SIZE;
+    const val = parseFloat(e.target.value);
+    if (!Number.isFinite(val)) {
+      e.target.setAttribute("aria-invalid", "true");
+      return;
+    }
+    e.target.removeAttribute("aria-invalid");
     // A logo larger than ~half the code hurts scannability even at ECC H.
     state.generator.logoSizeProportion = Math.min(0.5, Math.max(0.1, val));
     syncLogoSizeReadout();
     generateQR();
   });
+  const commitLogoSize = () => {
+    if (!DOM.logoSize) return;
+    const val = parseFloat(DOM.logoSize.value) || DEFAULT_LOGO_SIZE;
+    const committed = Math.min(0.5, Math.max(0.1, val));
+    DOM.logoSize.removeAttribute("aria-invalid");
+    DOM.logoSize.value = String(committed);
+    state.generator.logoSizeProportion = committed;
+    syncLogoSizeReadout();
+    generateQR();
+  };
+  on(DOM.logoSize, "change", commitLogoSize);
+  on(DOM.logoSize, "blur", commitLogoSize);
 
   on(DOM.btnClearLogo, "click", () => {
     clearWarning();
@@ -446,6 +573,8 @@ export function initBackgroundImageControls() {
 
   on(DOM.bgImageFile, "change", (e) => {
     const file = e.target.files && e.target.files[0];
+    // Reset so re-picking the same file fires `change` again (parity with logo).
+    e.target.value = "";
     if (!file) return;
     if (file.size > MAX_LOGO_BYTES) {
       warn(t("image.tooLarge", { size: (file.size / (1024 * 1024)).toFixed(1) }));
@@ -499,15 +628,33 @@ export function initSaveButton() {
     if (!state.generator.dataString || !state.generator.isValid) return;
     captureGeneratorFields();
     const configCopy = snapshot(state.generator);
+    // Strip multi-MB images from the history snapshot BEFORE persisting: the
+    // live state keeps them, but a 50-entry history of 4 MB logos can never
+    // fit in localStorage — persisting first and trimming after quota wastes
+    // a failed write and a re-render.
+    const tooBig = (v) => typeof v === "string" && v.length >= 64 * 1024;
+    if (tooBig(configCopy.logoDataUrl) || tooBig(configCopy.bgImageDataUrl)) {
+      console.warn("[history] Large images stripped from history snapshot before persist.");
+      configCopy.logoDataUrl = null;
+      configCopy.bgImageDataUrl = null;
+    }
     const timestamp = Date.now();
     const dateStr = formatHistoryTimestamp(timestamp);
     state.generatorHistory.unshift({ id: timestamp, config: configCopy, time: dateStr });
     if (state.generatorHistory.length > MAX_GENERATOR_HISTORY) state.generatorHistory.pop();
-    saveGeneratorHistory();
+    const ok = saveGeneratorHistory();
     renderGeneratorHistory();
-    DOM.btnSave.textContent = t("controls.saved");
-    DOM.btnSave.disabled = true;
-    announce(t("controls.savedToHistory"));
+    if (ok) {
+      DOM.btnSave.textContent = t("controls.saved");
+      DOM.btnSave.disabled = true;
+      announce(t("controls.savedToHistory"));
+    } else {
+      // Explicit failure: don't claim "Saved" when persistence failed.
+      DOM.btnSave.textContent = t("common.save");
+      DOM.btnSave.disabled = false;
+      announce(t("history.exportFailed"));
+    }
+    return ok;
   });
 }
 
@@ -546,7 +693,20 @@ export function initShareLinkButton() {
 }
 
 /** Push current state values into the swatches and input fields, then dispatch change events + initial render. */
+export let syncSuppressCount = 0;
+export function isSyncSuppressing() {
+  return syncSuppressCount > 0;
+}
 export function syncUIFromState() {
+  syncSuppressCount += 1;
+  try {
+    internalSyncUIFromState();
+  } finally {
+    syncSuppressCount = Math.max(0, syncSuppressCount - 1);
+  }
+}
+
+function internalSyncUIFromState() {
   const setValue = (el, value) => {
     if (el) el.value = String(value);
   };
@@ -598,8 +758,8 @@ export function syncUIFromState() {
     DOM.bgImageWarning.classList.add("hidden");
   }
 
-  if (DOM.themeSelect) DOM.themeSelect.dispatchEvent(new Event("change"));
-  if (DOM.modeSelect) DOM.modeSelect.dispatchEvent(new Event("change"));
+  if (DOM.themeSelect) refreshSelectWidgets(DOM.themeSelect);
+  if (DOM.modeSelect) refreshSelectWidgets(DOM.modeSelect);
 
   [
     DOM.qrEcc,
@@ -609,8 +769,27 @@ export function syncUIFromState() {
     DOM.qrMaskType,
     DOM.qrFrameStyle,
     DOM.dataType,
+    DOM.qrFrameFont,
   ].forEach((el) => {
-    if (el) el.dispatchEvent(new Event("change"));
+    // Suppressed by design: dispatching change here re-entered the shape/frame
+    // handlers as cascades (frame default radius/text stomping restored state).
+    // Refresh the visual widgets directly instead.
+    if (el) refreshSelectWidgets(el);
   });
   generateQR();
+}
+
+function refreshSelectWidgets(el) {
+  if (!el) return;
+  try {
+    if (typeof refreshCustomSelect === "function") refreshCustomSelect(el);
+    else if (typeof syncCustomSelect === "function") syncCustomSelect(el);
+  } catch {
+    /* widget refresh is best-effort during hydration */
+  }
+  try {
+    if (typeof syncSearchableSelect === "function") syncSearchableSelect(el);
+  } catch {
+    /* ignore */
+  }
 }

@@ -31,7 +31,14 @@ export interface ThemeFamily {
   dark: ThemeVariant;
   light: ThemeVariant;
   /** UI typography applied by applyTheme (all self-hosted). */
-  fonts: { body: string; heading: string; code: string };
+  fonts: {
+    body: string;
+    heading: string;
+    display: string;
+    code: string;
+    scale: number;
+    headingWeight: string;
+  };
 }
 
 /**
@@ -142,7 +149,9 @@ export const themes: Record<string, ThemeFamily> = {
       bgElevated: "#EBEBEB",
       inset: "#FFFFFF",
       border: "rgba(0, 0, 0, 0.08)",
-      borderStrong: "#A6A6A6",
+      // Darkened from #A6A6A6: the old value managed only 2.43:1 on white,
+      // below the 3:1 floor for non-text UI chrome.
+      borderStrong: "#767676",
       text: "#171717",
       muted: "#525252",
       accent: "#262626",
@@ -244,9 +253,12 @@ export const themes: Record<string, ThemeFamily> = {
       accent: "#3E481D",
       accentContrast: "#FFFFFF",
       accentSoft: "rgba(62, 72, 29, 0.08)",
-      danger: "#C42B2B",
-      success: "#3D7A00",
-      warning: "#8A6200",
+      // Darkened from #C42B2B / #3D7A00 / #8A6200: the old status colors passed
+      // on bg and surface but fell to ~4.1-4.4:1 on bgElevated, below 4.5:1
+      // for status text rendered on elevated surfaces.
+      danger: "#B3261E",
+      success: "#356B00",
+      warning: "#755500",
       shadowPop: "0 12px 24px rgba(62, 72, 29, 0.15), 0 4px 6px rgba(62, 72, 29, 0.10)",
       shadowColor: "#3E481D",
       radiusInner: "6px",

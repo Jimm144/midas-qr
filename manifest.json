@@ -1,9 +1,9 @@
 {
-  "id": "./index.html",
+  "id": "./",
   "name": "Midas QR",
   "short_name": "Midas QR",
   "description": "A powerful, offline, privacy-first QR code generator and scanner.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
@@ -27,26 +27,26 @@
       "purpose": "any"
     },
     {
-      "src": "icon-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
-    },
-    {
       "src": "icon-512x512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
-    },
-    {
-      "src": "icon-512x512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
     }
   ],
-  "_screenshot_placeholder": "REPLACE-ME: no screenshots ship yet — add a real 1280x720 UI screenshot at this path plus a screenshots[] entry before deploy.",
-  "_site_url_placeholder": "https://midasqr.is-local.org/ — REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors __SITE_URL__ in index.html, 404.html, sitemap.xml, robots.txt, serve.json)",
+  "screenshots": [
+    {
+      "src": "shot-shapes.png",
+      "type": "image/png",
+      "sizes": "1280x1000",
+      "label": "Midas QR generator with shape and frame styles"
+    },
+    {
+      "src": "shot-verify-gothic.png",
+      "type": "image/png",
+      "sizes": "1280x1000",
+      "label": "Midas QR scanner with verification in the Gothic theme"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Generate QR",

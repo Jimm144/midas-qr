@@ -22,7 +22,10 @@ function bootScanner() {
 
 function resumeScannerView() {
   if (state.activeTab !== "scanner") return;
+  // A user who explicitly stopped the camera must not have it restarted by a
+  // History/Generator detour.
   if (state.scanner.mode === "webcam") {
+    if (state.scanner.userStopped) return;
     startWebcamScan();
   } else if (DOM.uploadedPreviewContainer && DOM.uploadedPreviewContainer.classList.contains("hidden")) {
     clearScannerOutput();
@@ -92,6 +95,9 @@ function setPanelVisibility(activePanel) {
     p.classList.toggle("hidden", !isActive);
     if (isActive) p.removeAttribute("aria-hidden");
     else p.setAttribute("aria-hidden", "true");
+    // Every tabpanel stays programmatically focusable so activation can move
+    // focus into it (scanner panel was missing tabindex).
+    if (!p.hasAttribute("tabindex")) p.setAttribute("tabindex", "-1");
   });
 }
 
@@ -137,6 +143,29 @@ export function positionSegmentedIndicators() {
  * after a placement that had real geometry, so the pill never slides in from the
  * corner: not on load, and not when a hidden panel is first shown.
  */
+const segmentedObservers = [];
+const segmentedResizeHandlers = [];
+function disconnectSegmentedIndicators() {
+  segmentedObservers.forEach((obs) => {
+    try {
+      obs.disconnect();
+    } catch {
+      /* ignore */
+    }
+  });
+  segmentedObservers.length = 0;
+  segmentedResizeHandlers.forEach(({ target, handler }) => {
+    try {
+      target.removeEventListener("resize", handler);
+    } catch {
+      /* ignore */
+    }
+  });
+  segmentedResizeHandlers.length = 0;
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", disconnectSegmentedIndicators);
+}
 function initSegmentedIndicators() {
   document.querySelectorAll(".tab-rail, .seg-control").forEach((container) => {
     if (container.querySelector(":scope > .tab-indicator")) return;
@@ -158,19 +187,23 @@ function initSegmentedIndicators() {
     // control rather than plumbing a call through that module. Debounced to a
     // frame: the observer fires for every class change in the control.
     let queued = false;
-    new MutationObserver(() => {
+    const observer = new MutationObserver(() => {
       if (queued) return;
       queued = true;
       requestAnimationFrame(() => {
         queued = false;
         move();
       });
-    }).observe(container, {
+    });
+    observer.observe(container, {
       subtree: true,
       attributes: true,
       attributeFilter: ["class"],
     });
-    window.addEventListener("resize", move);
+    segmentedObservers.push(observer);
+    const onResize = move;
+    window.addEventListener("resize", onResize);
+    segmentedResizeHandlers.push({ target: window, handler: onResize });
   });
 }
 
@@ -253,7 +286,10 @@ export function initTabs() {
         switchTab("generator", false, true);
       } else {
         if (typeof window.scrollTo === "function") {
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          const reduce =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
         }
         const heading = document.getElementById("panel-generator-heading");
         if (heading) {
@@ -295,6 +331,18 @@ export function initTabs() {
     if (["generator", "scanner", "history"].includes(hash)) {
       switchTab(hash, true);
     }
+  });
+
+  // switchTab() records entries with pushState, which never fires hashchange:
+  // without this, Back/Forward across tabs silently leaves the old panel up.
+  // The state payload wins (it is what switchTab wrote); the location hash is
+  // the fallback for entries from older builds or external links.
+  window.addEventListener("popstate", (event) => {
+    const valid = ["generator", "scanner", "history"];
+    const fromState = event && event.state && event.state.tab;
+    const hash = window.location.hash.replace("#", "");
+    const target = valid.includes(fromState) ? fromState : valid.includes(hash) ? hash : null;
+    if (target) switchTab(target, true);
   });
 
   const initialHash = window.location.hash.replace("#", "");

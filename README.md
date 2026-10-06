@@ -2,7 +2,7 @@
 
 A QR code generator and scanner that runs entirely in the browser. It works offline and sends nothing to a server.
 
-### [Open the app](https://midasqr.is-local.org/)
+### [Open the app](https://jimm144.github.io/midas-qr/)
 
 | Desktop                                                                                                                                                | Mobile                                                                                      |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
@@ -46,6 +46,16 @@ npm start       # serves the app on http://localhost:5000
 | `npm run typecheck` | Type-check the typed modules                 |
 
 Run `npm run lint`, `npm run typecheck`, and `npm test` before opening a pull request.
+
+## Deployment
+
+Deploys to GitHub Pages from `main` (`.github/workflows/pages.yml`): lint, typecheck, tests, placeholder/CSP checks, `npm run build`, then `tools/build-pages.mjs` stages the runtime-only `site/` artifact (tests, tools, configs and `node_modules` never ship).
+
+Notes:
+
+- `serve.json` headers apply only to hosts that honour them (local `serve`, Vercel-style static hosting). **GitHub Pages ignores `serve.json` entirely**, so the `<meta>` Content-Security-Policy in `index.html` / `404.html` is the enforced policy on Pages — keep all three in agreement with `node tools/csp-hashes.mjs` (CI verifies with `--check`).
+- Absolute SEO URLs (canonical, `og:`, `twitter:`, JSON-LD, sitemap, robots) use the single `SITE_URL` in `tools/site-config.mjs` (default `https://jimm144.github.io/midas-qr/`, overridable via the `SITE_URL` env var). `node tools/check-placeholders.mjs` fails the build on placeholder leftovers.
+- Versioned assets (`dist/bundle.js`, `src/css/style.min.css`, `favicon.svg`) ship `?v=<content-hash>` stamped by `tools/stamp-assets.mjs` and served immutable; `index.html` / `404.html` are short-cached. The service worker (`sw.js`) precaches the shell + versioned bundle and lazily caches fonts/libraries at runtime.
 
 ## License
 

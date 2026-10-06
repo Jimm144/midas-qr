@@ -7,7 +7,7 @@
  * importing each other — that pair used to be a circular import.
  */
 import { state } from "../state";
-import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "../constants.js";
+import { DEFAULT_WIDTH } from "../constants.js";
 import { parseGradient, gradientStops } from "./gradient.js";
 
 let qrCodeInstance = null;
@@ -104,12 +104,13 @@ export function buildQrStylingOptions(w, h, opts = {}) {
 export function getQrCode() {
   const hasLogo = Boolean(state.generator.logoDataUrl);
   if (!qrCodeInstance || qrCodeInstanceHasLogo !== hasLogo) {
-    const options = buildQrStylingOptions(
-      state.generator.width || DEFAULT_WIDTH,
-      state.generator.height || DEFAULT_HEIGHT
-    );
+    // Square canvas: modules are square, so the width drives both edges (the
+    // height input is linked to it in the dimension controls). The constructor
+    // already renders these options — a second update() here re-rendered the
+    // whole library for no change.
+    const side = state.generator.width || DEFAULT_WIDTH;
+    const options = buildQrStylingOptions(side, side);
     qrCodeInstance = new QRCodeStyling(options);
-    qrCodeInstance.update(options);
     qrCodeInstanceHasLogo = hasLogo;
   }
   return qrCodeInstance;

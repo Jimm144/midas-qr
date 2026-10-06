@@ -1,46 +1,45 @@
 <!DOCTYPE html><html lang="en"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#1b1b1b">
-    <script>(function(){try{var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var s=document.documentElement.style;var tc=document.querySelector('meta[name="theme-color"]');var stored=null;try{stored=JSON.parse(localStorage.getItem('qr-theme-tokens')||'null')}catch(e2){}if(stored&&typeof stored==='object'){for(var k in stored){if(k.indexOf('--')===0&&typeof stored[k]==='string')s.setProperty(k,stored[k])}var scheme=localStorage.getItem('qr-scheme');if(scheme)s.colorScheme=scheme;if(tc&&stored['--bg'])tc.setAttribute('content',stored['--bg']);return}var bg=localStorage.getItem('qr-bg')||(d?'#1b1b1b':'#f1f1f1');var accent=localStorage.getItem('qr-accent')||(d?'#ebebeb':'#262626');s.setProperty('--bg',bg);s.setProperty('--accent',accent);s.setProperty('--text',d?'#fafafa':'#171717');s.setProperty('--surface',d?'#262626':'#ffffff');s.setProperty('--bg-elevated',d?'#363636':'#ebebeb');s.setProperty('--inset',d?'#212121':'#fafafa');s.setProperty('--border',d?'rgba(255, 255, 255, 0.10)':'rgba(0, 0, 0, 0.08)');s.setProperty('--border-strong',d?'#525252':'#d4d4d4');s.setProperty('--muted',d?'#a3a3a3':'#525252');s.setProperty('--accent-contrast',d?'#171717':'#ffffff');s.setProperty('--accent-soft',d?'rgba(255, 255, 255, 0.06)':'rgba(0, 0, 0, 0.05)');s.setProperty('--danger',d?'#ffc6c1':'#a50c25');s.setProperty('--success',d?'#9fe59b':'#007004');s.setProperty('--warning',d?'#fdcf4f':'#745b00');if(tc){tc.setAttribute('content',bg)}}catch(e){}})();</script>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-i3e6+6Zpyta0K+VZw2LD87buYZYELWbuRjkhsA6fzPk=' 'sha256-tWnZ4Nnti1gHrwRu2e2mtkbADTnK7GfvsdEfyoSLSmg=' 'sha256-ySgJi+o4tJbtQXeFuau29Dd7GoByuc34qmvHiUBP0aQ=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
-    <meta name="description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no cookies, privacy-friendly analytics.">
+    <meta name="theme-color" content="#111112">
+    <script>(function(){try{var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var s=document.documentElement.style;var tc=document.querySelector('meta[name="theme-color"]');var TOKENS=['--bg','--accent','--accent-contrast','--accent-soft','--text','--surface','--bg-elevated','--inset','--border','--border-strong','--muted','--danger','--success','--warning','--shadow-pop','--shadow-color','--radius-inner','--radius-element','--radius-container','--btn-radius','--radius-pill','--font-family-body','--font-family-heading','--font-family-display','--font-scale','--font-weight-heading','--font-family-code'];function okVal(v){return typeof v==='string'&&v.length>0&&v.length<=300&&/^[a-zA-Z0-9\s,."'#+%()./-]*$/.test(v)&&!/url\s*\(|expression|javascript:|behaviou?r|@import|[<>;`{}]/.test(v)}function okHex(v){return typeof v==='string'&&/^#[0-9a-fA-F]{6}$/.test(v)}var stored=null;try{stored=JSON.parse(localStorage.getItem('qr-theme-tokens')||'null')}catch(e2){}if(stored&&typeof stored==='object'){for(var k in stored){if(TOKENS.indexOf(k)>=0&&okVal(stored[k]))s.setProperty(k,stored[k])}var scheme=localStorage.getItem('qr-scheme');if(scheme==='dark'||scheme==='light')s.colorScheme=scheme;if(tc&&okHex(stored['--bg']))tc.setAttribute('content',stored['--bg']);return}var bg=localStorage.getItem('qr-bg');if(!okHex(bg))bg=d?'#111112':'#f1f1f1';var accent=localStorage.getItem('qr-accent');if(!okHex(accent))accent=d?'#ebebeb':'#262626';s.setProperty('--bg',bg);s.setProperty('--accent',accent);s.setProperty('--text',d?'#fafafa':'#171717');s.setProperty('--surface',d?'#262626':'#ffffff');s.setProperty('--bg-elevated',d?'#363636':'#ebebeb');s.setProperty('--inset',d?'#212121':'#fafafa');s.setProperty('--border',d?'rgba(255, 255, 255, 0.10)':'rgba(0, 0, 0, 0.08)');s.setProperty('--border-strong',d?'#525252':'#767676');s.setProperty('--muted',d?'#a3a3a3':'#525252');s.setProperty('--accent-contrast',d?'#171717':'#ffffff');s.setProperty('--accent-soft',d?'rgba(255, 255, 255, 0.06)':'rgba(0, 0, 0, 0.05)');s.setProperty('--danger',d?'#ffc6c1':'#a50c25');s.setProperty('--success',d?'#9fe59b':'#007004');s.setProperty('--warning',d?'#fdcf4f':'#745b00');if(tc){tc.setAttribute('content',bg)}}catch(e){}})();</script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-fKYInz/G0tq/oTXzmmJyHOipSejWJ3DaI/c/MJY/PPk=' 'sha256-fAcjQk4X9VztV5V9qj2VTna62hA+33pucyn6xFxqj/E=' 'sha256-OH8qWNleY9zSZs2A/r1sRMWrjJhNjQFkHiSmIkD/zuY=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta name="description" content="Free offline QR code generator and scanner with custom colors, shapes, logos and webcam scanning. No ads or cookies.">
     <meta name="color-scheme" content="dark light">
     <meta name="robots" content="index,follow">
-    <!-- __SITE_URL__ REPLACE-ME: "https://midasqr.is-local.org/" is a placeholder. Replace every occurrence (canonical, og:url, og:image, twitter:image, JSON-LD) with the production domain before deploying. -->
-    <link rel="canonical" href="https://midasqr.is-local.org/">
+    <!-- Canonical + social URLs use the production site (tools/site-config.mjs SITE_URL). -->
     <link rel="sitemap" type="application/xml" title="Sitemap" href="sitemap.xml">
     <title>Midas QR — Free Offline QR Code Generator &amp; Scanner</title>
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://midasqr.is-local.org/">
+    <meta property="og:url" content="https://jimm144.github.io/midas-qr/">
     <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="Midas QR">
     <meta property="og:title" content="Midas QR — Free Offline QR Code Generator &amp; Scanner">
-    <meta property="og:description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no cookies, privacy-friendly analytics.">
-    <meta property="og:image" content="https://midasqr.is-local.org/og-image.png">
+    <meta property="og:description" content="Free offline QR code generator and scanner with custom colors, shapes, logos and webcam scanning. No ads or cookies.">
+    <meta property="og:image" content="https://jimm144.github.io/midas-qr/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Midas QR — free offline QR code generator and scanner, with a violet-to-cyan gradient QR code">
+    <meta property="og:image:alt" content="Midas QR app preview showing a generated QR code with custom styling controls">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Midas QR — Free Offline QR Code Generator &amp; Scanner">
-    <meta name="twitter:description" content="Midas QR is a free offline QR code generator and scanner with custom colors, shapes, logos, and webcam scanning. No ads, no cookies, privacy-friendly analytics.">
-    <meta name="twitter:image" content="https://midasqr.is-local.org/og-image.png">
-    <meta name="twitter:image:alt" content="Midas QR — free offline QR code generator and scanner, with a violet-to-cyan gradient QR code">
+    <meta name="twitter:description" content="Free offline QR code generator and scanner with custom colors, shapes, logos and webcam scanning. No ads or cookies.">
+    <meta name="twitter:image" content="https://jimm144.github.io/midas-qr/og-image.png">
+    <meta name="twitter:image:alt" content="Midas QR app preview showing a generated QR code with custom styling controls">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=76aeff07">
     <link rel="apple-touch-icon" href="icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Midas QR">
-    <link rel="preload" href="dist/bundle.js?v=97d62712" as="script">
+    <link rel="preload" href="dist/bundle.js?v=b126f71b" as="script">
     <link rel="preload" href="src/lib/qr-code-styling.min.js" as="script">
     <link rel="preload" href="src/lib/jsqr.min.js" as="script">
     <link rel="preload" href="src/lib/qrcode.min.js" as="script">
     <link rel="preload" href="src/fonts/figtree-var-latin.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="src/css/style.min.css?v=1ecb5223">
+    <link rel="stylesheet" href="src/css/style.min.css?v=9b9562f4">
     <style>
       :root {
-        --bg: #1b1b1b;
+        --bg: #111112;
         --accent: #ebebeb;
         --text: #fafafa;
       }
@@ -69,7 +68,7 @@
     <a href="#main-content" id="skip-link" class="skip-link" data-i18n="app.skip">Skip to content</a>
     <div id="announcements" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-    <div id="color-picker-popup" class="hidden absolute z-50 bg-black border border-white px-3 w-[300px] flex-col gap-2 shadow-lg transition-all duration-200 transform opacity-0 scale-95" role="dialog" aria-label="Color picker" data-i18n-aria-label="color.picker" aria-modal="true">
+    <div id="color-picker-popup" class="cp-popup hidden absolute z-50 px-3 w-[300px] flex-col gap-2 shadow-lg transition-all duration-200 transform opacity-0 scale-95" style="background:var(--bg-elevated);color:var(--text);border:1px solid var(--border)" role="dialog" aria-label="Color picker" data-i18n-aria-label="color.picker" aria-modal="true">
       
       <div class="flex items-center justify-between border-b border-white pb-2 select-none">
         <span class="tracking-wider" data-i18n="color.picker">Color</span>
@@ -80,13 +79,15 @@
           <div class="flex flex-col gap-3 p-1">
             
             <div class="relative border border-white w-full h-[150px] overflow-hidden">
-              <canvas id="cp-spectrum" class="w-full h-full cursor-crosshair block" role="img" aria-label="Saturation and brightness color field" data-i18n-aria-label="color.spectrumField" tabindex="0"></canvas>
+              <canvas id="cp-spectrum" class="w-full h-full cursor-crosshair block" role="slider" aria-label="Saturation and brightness color field" data-i18n-aria-label="color.spectrumField" tabindex="0" aria-valuemin="0" aria-valuemax="360" aria-valuenow="0"></canvas>
             </div>
 
             <div class="cp-hue">
               <label for="cp-hue" data-i18n="color.hue">Hue</label>
-              <input type="range" id="cp-hue" min="0" max="360" value="0">
+              <input type="range" id="cp-hue" min="0" max="360" value="0" aria-label="Hue" data-i18n-aria-label="color.hue" aria-valuemin="0" aria-valuemax="360" aria-valuenow="0">
+              <output id="cp-hue-value" for="cp-hue" aria-live="off">0°</output>
             </div>
+            <div id="cp-gradient-preview" class="w-full h-6 border border-white" role="img" aria-label="Gradient preview"></div>
             <div class="cp-gradient cp-section flex flex-col gap-2">
               <div class="cp-mode" role="group" aria-label="Color mode" data-i18n-aria-label="color.mode">
                 <button type="button" id="cp-mode-solid" class="cp-mode-btn is-active" aria-pressed="true" data-i18n="color.solid">Solid</button>
@@ -103,10 +104,13 @@
                   </select></div>
 </div>
                 <div class="flex flex-col gap-2">
-                  
+                  <div class="cp-grad-end">
+                    <label for="cp-grad-color2" data-i18n="color.end">End color</label>
+                    <input type="text" id="cp-grad-color2" placeholder="#000000" aria-label="Gradient end hex color" class="bg-black border border-white text-center uppercase w-20 min-w-0 h-[32px]" autocomplete="off" autocapitalize="off" spellcheck="false">
+                  </div>
                   <div class="cp-angle">
                     <label for="cp-gradient-angle" data-i18n="color.angle">Angle</label>
-                    <input type="range" id="cp-gradient-angle" min="0" max="360" value="45">
+                    <input type="range" id="cp-gradient-angle" min="0" max="360" value="45" aria-label="Gradient angle" aria-valuemin="0" aria-valuemax="360" aria-valuenow="45">
                   </div>
                 </div>
               </div>
@@ -122,12 +126,18 @@
            <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #00FF00" data-hex="#00FF00" aria-label="Green" data-i18n-aria-label="color.green"></button>
            <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #0000FF" data-hex="#0000FF" aria-label="Blue" data-i18n-aria-label="color.blue"></button>
            <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #FFFF00" data-hex="#FFFF00" aria-label="Yellow" data-i18n-aria-label="color.yellow"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #FF8000" data-hex="#FF8000" aria-label="Orange"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #FF00FF" data-hex="#FF00FF" aria-label="Magenta"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #00FFFF" data-hex="#00FFFF" aria-label="Cyan"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #800080" data-hex="#800080" aria-label="Purple"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #008080" data-hex="#008080" aria-label="Teal"></button>
+           <button class="cp-preset w-6 h-6 border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:border-red-500 transition-colors" style="background: #808000" data-hex="#808000" aria-label="Olive"></button>
         </div>
 
         
         <div class="flex items-center justify-between tracking-wider mt-1 w-full gap-1">
           <label class="sr-only" for="cp-input-hex" data-i18n="color.hex">Hex color</label>
-          <input type="text" id="cp-input-hex" placeholder="#FFFFFF" aria-label="Hex color value" data-i18n-aria-label="color.hexValue" class="bg-black border border-white text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white uppercase w-20 min-w-0 h-[32px]">
+          <input type="text" id="cp-input-hex" placeholder="#FFFFFF" aria-label="Hex color value" data-i18n-aria-label="color.hexValue" aria-describedby="cp-hex-error" class="bg-black border border-white text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white uppercase w-20 min-w-0 h-[32px]">
           <button id="cp-reset-btn" class="h-8 px-3 bg-black text-white border border-white hover:bg-white hover:text-black transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white flex-shrink-0" data-i18n="color.reset">
             Reset
           </button>
@@ -135,6 +145,7 @@
             OK
           </button>
         </div>
+        <p id="cp-hex-error" class="hidden text-xs" role="alert" style="color:var(--danger)"></p>
       </div>
     </div>
 
@@ -168,7 +179,7 @@
             <svg id="icon-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
             <svg id="icon-theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
           </button>
-          <select id="mode-select" aria-label="Color mode (auto, dark, light)" data-i18n-aria-label="header.colorMode" class="hidden" tabindex="-1">
+          <select id="mode-select" aria-label="Color mode (auto, dark, light)" data-i18n-aria-label="header.colorMode" class="hidden">
             <option value="auto" data-i18n="common.auto">Auto</option>
             <option value="dark" data-i18n="common.dark">Dark</option>
             <option value="light" data-i18n="common.light">Light</option>
@@ -215,10 +226,7 @@
     </header>
 
     <main id="main-content" class="workspace" role="main" tabindex="-1" aria-label="Midas QR main content" data-i18n-aria-label="app.mainContent">
-      <div class="sr-only" aria-hidden="false" role="article">
-        <p data-i18n="content.seo">Midas QR is a free offline QR code generator and scanner supporting URL, text, Wi-Fi, vCard contact, cryptocurrency, geolocation, calendar event, SMS, and phone number QR codes. Features include customizable colors and gradients, dot shapes, corner styles, overall masks, frame styles, background images, logo overlays, PNG/SVG/JPEG/WebP/TXT export, batch CSV/TSV/TXT generation, and error correction levels.</p>
-      </div>
-      <nav aria-label="Midas QR sections" data-i18n-aria-label="app.sections" class="tab-nav">
+      <nav class="tab-nav">
       <div class="tab-rail" role="tablist" aria-label="Midas QR sections" data-i18n-aria-label="app.sections" aria-orientation="horizontal">
         <button id="tab-btn-generator" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="panel-generator">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><path d="M14 14h3v3h-3z"></path><path d="M18 18h3v3h-3z"></path></svg>
@@ -254,7 +262,7 @@
                   <span data-i18n="batch.button">Batch</span>
                 </button>
                 <span id="batch-status" class="text-xs font-mono text-accent empty:hidden whitespace-nowrap" role="status" aria-live="polite"></span>
-                <div class="custom-select-wrapper min-w-[155px] w-auto"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">URL</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>URL</span></div><div class="custom-select-option" data-index="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/></svg><span>Text</span></div><div class="custom-select-option" data-index="2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Wi-Fi</span></div><div class="custom-select-option" data-index="3"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Contact</span></div><div class="custom-select-option" data-index="4"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><line x1="9.5" x2="9.5" y1="8" y2="16"/><path d="M9.5 8h4a2 2 0 0 1 0 4h-4"/><path d="M9.5 12h4.5a2 2 0 0 1 0 4h-4.5"/></svg><span>Crypto</span></div><div class="custom-select-option" data-index="5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span>Geolocation</span></div><div class="custom-select-option" data-index="6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg><span>Event</span></div><div class="custom-select-option" data-index="7"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>SMS</span></div><div class="custom-select-option" data-index="8"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Phone</span></div><div class="custom-select-option" data-index="9"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>Email</span></div></div><select id="data-type" data-i18n-aria-label="tabs.dataType" aria-label="Data type to encode" class="bg-black text-white border border-white p-1 outline-none min-w-[155px] w-auto px-3 h-[40px]">
+                <div class="custom-select-wrapper data-type-select-wrapper min-w-[155px] w-auto"><div class="custom-select-trigger text-white flex items-center justify-between px-3 h-full" tabindex="0">URL</div><div class="custom-select-options text-white"><div class="custom-select-option selected" data-index="0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>URL</span></div><div class="custom-select-option" data-index="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/></svg><span>Text</span></div><div class="custom-select-option" data-index="2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Wi-Fi</span></div><div class="custom-select-option" data-index="3"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Contact</span></div><div class="custom-select-option" data-index="4"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><line x1="9.5" x2="9.5" y1="8" y2="16"/><path d="M9.5 8h4a2 2 0 0 1 0 4h-4"/><path d="M9.5 12h4.5a2 2 0 0 1 0 4h-4.5"/></svg><span>Crypto</span></div><div class="custom-select-option" data-index="5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span>Geolocation</span></div><div class="custom-select-option" data-index="6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg><span>Event</span></div><div class="custom-select-option" data-index="7"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>SMS</span></div><div class="custom-select-option" data-index="8"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Phone</span></div><div class="custom-select-option" data-index="9"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>Email</span></div></div><select id="data-type" data-i18n-aria-label="tabs.dataType" aria-label="Data type to encode" class="bg-black text-white border border-white p-1 outline-none min-w-[155px] w-auto px-3 h-[40px]">
                 <option value="url" selected="" data-i18n="data.url">URL</option>
                 <option value="text" data-i18n="data.text">Text</option>
                 <option value="wifi" data-i18n="data.wifi">Wi-Fi</option>
@@ -399,13 +407,13 @@
               <input type="search" id="event-title" aria-label="Event title" data-i18n-aria-label="data.eventTitle" placeholder="Event title" data-i18n-placeholder="data.eventTitle" aria-required="true" aria-describedby="event-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] appearance-none">
               <div class="flex flex-col sm:flex-row gap-2">
                 <div class="flex-1">
-                  <label class="text-xs text-gray-400 block mb-1" data-i18n="data.startTime">Start Time</label>
+                  <label for="event-start" class="text-xs text-gray-400 block mb-1" data-i18n="data.startTime">Start Time</label>
                   <div class="dt-field" data-datetime-field>
                     <input type="datetime-local" id="event-start" aria-label="Event start time" data-i18n-aria-label="data.eventStartAria" aria-required="true" aria-describedby="event-warning" class="w-full bg-black border border-white px-3 text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white h-[40px] hidden">
                   </div>
                 </div>
                 <div class="flex-1">
-                  <label class="text-xs text-gray-400 block mb-1" data-i18n="data.endTime">End Time</label>
+                  <label for="event-end" class="text-xs text-gray-400 block mb-1" data-i18n="data.endTime">End Time</label>
                   <div class="dt-field" data-datetime-field>
                     <input type="datetime-local" id="event-end" aria-label="Event end time" data-i18n-aria-label="data.eventEndAria" class="w-full bg-black border border-white px-3 text-white focus:outline-none h-[40px] hidden">
                   </div>
@@ -794,11 +802,11 @@
       </section>
 
       
-      <section id="panel-scanner" class="hidden panel-grid" role="tabpanel" aria-labelledby="tab-btn-scanner" aria-hidden="true">
+      <section id="panel-scanner" class="hidden panel-grid" tabindex="-1" role="tabpanel" aria-labelledby="tab-btn-scanner" aria-hidden="true">
         <div class="qr-card panel-card">
           <div class="card-head">
             <div class="card-title">
-              <h2 data-i18n="scanner.source">Source</h2>
+              <h2 id="panel-scanner-source-heading" tabindex="-1" data-i18n="scanner.source">Source</h2>
             </div>
           </div>
           <div class="scanner-source-row">
@@ -848,6 +856,7 @@
             
             <div class="flex gap-2">
               <button id="btn-toggle-camera" aria-pressed="false" class="flex-1" data-i18n="common.start">Start</button>
+              <button id="btn-mirror-video" type="button" aria-pressed="true" class="sm-btn" title="Mirror the camera preview">Mirror</button>
               <div class="custom-select-wrapper flex-1">
                 <div class="custom-select-trigger" tabindex="0">Front</div>
                 <div class="custom-select-options">
@@ -871,7 +880,7 @@
             <span id="scan-status-badge" class="hidden" role="status" aria-live="polite"></span>
           </div>
           <div class="relative min-h-[100px]">
-            <div id="empty-state-scan" class="absolute inset-0 flex items-center justify-center text-center px-3" data-i18n="scanner.waiting">Waiting for a scan…</div>
+            <div id="empty-state-scan" class="absolute inset-0 flex flex-col gap-2 items-center justify-center text-center px-3"><span data-i18n="scanner.waiting">Waiting for a scan…</span></div>
             <textarea id="scan-result" readonly aria-label="Scanned QR code result" data-i18n-aria-label="scanner.resultAria" class="hidden w-full min-h-[100px]" aria-live="polite"></textarea>
           </div>
           <div class="flex gap-2">
@@ -887,8 +896,8 @@
           <div class="history-head">
             <h2 id="panel-history-gen-heading" tabindex="-1" data-i18n="history.generated">Generated</h2>
             <div class="flex items-center gap-2">
-              <button id="btn-export-history-all" class="sm-btn" disabled title="Export every saved design as a PNG" data-i18n-title="history.exportAll"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg><span data-i18n="common.export">Export</span></button>
-              <button id="btn-clear-generator-history" class="sm-btn" aria-label="Clear generated history" data-i18n-aria-label="history.clearGenerated" title="Remove all saved designs" data-i18n-title="history.clearGeneratedTitle" data-i18n="common.clear">Clear</button>
+              <button id="btn-export-history-all" class="sm-btn icon-btn" disabled title="Export every saved design as a PNG" aria-label="Export every saved design as a PNG" data-i18n-aria-label="history.exportAll" data-i18n-title="history.exportAll"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg><span data-i18n="common.export" aria-hidden="true">Export</span></button>
+              <button id="btn-clear-generator-history" class="sm-btn icon-btn" aria-label="Clear generated history" data-i18n-aria-label="history.clearGenerated" title="Remove all saved designs" data-i18n-title="history.clearGeneratedTitle" data-i18n="common.clear">Clear</button>
             </div>
           </div>
           <div id="generator-history-list" class="history-list">
@@ -910,7 +919,7 @@
 
     <footer class="site-footer">
       <div class="footer-inner">
-        <span>Midas QR <span class="footer-sep">·</span> GPL-3.0 <span class="footer-sep">·</span> <button id="btn-credits" aria-haspopup="dialog" data-i18n="footer.credits">Credits</button> <span class="footer-sep">·</span> <span id="build-version" title="Service-worker cache version" data-i18n-title="footer.cacheVersion">v261</span></span>
+        <span>Midas QR <span class="footer-sep">·</span> GPL-3.0 <span class="footer-sep">·</span> <button id="btn-credits" aria-haspopup="dialog" data-i18n="footer.credits">Credits</button> <span class="footer-sep">·</span> <span id="build-version" title="Service-worker cache version" data-i18n-title="footer.cacheVersion">v262</span></span>
         <button id="btn-install" class="hidden" data-i18n="footer.install">Install app</button>
         <span><span data-i18n="footer.noCookies">No cookies</span> <span class="footer-sep">·</span> <a href="https://github.com/Jimm144/midas-qr" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a></span>
       </div>
@@ -1022,6 +1031,7 @@
       </div>
     </div>
 
+    <div id="print-root" class="hidden" aria-hidden="true"></div>
     <div id="lib-fatal-banner" role="alert" class="hidden fixed inset-x-0 top-0 z-[100] bg-red-500 text-white text-center p-3 font-semibold"></div>
 
     <script>
@@ -1058,11 +1068,11 @@
         // Read it back from the preload link instead of hardcoding it: the
         // version then lives in an attribute, and this inline script - whose
         // hash the CSP pins - does not change when the version does.
-        var bundleLink = document.querySelector('link[rel="preload"][as="script"][href^="dist/bundle.js"]');
+        var bundleLink = document.querySelector('link[rel="preload"][as="script"][href^="dist/bundle.js?v=b126f71b"]');
         window.__qrLibsLoaded = Promise.all([
           loadScript('src/lib/qr-code-styling.min.js'),
           loadScript('src/lib/jsqr.min.js'),
-          loadScript((bundleLink && bundleLink.getAttribute('href')) || 'dist/bundle.js'),
+          loadScript((bundleLink && bundleLink.getAttribute('href')) || 'dist/bundle.js?v=b126f71b'),
         ])
           .then(function () {})
           .catch(function (err) {
@@ -1071,79 +1081,6 @@
           });
       })();
     </script>
-  <script type="application/ld+json">
-    [
-      {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "Midas QR",
-        "url": "https://midasqr.is-local.org/",
-        "description": "Free offline QR code generator and scanner. Create custom QR codes for URLs, text, Wi-Fi, contacts, crypto, geolocation, events, SMS, and phone numbers. Customize colors, shapes, frames, and logos. Scan QR codes via webcam or image upload. No cookies, no ads, privacy-friendly analytics.",
-        "applicationCategory": "UtilitiesApplication",
-        "operatingSystem": "Any (Web browser)",
-        "browserRequirements": "Requires JavaScript and HTML5 Canvas",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "featureList": [
-          "QR code generation for URLs, text, Wi-Fi, contacts, crypto, geolocation, events, SMS, phone",
-          "QR code scanning via webcam and image upload",
-          "Custom colors, dot shapes, and corner styles",
-          "Frame styles and logo overlay support",
-          "Multiple error correction levels (L, M, Q, H)",
-          "Export to PNG, SVG, JPEG, WebP, and TXT",
-          "Offline-first: works without internet",
-          "Privacy-first: no cookies, privacy-friendly analytics"
-        ],
-        "screenshot": "https://midasqr.is-local.org/og-image.png"
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Midas QR", "item": "https://midasqr.is-local.org/" }
-        ]
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "Is Midas QR free to use?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Yes, Midas QR is completely free and open source under the GPL-3.0 license." }
-          },
-          {
-            "@type": "Question",
-            "name": "Does Midas QR work offline?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Yes, once loaded, Midas QR works entirely offline. All QR code generation and scanning happens in your browser with no server requests." }
-          },
-          {
-            "@type": "Question",
-            "name": "Does Midas QR collect my data?",
-            "acceptedAnswer": { "@type": "Answer", "text": "All QR code generation and scanning happens locally in your browser — your QR code content is never sent to any server. We only use cookieless, privacy-friendly analytics to count aggregate page views." }
-          },
-          {
-            "@type": "Question",
-            "name": "What types of QR codes can I generate?",
-            "acceptedAnswer": { "@type": "Answer", "text": "You can generate QR codes for URLs, plain text, Wi-Fi network credentials, vCard contacts, cryptocurrency addresses (Bitcoin, Ethereum, Litecoin, Bitcoin Cash, Dash, Monero), geolocation coordinates, calendar events, SMS messages, and phone numbers." }
-          },
-          {
-            "@type": "Question",
-            "name": "Can I customize the look of my QR code?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Yes, you can customize colors (dots, corners, background), dot shapes (square, rounded, classy, dots), corner styles, frame styles (scanner, dashed, bubble), and add a logo overlay image." }
-          },
-          {
-            "@type": "Question",
-            "name": "What file formats can I export QR codes in?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Midas QR supports export to PNG, SVG, JPEG, WebP, and plain text (Unicode block art) formats." }
-          },
-          {
-            "@type": "Question",
-            "name": "Can I scan QR codes from an image file?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Yes, you can upload an image file containing a QR code for scanning, or use your device's webcam to scan QR codes in real time." }
-          }
-        ]
-      }
-    ]
-    </script>
+  <script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Midas QR","url":"https://jimm144.github.io/midas-qr/","description":"Free offline QR code generator and scanner. Create custom QR codes for URLs, text, Wi-Fi, contacts, crypto, geolocation, events, SMS, and phone numbers. Customize colors, shapes, frames, and logos. Scan QR codes via webcam or image upload. No cookies, no ads, privacy-friendly analytics.","applicationCategory":"UtilitiesApplication","operatingSystem":"Any (Web browser)","browserRequirements":"Requires JavaScript and HTML5 Canvas","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["QR code generation for URLs, text, Wi-Fi, contacts, crypto, geolocation, events, SMS, phone","QR code scanning via webcam and image upload","Custom colors, dot shapes, and corner styles","Frame styles and logo overlay support","Multiple error correction levels (L, M, Q, H)","Export to PNG, SVG, JPEG, WebP, and TXT","Offline-first: works without internet","Privacy-first: no cookies, privacy-friendly analytics"],"screenshot":"https://jimm144.github.io/midas-qr/og-image.png"},{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Midas QR","item":"https://jimm144.github.io/midas-qr/"}]},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is Midas QR free to use?","acceptedAnswer":{"@type":"Answer","text":"Yes, Midas QR is completely free and open source under the GPL-3.0 license."}},{"@type":"Question","name":"Does Midas QR work offline?","acceptedAnswer":{"@type":"Answer","text":"Yes, once loaded, Midas QR works entirely offline. All QR code generation and scanning happens in your browser with no server requests."}},{"@type":"Question","name":"Does Midas QR collect my data?","acceptedAnswer":{"@type":"Answer","text":"All QR code generation and scanning happens locally in your browser \u2014 your QR code content is never sent to any server. We only use cookieless, privacy-friendly analytics to count aggregate page views."}},{"@type":"Question","name":"What types of QR codes can I generate?","acceptedAnswer":{"@type":"Answer","text":"You can generate QR codes for URLs, plain text, Wi-Fi network credentials, vCard contacts, cryptocurrency addresses (Bitcoin, Ethereum, Litecoin, Bitcoin Cash, Dash, Monero), geolocation coordinates, calendar events, SMS messages, and phone numbers."}},{"@type":"Question","name":"Can I customize the look of my QR code?","acceptedAnswer":{"@type":"Answer","text":"Yes, you can customize colors (dots, corners, background), dot shapes (square, rounded, classy, dots), corner styles, frame styles (scanner, dashed, bubble), and add a logo overlay image."}},{"@type":"Question","name":"What file formats can I export QR codes in?","acceptedAnswer":{"@type":"Answer","text":"Midas QR supports export to PNG, SVG, JPEG, WebP, and plain text (Unicode block art) formats."}},{"@type":"Question","name":"Can I scan QR codes from an image file?","acceptedAnswer":{"@type":"Answer","text":"Yes, you can upload an image file containing a QR code for scanning, or use your device's webcam to scan QR codes in real time."}}]}]</script>
   </body>
 </html>

@@ -45,8 +45,8 @@ export function applyBackgroundImageToDoc(doc, w, h) {
   image.setAttribute("width", String(w));
   image.setAttribute("height", String(h));
   image.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  // Plain href only (see logo.js): no duplicated xlink:href data URL.
   image.setAttribute("href", dataUrl);
-  image.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", dataUrl);
 
   // Scrim between the image and the code: without it the picture shows through
   // the code's light modules and the result reads as a broken/clipped QR.

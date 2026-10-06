@@ -32,6 +32,7 @@ export default {
   "color.apply": "Farbe anwenden und schließen",
   "color.ok": "OK",
   "color.hue": "Farbton",
+  "color.invalidHex": "Ungültige Hex-Farbe",
   "color.solid": "Einfarbig",
   "color.gradient": "Verlauf",
   "color.angle": "Winkel",
@@ -96,8 +97,6 @@ export default {
   "tabs.switched": "Zur Registerkarte {tab} gewechselt",
   "tabs.dataType": "Zu kodierender Datentyp",
   "content.heading": "Inhalt",
-  "content.seo":
-    "Midas QR ist ein kostenloser Offline-QR-Code-Generator und -Scanner für URL-, Text-, Wi-Fi-, vCard-Kontakt-, Kryptowährungs-, Geokoordinaten-, Kalendertermin-, SMS- und Telefonnummern-QR-Codes. Zu den Funktionen gehören anpassbare Farben und Verläufe, Punktformen, Eckenstile, Gesamtmasken, Rahmenstile, Hintergrundbilder, Logo-Overlays, der Export als PNG/SVG/JPEG/WebP/TXT, die Stapelerstellung aus CSV/TSV/TXT und verschiedene Fehlerkorrekturstufen.",
   "data.url": "URL",
   "data.text": "Text",
   "data.wifi": "Wi-Fi",
@@ -351,6 +350,8 @@ export default {
   "search.options": "Optionen",
   "search.noMatches": "Keine Treffer",
   "search.match_one": "1 Treffer",
+  "search.match_few": "{count} Treffer",
+  "search.match_many": "{count} Treffer",
   "search.match_other": "{count} Treffer",
   "datetime.selectDate": "Datum auswählen",
   "datetime.timePlaceholder": "14:30",
@@ -426,6 +427,7 @@ export default {
   "generator.dataTooLargeGeneric": "Daten sind für diese QR-Konfiguration zu groß",
   "generator.marginTooLarge": "Rand ist zu groß – das Maximum ist {max}",
   "generator.scannable": "Scanbar",
+  "generator.unknownReadability": "Lesbarkeit unbekannt",
   "generator.scannableOk": "Scanbar: {count}×{count} Module, jedes bei dieser Größe {size}px groß.",
   "generator.lowReadability": "Schwierig zu scannen",
   "generator.doesNotDecode":

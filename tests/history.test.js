@@ -401,7 +401,9 @@ describe("generator history — batch export", () => {
     const dataOverride = exportCalls[0][2];
     expect(dataOverride.bgTransparent).toBe(true);
     expect(dataOverride.bgColor).toBe("#00ff00");
-    expect(exportCalls[0][1]).toBeNull();
+    // The freshly awaited render artifact travels with the export — never the
+    // published global, which a concurrent live render may have replaced.
+    expect(exportCalls[0][1]).toEqual(expect.objectContaining({ svg: "<svg/>" }));
   });
 
   it("keeps the batch button disabled when the list is emptied mid-export", async () => {

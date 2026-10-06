@@ -179,6 +179,10 @@ export function refreshCustomSelect(select) {
   if (!wrapper) return;
   const optionsDiv = wrapper.querySelector(".custom-select-options");
   if (!optionsDiv) return;
+  if (!optionsDiv.id) {
+    const selectId = select.id || `custom-select-${selectCounter++}`;
+    optionsDiv.id = `${selectId}-listbox`;
+  }
 
   const optionEls = Array.from(optionsDiv.children);
   const options = Array.from(select.options);
@@ -193,8 +197,12 @@ export function refreshCustomSelect(select) {
       optDiv.className = "custom-select-option text-xs font-bold" + (opt.selected ? " selected" : "");
       optDiv.setAttribute("data-index", idx);
       optDiv.setAttribute("role", "option");
+      // Real IDs so the trigger's aria-activedescendant always resolves
+      // (the old rebuild dropped them, dangling the reference).
+      optDiv.setAttribute("id", `${optionsDiv.id || select.id || "custom-select"}-option-${idx}`);
       optDiv.setAttribute("aria-selected", opt.selected ? "true" : "false");
       optDiv.textContent = opt.textContent;
+      if (opt.disabled) optDiv.setAttribute("aria-disabled", "true");
       optionsDiv.appendChild(optDiv);
     });
   } else {

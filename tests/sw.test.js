@@ -46,7 +46,8 @@ class MockRequest {
   }
 }
 
-const normalize = (value) => (typeof value === "string" ? new URL(value, BASE).href : value.url).split("#")[0];
+const normalize = (value) =>
+  (typeof value === "string" ? new URL(value, BASE).href : value.url).split("#")[0];
 
 function setupHarness({ stores = new Map(), source = SW_SOURCE } = {}) {
   const listeners = { install: [], activate: [], fetch: [] };
@@ -144,7 +145,7 @@ function setupHarness({ stores = new Map(), source = SW_SOURCE } = {}) {
     "Headers",
     "URL",
     "console",
-    `${source}\nreturn { CACHE_NAME, RUNTIME_CACHE_LIMIT, PRECACHE, isSameOrigin };`
+    `${source}\nreturn { CACHE_NAME, RUNTIME_CACHE_LIMIT, PRECACHE, PRECACHE_IMMUTABLE, SHELL_CACHE_KEY, isSameOrigin };`
   );
   const sw = factory(self, caches, fetchMock, MockResponse, MockRequest, MockHeaders, URL, console);
 
@@ -177,14 +178,27 @@ function setupHarness({ stores = new Map(), source = SW_SOURCE } = {}) {
     return response;
   };
 
-  return { stores, network, caches, self, sw, dispatch, makeEvent, settle, skipWaitingCalls, claimCalls, listeners };
+  return {
+    stores,
+    network,
+    caches,
+    self,
+    sw,
+    dispatch,
+    makeEvent,
+    settle,
+    skipWaitingCalls,
+    claimCalls,
+    listeners,
+  };
 }
 
 describe("sw.js precache list", () => {
   const harness = setupHarness();
+  const allEntries = [...harness.sw.PRECACHE, ...harness.sw.PRECACHE_IMMUTABLE];
 
   it("includes every precache entry on disk and every local asset index.html requests", () => {
-    for (const entry of harness.sw.PRECACHE) {
+    for (const entry of allEntries) {
       const path = entry.replace(/\?.*$/, "");
       if (path === "./") continue;
       expect(fs.existsSync(path), `missing ${entry}`).toBe(true);
@@ -197,8 +211,20 @@ describe("sw.js precache list", () => {
     ];
     for (const ref of refs) {
       if (/^(#|data:|https?:|mailto:|\/\/|javascript:)/i.test(ref)) continue;
+      // Fonts and vendored libraries are lazy runtime (SWR) entries by design,
+      // not precache: they must exist on disk but need no precache URL.
+      if (/^(\.\/)?src\/(fonts|lib)\//.test(ref)) {
+        expect(fs.existsSync(ref.replace(/^\.\//, "")), `missing ${ref}`).toBe(true);
+        continue;
+      }
       const exact = `./${ref}`;
-      expect(harness.sw.PRECACHE, `${ref} must be precached`).toContain(exact);
+      expect(allEntries, `${ref} must be precached`).toContain(exact);
+    }
+  });
+
+  it("versions every immutable precache entry with a content ?v=", () => {
+    for (const entry of harness.sw.PRECACHE_IMMUTABLE) {
+      expect(entry, `${entry} must carry ?v=`).toMatch(/\?v=[0-9a-z]+$/);
     }
   });
 });
@@ -209,7 +235,7 @@ describe("sw.js install", () => {
     h = setupHarness();
   });
 
-  it("precaches every entry with a revalidating request, then takes over", async () => {
+  it("precaches the shell with revalidation and immutable assets as-is, then takes over", async () => {
     const event = h.makeEvent(new MockRequest(BASE));
     h.dispatch("install", event);
     const results = await Promise.allSettled(event.waits);
@@ -217,11 +243,16 @@ describe("sw.js install", () => {
     expect(h.skipWaitingCalls.length).toBe(1);
 
     const cache = await h.caches.open(h.sw.CACHE_NAME);
-    for (const entry of h.sw.PRECACHE) {
+    for (const entry of [...h.sw.PRECACHE, ...h.sw.PRECACHE_IMMUTABLE]) {
       expect(cache.entries.has(new URL(entry, BASE).href), `cached ${entry}`).toBe(true);
     }
-    expect(h.network.calls.length).toBe(h.sw.PRECACHE.length);
-    expect(h.network.calls.every((call) => call.cache === "no-cache")).toBe(true);
+    expect(h.network.calls.length).toBe(h.sw.PRECACHE.length + h.sw.PRECACHE_IMMUTABLE.length);
+    // Unversioned shell requests revalidate; immutable (?v=) ones install from
+    // the HTTP cache without a forced revalidation round-trip.
+    const shellCalls = h.network.calls.slice(0, h.sw.PRECACHE.length);
+    const immutableCalls = h.network.calls.slice(h.sw.PRECACHE.length);
+    expect(shellCalls.every((call) => call.cache === "no-cache")).toBe(true);
+    expect(immutableCalls.every((call) => call.cache !== "no-cache")).toBe(true);
     expect(h.network.calls.every((call) => call.url.startsWith(BASE))).toBe(true);
   });
 
@@ -242,15 +273,22 @@ describe("sw.js activate", () => {
     h = setupHarness();
   });
 
-  it("deletes every old cache, trims runtime entries, and claims clients", async () => {
+  it("deletes only old app caches, trims runtime entries, and claims clients", async () => {
     h.stores.set("midas-qr-v157", { entries: new Map() });
+    // Foreign storage sharing the origin must survive activation.
+    const foreign = new Map([["https://other.example/x", new MockResponse("foreign")]]);
+    h.stores.set("workbox-precache-v2", { entries: foreign });
     const cache = await h.caches.open(h.sw.CACHE_NAME);
-    // Derived from PRECACHE rather than hardcoded: the bundle's ?v= is a content
-    // hash, and this test is about precached entries surviving the trim.
-    const bundleUrl = new URL(h.sw.PRECACHE.find((e) => e.includes("dist/bundle.js")), BASE).href;
+    // Derived from the precache lists rather than hardcoded: the bundle's ?v=
+    // is a content hash, and this test is about precached entries surviving.
+    const allEntries = [...h.sw.PRECACHE, ...h.sw.PRECACHE_IMMUTABLE];
+    const bundleUrl = new URL(
+      allEntries.find((e) => e.includes("dist/bundle.js")),
+      BASE
+    ).href;
     await cache.put(bundleUrl, new MockResponse("precache"));
     for (let i = 0; i < h.sw.RUNTIME_CACHE_LIMIT + 7; i++) {
-      await cache.put(`${BASE}runtime/${i}.woff2`, new MockResponse("runtime"));
+      await cache.put(`${BASE}src/lib/runtime-${i}.js`, new MockResponse("runtime"));
     }
 
     const event = h.makeEvent(new MockRequest(BASE));
@@ -258,16 +296,17 @@ describe("sw.js activate", () => {
     await Promise.allSettled(event.waits);
 
     expect(h.stores.has("midas-qr-v157")).toBe(false);
+    expect(h.stores.has("workbox-precache-v2")).toBe(true);
     expect(h.stores.has(h.sw.CACHE_NAME)).toBe(true);
     expect(h.claimCalls.length).toBe(1);
 
     const keys = [...cache.entries.keys()];
     expect(keys).toContain(bundleUrl);
-    const runtimeKeys = keys.filter((key) => key.includes("/runtime/"));
+    const runtimeKeys = keys.filter((key) => key.includes("/src/lib/runtime-"));
     expect(runtimeKeys.length).toBe(h.sw.RUNTIME_CACHE_LIMIT);
     // Oldest runtime entries are the ones dropped.
-    expect(runtimeKeys).not.toContain(`${BASE}runtime/0.woff2`);
-    expect(runtimeKeys).toContain(`${BASE}runtime/${h.sw.RUNTIME_CACHE_LIMIT + 6}.woff2`);
+    expect(runtimeKeys).not.toContain(`${BASE}src/lib/runtime-0.js`);
+    expect(runtimeKeys).toContain(`${BASE}src/lib/runtime-${h.sw.RUNTIME_CACHE_LIMIT + 6}.js`);
   });
 });
 
@@ -294,11 +333,17 @@ describe("sw.js version bumps", () => {
     newWorker.dispatch("install", newInstall);
     await Promise.allSettled(newInstall.waits);
 
-    expect(newWorker.network.calls.every((call) => call.cache === "no-cache")).toBe(true);
+    expect(
+      newWorker.network.calls
+        .slice(0, newWorker.sw.PRECACHE.length)
+        .every((call) => call.cache === "no-cache")
+    ).toBe(true);
     const fresh = await newWorker.caches.open(nextCacheName);
-    // Derived from PRECACHE: the bundle's ?v= is a content hash, not a counter.
+    // Derived from the precache lists: the bundle's ?v= is a content hash, not a counter.
     const bundleUrl = new URL(
-      newWorker.sw.PRECACHE.find((entry) => entry.includes("dist/bundle.js")),
+      [...newWorker.sw.PRECACHE, ...newWorker.sw.PRECACHE_IMMUTABLE].find((entry) =>
+        entry.includes("dist/bundle.js")
+      ),
       BASE
     ).href;
     expect(await fresh.entries.get(bundleUrl).text()).toBe("NEW-BYTES");
@@ -321,18 +366,18 @@ describe("sw.js fetch", () => {
   it("trims the runtime cache to the bound after a revalidation write", async () => {
     const cache = await h.caches.open(h.sw.CACHE_NAME);
     for (let i = 0; i < h.sw.RUNTIME_CACHE_LIMIT; i++) {
-      await cache.put(`${BASE}runtime/${i}.bin`, new MockResponse("old"));
+      await cache.put(`${BASE}src/lib/old-${i}.js`, new MockResponse("old"));
     }
     h.network.handler = async () => new MockResponse("new");
-    const url = `${BASE}runtime/fresh.bin`;
+    const url = `${BASE}src/lib/fresh.js`;
     const event = h.makeEvent(new MockRequest(url));
     h.dispatch("fetch", event);
     await h.settle(event);
 
-    const runtimeKeys = [...cache.entries.keys()].filter((key) => key.includes("/runtime/"));
+    const runtimeKeys = [...cache.entries.keys()].filter((key) => key.includes("/src/lib/"));
     expect(runtimeKeys.length).toBe(h.sw.RUNTIME_CACHE_LIMIT);
     expect(cache.entries.has(url)).toBe(true);
-    expect(cache.entries.has(`${BASE}runtime/0.bin`)).toBe(false);
+    expect(cache.entries.has(`${BASE}src/lib/old-0.js`)).toBe(false);
   });
 
   it("serves the cached shell when a navigation fails offline", async () => {
@@ -364,38 +409,74 @@ describe("sw.js fetch", () => {
     expect(response.status).toBe(503);
   });
 
-  it("serves cached index.html for a non-ok navigation response", async () => {
+  it("passes a non-ok navigation response through with its status", async () => {
+    // A cached 200 shell must never mask a live server error: substituting it
+    // turns every real 404 into a soft-404 crawlers and clients cannot see.
     const cache = await h.caches.open(h.sw.CACHE_NAME);
     await cache.put(`${BASE}index.html`, new MockResponse("INDEX-SHELL"));
     h.network.handler = async () => new MockResponse("server 404", { status: 404 });
     const event = h.makeEvent(new MockRequest(`${BASE}nope`, { mode: "navigate" }));
     h.dispatch("fetch", event);
     const response = await h.settle(event);
-    expect(await response.text()).toBe("INDEX-SHELL");
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("server 404");
   });
 
-  it("stores successful navigations in the runtime cache", async () => {
+  it("stores successful navigations under the single shared shell key", async () => {
     h.network.handler = async () => new MockResponse("FRESH-PAGE");
     const event = h.makeEvent(new MockRequest(`${BASE}page`, { mode: "navigate" }));
     h.dispatch("fetch", event);
     const response = await h.settle(event);
     expect(await response.text()).toBe("FRESH-PAGE");
     const cache = await h.caches.open(h.sw.CACHE_NAME);
-    expect(cache.entries.has(`${BASE}page`)).toBe(true);
+    // One shared entry, not one ~100 KB duplicate per visited URL.
+    expect(cache.entries.has(`${BASE}page`)).toBe(false);
+    expect(await cache.entries.get(new URL(h.sw.SHELL_CACHE_KEY, BASE).href).text()).toBe("FRESH-PAGE");
   });
 
-  it("serves stale-while-revalidate and refreshes the cache in the background", async () => {
+  it("serves immutable versioned assets cache-first without revalidation", async () => {
     const url = `${BASE}dist/bundle.js?v=1`;
     const cache = await h.caches.open(h.sw.CACHE_NAME);
     await cache.put(url, new MockResponse("OLD-BUNDLE"));
-    h.network.handler = async () => new MockResponse("NEW-BUNDLE");
+    let networkCalls = 0;
+    h.network.handler = async () => {
+      networkCalls++;
+      return new MockResponse("NEW-BUNDLE");
+    };
+
+    const event = h.makeEvent(new MockRequest(url));
+    h.dispatch("fetch", event);
+    const response = await h.settle(event);
+    // The ?v= moves with the bytes, so a hit can never be stale: serve it and
+    // skip the revalidation round-trip entirely.
+    expect(await response.text()).toBe("OLD-BUNDLE");
+    expect(networkCalls).toBe(0);
+    expect(await cache.entries.get(url).text()).toBe("OLD-BUNDLE");
+  });
+
+  it("passes no-store requests through without caching them", async () => {
+    const url = `${BASE}src/lib/jsqr.min.js`;
+    h.network.handler = async () => new MockResponse("LIB");
+    const event = h.makeEvent(new MockRequest(url, { cache: "no-store" }));
+    h.dispatch("fetch", event);
+    const response = await h.settle(event);
+    expect(await response.text()).toBe("LIB");
+    const cache = await h.caches.open(h.sw.CACHE_NAME);
+    expect(cache.entries.has(url)).toBe(false);
+  });
+
+  it("stale-while-revalidates cached fonts and libraries in the background", async () => {
+    const url = `${BASE}src/fonts/figtree-var-latin.woff2`;
+    const cache = await h.caches.open(h.sw.CACHE_NAME);
+    await cache.put(url, new MockResponse("OLD-FONT"));
+    h.network.handler = async () => new MockResponse("NEW-FONT");
 
     const event = h.makeEvent(new MockRequest(url));
     h.dispatch("fetch", event);
     const response = await h.settle(event);
     // The cached copy is served immediately; the fresh copy replaces it after.
-    expect(await response.text()).toBe("OLD-BUNDLE");
-    expect(await (await cache.entries.get(url)).text()).toBe("NEW-BUNDLE");
+    expect(await response.text()).toBe("OLD-FONT");
+    expect(await cache.entries.get(url).text()).toBe("NEW-FONT");
   });
 
   it("never caches non-ok runtime responses", async () => {

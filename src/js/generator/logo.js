@@ -16,9 +16,6 @@ export function applyLogoToDoc(doc, w, h) {
   if (!dataUrl) return false;
 
   const root = doc.documentElement;
-  if (!root.getAttribute("xmlns:xlink")) {
-    root.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-  }
 
   const container =
     Array.from(root.children).find((child) => child.tagName && child.tagName.toLowerCase() === "svg") || root;
@@ -91,8 +88,10 @@ export function applyLogoToDoc(doc, w, h) {
   img.setAttribute("width", String(size));
   img.setAttribute("height", String(size));
   img.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  // Plain href only: repeating the (often multi-MB) data URL as xlink:href
+  // doubled the serialized SVG, and SVG2 href is what every modern rasterizer
+  // (including the <img> path exports use) resolves.
   img.setAttribute("href", dataUrl);
-  img.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", dataUrl);
   group.appendChild(img);
 
   container.appendChild(group);

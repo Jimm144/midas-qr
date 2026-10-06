@@ -53,6 +53,19 @@ export function shortcutActionFor(e, ctx) {
   return null;
 }
 
+/** True when the user prefers reduced motion (also honored by CSS). */
+export function prefersReducedMotion() {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Global document-level listeners: Escape fallbacks for the modals, Ctrl+S/Ctrl+C. */
 export function initGlobalListeners() {
   const skipLink = document.getElementById("skip-link");
@@ -192,6 +205,14 @@ function endSectionAnimation(panel, record) {
 function animateSectionBody(panel, opening, btn) {
   const icon = btn ? btn.querySelector(".toggle-icon") : null;
   if (icon) icon.textContent = opening ? "[-]" : "[+]";
+
+  // Reduced motion: snap without animating (the timer backstop path).
+  if (prefersReducedMotion()) {
+    panel.classList.toggle("is-collapsed", !opening);
+    panel.classList.remove("is-animating");
+    if (btn) btn.classList.remove("is-animating");
+    return;
+  }
 
   const running = sectionAnimations.get(panel);
   if (running) {

@@ -47,15 +47,16 @@ function setVisitAction(href, label, isExternal = true) {
 }
 
 /**
- * Disable the Open/Visit action and return it to its neutral label. The link
- * is also removed from the tab order: `pointer-events-none` stops the mouse
- * but an anchor with href="#" is still keyboard-activatable.
+ * Disable the Open/Visit action and return it to its neutral label. The
+ * anchor's href is removed (not pointed at "#"): an href="#" link with
+ * tabindex="-1" is still reachable in some AT browse modes, while an anchor
+ * with no href is not exposed as a link at all.
  */
 function clearVisitAction() {
   DOM.btnVisitResult.setAttribute("aria-disabled", "true");
   DOM.btnVisitResult.classList.add("opacity-50", "pointer-events-none");
   DOM.btnVisitResult.setAttribute("tabindex", "-1");
-  DOM.btnVisitResult.href = "#";
+  DOM.btnVisitResult.removeAttribute("href");
   DOM.btnVisitResult.target = "_blank";
   DOM.btnVisitResult.removeAttribute("rel");
   DOM.btnVisitResult.textContent = t("common.open");
@@ -127,7 +128,9 @@ export function handleScanError() {
     DOM.errorModalMsg.textContent = message;
     openModal(DOM.errorModal, document.body);
   } else {
-    alert(message);
+    // No alert() fallback: blocking dialogs are suppressed in many contexts
+    // and trap AT focus. Log and leave the inline error status visible.
+    console.warn("[Scanner]", message);
   }
 }
 

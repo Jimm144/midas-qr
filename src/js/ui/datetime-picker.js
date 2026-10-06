@@ -159,14 +159,14 @@ function buildField(field, input) {
   popover.setAttribute("aria-label", t("datetime.calendar", { label: baseLabel }));
   popover.innerHTML = `
     <div class="dt-header">
-      <button type="button" class="dt-prev-year btn-reset">«</button>
-      <button type="button" class="dt-prev btn-reset">‹</button>
+      <button type="button" class="dt-prev-year btn-reset" aria-label="${t("datetime.previousYear")}">«</button>
+      <button type="button" class="dt-prev btn-reset" aria-label="${t("datetime.previousMonth")}">‹</button>
       <div class="dt-month" aria-live="polite"></div>
-      <button type="button" class="dt-next btn-reset">›</button>
-      <button type="button" class="dt-next-year btn-reset">»</button>
+      <button type="button" class="dt-next btn-reset" aria-label="${t("datetime.nextMonth")}">›</button>
+      <button type="button" class="dt-next-year btn-reset" aria-label="${t("datetime.nextYear")}">»</button>
     </div>
     <div class="dt-weekdays"></div>
-    <div class="dt-grid"></div>`;
+    <div class="dt-grid" role="grid"></div>`;
   field.appendChild(popover);
 
   const prev = /** @type {HTMLButtonElement} */ (popover.querySelector(".dt-prev:not(.dt-prev-year)"));
@@ -372,7 +372,8 @@ function buildField(field, input) {
 
   trigger.addEventListener("click", (e) => {
     e.stopPropagation();
-    popover.classList.contains("hidden") ? openCalendar() : close(false);
+    if (popover.classList.contains("hidden")) openCalendar();
+    else close(false);
   });
   trigger.addEventListener("keydown", (e) => {
     // Keyboard parity with a native picker: ArrowDown/ArrowUp opens the
@@ -427,8 +428,14 @@ function buildField(field, input) {
       commitTimeText();
     }
   });
-  input.addEventListener("input", () => syncDateTimeField(input));
-  input.addEventListener("change", () => syncDateTimeField(input));
+  // refreshDateTimePickers() rebuilds the visible fields around the same value
+  // store: without this guard every refresh stacked another pair of listeners
+  // on the reused input.
+  if (!input.dataset.dtSyncBound) {
+    input.dataset.dtSyncBound = "true";
+    input.addEventListener("input", () => syncDateTimeField(input));
+    input.addEventListener("change", () => syncDateTimeField(input));
+  }
 }
 
 /** @param {Element} trigger @param {string} text @param {string} placeholder */

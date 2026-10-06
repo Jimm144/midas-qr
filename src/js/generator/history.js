@@ -6,34 +6,35 @@ import { escapeHTML, snapshot, HEX_COLOR_RE, formatHistoryTimestamp } from "../u
 import { ALLOWED_SHAPES } from "../constants.js";
 import { parseGradient, gradientStops, diagonalSpan, linearEndpoints } from "./gradient.js";
 import { applyGeneratorFields } from "../state";
-import { showUndoToast } from "../ui/toast.js";
 import { createUndoableList } from "../ui/undoable-list.js";
 import { announce } from "../ui/announce.js";
 import { t } from "../i18n.js";
 
+/** History entries over this image size are dropped before persist (quota guard). */
+const HISTORY_IMAGE_STRIP_LEN = 64 * 1024;
+
 export function saveGeneratorHistory() {
-  if (!persistAppState(false)) {
-    const before = state.generatorHistory.length;
-    const snapshot = state.generatorHistory.slice();
-    state.generatorHistory = state.generatorHistory.filter((item) => {
-      const config = item && item.config && typeof item.config === "object" ? item.config : undefined;
-      const tooBig = (image) => typeof image === "string" && image.length >= 64 * 1024;
-      return config ? !tooBig(config.logoDataUrl) && !tooBig(config.bgImageDataUrl) : true;
-    });
-    if (state.generatorHistory.length !== before) {
-      const trimmedCount = before - state.generatorHistory.length;
-      console.warn(
-        `[history] Removed ${trimmedCount} large-image history item(s) to stay under the storage limit.`
-      );
-      persistAppState(false);
-      renderGeneratorHistory();
-      showUndoToast(t("history.trimmed"), () => {
-        state.generatorHistory = snapshot;
-        persistAppState(false);
-        renderGeneratorHistory();
-      });
-    }
+  // Strip oversized-image entries BEFORE the first persist attempt (not after
+  // a quota failure): serializing a 50-entry history of multi-MB data URLs is
+  // what blew the quota in the first place.
+  const beforeStrip = state.generatorHistory.length;
+  state.generatorHistory = state.generatorHistory.filter((item) => {
+    const config = item && item.config && typeof item.config === "object" ? item.config : undefined;
+    if (!config) return true;
+    const tooBig = (image) => typeof image === "string" && image.length >= HISTORY_IMAGE_STRIP_LEN;
+    return !tooBig(config.logoDataUrl) && !tooBig(config.bgImageDataUrl);
+  });
+  if (state.generatorHistory.length !== beforeStrip) {
+    console.warn(
+      `[history] Removed ${beforeStrip - state.generatorHistory.length} large-image history item(s) before persist to stay under the storage limit.`
+    );
   }
+  if (persistAppState(false)) {
+    return true;
+  }
+  // Quota still exceeded (many entries or a huge non-image payload): report
+  // the outcome explicitly.
+  return false;
 }
 
 let previewSeq = 0;
@@ -266,16 +267,25 @@ export function historyEntryName(config) {
 }
 
 /** Filesystem-safe name for a downloaded code: the row title, slugged. */
-function downloadName(config) {
+function downloadName(config, id = null) {
   const { title } = historyEntryName(config);
+  // Unicode-aware: keep letters/numbers from any script (CJK, LT diacritics)
+  // instead of collapsing them to the `qr-code` fallback.
   const slug = String(title)
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
+  let base = sanitizeFilename(slug, "qr-code");
+  // Collision suffix: every empty title slugs to `qr-code`, so batch exports
+  // would overwrite each other. Disambiguate with the stable entry id.
+  if ((base === "qr-code" || !slug) && id !== null && id !== undefined) {
+    const suffix = String(id).slice(-6).replace(/[^\p{L}\p{N}]+/gu, "");
+    if (suffix) base = `${base}-${suffix}`.slice(0, 100);
+  }
   // sanitizeFilename dodges Windows device names ("nul.png" is silently
   // refused by the OS) and is the same guard the Download button uses.
-  return `${sanitizeFilename(slug, "qr-code")}.png`;
+  return `${sanitizeFilename(base, "qr-code")}.png`;
 }
 
 function generatorHistoryRow(item, idx) {
@@ -487,7 +497,7 @@ async function exportHistoryBatch() {
       // Re-check after the async render: don't ship a file for an entry the
       // user deleted while it was being prepared.
       if (!blob || !state.generatorHistory.includes(items[i])) continue;
-      downloadBlob(blob, downloadName(items[i].config));
+      downloadBlob(blob, downloadName(items[i].config, items[i].id));
       downloaded++;
       if (i < items.length - 1) await sleep(BATCH_EXPORT_GAP_MS);
     }
@@ -523,12 +533,18 @@ export async function exportHistoryConfigPng(item) {
     Object.assign(state.generator, restore);
   }
   try {
-    await renderOnce(overrides);
-  } catch {
-    return null;
-  }
-  try {
-    return await exportRenderedBlob("png", null, {
+    // The returned artifact is exported directly — never the published global,
+    // which a concurrent live render may have replaced mid-export.
+    const rendered = await renderOnce(overrides);
+    if (!rendered || typeof rendered.svg !== "string") return null;
+    const info = {
+      svg: rendered.svg,
+      w: rendered.w,
+      h: rendered.h,
+      moduleCount: rendered.moduleCount,
+      userMarginPx: rendered.userMarginPx,
+    };
+    return await exportRenderedBlob("png", info, {
       dataString: overrides.dataString,
       ecc: overrides.ecc,
       bgTransparent: overrides.bgTransparent,
@@ -556,7 +572,7 @@ async function exportHistoryItem(idx, btn) {
   try {
     const blob = await exportHistoryConfigPng(item);
     if (blob) {
-      downloadBlob(blob, downloadName(item.config));
+      downloadBlob(blob, downloadName(item.config, item.id));
       announce(t("history.downloadedOne"));
     } else {
       announce(t("history.exportFailed"));

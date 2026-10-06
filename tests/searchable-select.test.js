@@ -188,24 +188,31 @@ describe("searchable-select", () => {
     expect(marks).toEqual(["S", "G"]);
   });
 
-  it("announces the number of matches in an aria-live status region", () => {
+  it("announces the number of matches in an aria-live status region", async () => {
     const status = field.querySelector(".ss-status");
     expect(status).not.toBeNull();
     expect(status.getAttribute("role")).toBe("status");
     expect(status.getAttribute("aria-live")).toBe("polite");
     trigger().click();
     expect(status.textContent).toBe("");
+    // The status update is debounced so every keystroke does not queue a
+    // live-region announcement; flush the timer before asserting.
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 250));
     search().value = "fig";
     search().dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
     expect(status.textContent).toBe("1 match");
     search().value = "e";
     search().dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
     expect(status.textContent).toBe("3 matches");
     search().value = "zzz";
     search().dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
     expect(status.textContent).toBe("0 matches");
     search().value = "";
     search().dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
     expect(status.textContent).toBe("");
   });
 

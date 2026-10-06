@@ -28,7 +28,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
  * @type {{ asset: string, files: string[] }[]}
  */
 const ASSETS = [
-  { asset: "favicon.svg", files: ["index.html", "sw.js"] },
+  { asset: "favicon.svg", files: ["index.html", "404.html", "sw.js"] },
   { asset: "dist/bundle.js", files: ["index.html", "sw.js"] },
   { asset: "src/css/style.min.css", files: ["index.html", "sw.js"] },
 ];
@@ -54,10 +54,16 @@ for (const { asset, files } of ASSETS) {
   // Match with or without a leading "./" and replace only the version, so the
   // surrounding markup (attribute quotes, PRECACHE string) is untouched.
   const pattern = new RegExp(`(\\./)?${escapeRe(asset)}\\?v=[0-9a-z]+`, "g");
+  // A new reference without any ?v= would otherwise ship (and pass checks)
+  // with no cache buster at all: stamp bare refs too. Only quoted references
+  // are stamped, so prose mentions in comments are left alone; versioned URLs
+  // (followed by `?`) never match the lookahead.
+  const barePattern = new RegExp(`(["'(])((?:\\./)?${escapeRe(asset)})(?=["')])`, "g");
   for (const file of files) {
     const filePath = path.join(ROOT, file);
     const before = fs.readFileSync(filePath, "utf8");
-    const after = before.replace(pattern, (_match, prefix) => `${prefix || ""}${asset}?v=${version}`);
+    const moved = before.replace(pattern, (_match, prefix) => `${prefix || ""}${asset}?v=${version}`);
+    const after = moved.replace(barePattern, (_match, lead, ref) => `${lead}${ref}?v=${version}`);
     if (after !== before) {
       fs.writeFileSync(filePath, after);
       stamped.push(`${file}: ${asset} -> ?v=${version}`);

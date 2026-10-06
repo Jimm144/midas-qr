@@ -4,6 +4,11 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    // Narrowed, not checkJs: the app's .js modules use JSDoc-flavoured
+    // annotations the TS parser rejects (TS8010/TS8016), so full checkJs
+    // would gate the build on rewrites of every JS module. The .ts modules
+    // (state, themes, frames) stay strictly checked; JS correctness is gated
+    // by eslint + vitest instead.
     "allowJs": true,
     "checkJs": false,
     "strict": true,
@@ -18,5 +23,5 @@
     "types": []
   },
   "include": ["src/js/**/*.js", "src/js/**/*.ts", "src/types/**/*.d.ts", "tests/**/*.js"],
-  "exclude": ["node_modules", "dist", "src/lib", "scripts"]
+  "exclude": ["node_modules", "dist", "src/lib", "tools", "site", "coverage", "scratch", "swtest"]
 }

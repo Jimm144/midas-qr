@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- __SITE_URL__ REPLACE-ME: "https://midasqr.is-local.org/" is a placeholder. Replace it with the production domain before deploying. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+  <!-- Canonical uses the production site (tools/site-config.mjs SITE_URL). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-T/V7/zy03jOVD07ysQ0zVReoWYEAtC5eAHYTOBZjS7o='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="robots" content="noindex,follow">
   <meta name="description" content="Page not found. Midas QR — free offline QR code generator and scanner.">
-  <meta name="theme-color" content="#10161A">
+  <meta name="theme-color" content="#1b1b1b">
   <meta name="color-scheme" content="dark light">
   <title>404 — Page Not Found | Midas QR</title>
-  <link rel="canonical" href="https://midasqr.is-local.org/404.html">
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="canonical" href="https://jimm144.github.io/midas-qr/404.html">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=76aeff07">
   <link rel="apple-touch-icon" href="./icon-192x192.png">
   <link rel="manifest" href="./manifest.json">
   <style>
     :root {
-      --bg: #10161A;
+      --bg: #1b1b1b;
       --accent: #5B9BEE;
       --text: #CED9E0;
       --border: rgba(206, 217, 224, 0.15);
@@ -114,13 +114,14 @@
   <script>
     (function() {
       try {
+        // Only canonical hex colors are honored: an unvalidated stored value
+        // would flow straight into a CSS property (and the theme-color meta).
+        var isHex = function (v) { return typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v); };
+        var d = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
         var bg = localStorage.getItem('qr-bg');
         var accent = localStorage.getItem('qr-accent');
-        if (!bg || !accent) {
-          var d = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          bg = d ? '#10161A' : '#F5F6F7';
-          accent = d ? '#2D72D2' : '#2D72D2';
-        }
+        if (!isHex(bg)) bg = d ? '#1b1b1b' : '#F5F6F7';
+        if (!isHex(accent)) accent = '#2D72D2';
         document.documentElement.style.setProperty('--bg', bg);
         document.documentElement.style.setProperty('--accent', accent);
         var tc = document.querySelector('meta[name="theme-color"]');

@@ -17,6 +17,26 @@ const read = (path) => {
   }
 };
 
+/** stat() that reports a diagnostic instead of throwing on missing inputs. */
+const mtimeOf = (path) => {
+  try {
+    return fs.statSync(path).mtimeMs;
+  } catch (err) {
+    problems.push("cannot stat " + path + ": " + err.message);
+    return null;
+  }
+};
+
+/** readdir() that reports a diagnostic instead of throwing on missing inputs. */
+const listDir = (path) => {
+  try {
+    return fs.readdirSync(path, { withFileTypes: true });
+  } catch (err) {
+    problems.push("cannot list " + path + ": " + err.message);
+    return [];
+  }
+};
+
 // ---------------------------------------------------------------- sw.js ---
 
 const file = "sw.js";
@@ -44,36 +64,72 @@ for (const needle of [
 }
 
 // 3. Every precache entry must exist on disk (ignoring ?v= cache busters).
+// The worker splits the install set: PRECACHE (critical unversioned shell,
+// revalidated) and PRECACHE_IMMUTABLE (content-hashed, installed as-is).
+const extractStringEntries = (label, body) => {
+  const entries = [...body.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  // Entries must be plain double-quoted strings and unique: a single-quoted
+  // or computed entry would silently bypass the existence check above.
+  const residue = body.replace(/"(?:[^"\\]|\\.)*"/g, "").replace(/[\s,]+/g, "");
+  if (residue) problems.push(`${label} contains non-string entries: ` + residue.slice(0, 80));
+  return entries;
+};
 const listMatch = src.match(/const PRECACHE = \[([\s\S]*?)\];/);
+const immutableMatch = src.match(/const PRECACHE_IMMUTABLE = \[([\s\S]*?)\];/);
 let precacheEntries = [];
+let immutableEntries = [];
 if (!listMatch) {
   problems.push("PRECACHE array not found or not terminated");
 } else {
   // Comments may mention paths in prose (e.g. 'precaching "./"'); strip them
   // before extracting entries or a quoted path turns into a phantom entry.
   const listBody = listMatch[1].replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-  precacheEntries = [...listBody.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-  if (precacheEntries.length < 15) problems.push(`PRECACHE suspiciously small (${precacheEntries.length} entries)`);
-  for (const entry of precacheEntries) {
+  precacheEntries = extractStringEntries("PRECACHE", listBody);
+  if (!immutableMatch) {
+    problems.push("PRECACHE_IMMUTABLE array not found or not terminated");
+  } else {
+    const immutableBody = immutableMatch[1].replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    immutableEntries = extractStringEntries("PRECACHE_IMMUTABLE", immutableBody);
+  }
+  const allEntries = [...precacheEntries, ...immutableEntries];
+  if (allEntries.length < 6) problems.push(`PRECACHE suspiciously small (${allEntries.length} entries)`);
+  for (const entry of allEntries) {
     const path = entry.replace(/\?.*$/, "");
     if (path === "./") continue;
     if (!fs.existsSync(path)) problems.push("precache entry missing on disk: " + entry);
   }
-  // 3b. Entries must be plain double-quoted strings and unique: a single-quoted
-  // or computed entry would silently bypass the existence check above.
-  const residue = listBody.replace(/"(?:[^"\\]|\\.)*"/g, "").replace(/[\s,]+/g, "");
-  if (residue) problems.push("PRECACHE contains non-string entries: " + residue.slice(0, 80));
   const seenEntries = new Set();
-  for (const entry of precacheEntries) {
+  for (const entry of allEntries) {
     if (seenEntries.has(entry)) problems.push("duplicate PRECACHE entry: " + entry);
     seenEntries.add(entry);
   }
+  // Immutable entries must all be content-hashed: an unversioned URL here
+  // would be installed without revalidation and served stale forever.
+  for (const entry of immutableEntries) {
+    if (!/\?v=[0-9a-z]+$/.test(entry)) problems.push("PRECACHE_IMMUTABLE entry is not versioned: " + entry);
+  }
+  precacheEntries = allEntries;
 }
 
 // 4. Every versioned asset must agree between the shell and the precache list.
-// The stylesheet was the only pair checked; the favicon (and any future asset)
-// could drift, and a `.match()`-once check silently ignored a second reference.
+// Assets that MUST be content-hashed: a new reference without a ?v= (a new
+// asset, or a dropped query) used to pass silently because the map below only
+// sees URLs that already carry one. Those are now reported, and
+// tools/stamp-assets.mjs stamps them.
+const KNOWN_VERSIONED = ["favicon.svg", "dist/bundle.js", "src/css/style.min.css"];
 const html = read("index.html") || "";
+const notFoundHtmlEarly = read("404.html") || "";
+for (const asset of KNOWN_VERSIONED) {
+  const bareRe = new RegExp(`["'(]\\./?${asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["')\\s]`);
+  for (const [page, pageSrc] of [
+    ["index.html", html],
+    ["404.html", notFoundHtmlEarly],
+  ]) {
+    if (bareRe.test(pageSrc)) {
+      problems.push(`${page} references ${asset} without a ?v= cache buster — run npm run build`);
+    }
+  }
+}
 const versionedAssets = new Map();
 for (const match of html.matchAll(/([\w./-]+)\?v=([0-9a-z]+)/g)) {
   const [, path, version] = match;
@@ -100,11 +156,7 @@ for (const [path, versions] of versionedAssets) {
 // stamps these (tools/stamp-assets.mjs); this check is the independent verifier.
 for (const [path, versions] of versionedAssets) {
   if (!fs.existsSync(path)) continue;
-  const expected = crypto
-    .createHash("sha256")
-    .update(fs.readFileSync(path))
-    .digest("hex")
-    .slice(0, 8);
+  const expected = crypto.createHash("sha256").update(fs.readFileSync(path)).digest("hex").slice(0, 8);
   for (const version of versions) {
     if (version !== expected) {
       problems.push(
@@ -120,30 +172,31 @@ for (const [path, versions] of versionedAssets) {
 const newestMtime = (dir, exts) => {
   let newest = 0;
   const walk = (current) => {
-    for (const dirent of fs.readdirSync(current, { withFileTypes: true })) {
+    for (const dirent of listDir(current)) {
       const path = current + "/" + dirent.name;
       if (dirent.isDirectory()) walk(path);
       else if (exts.some((ext) => dirent.name.endsWith(ext))) {
-        newest = Math.max(newest, fs.statSync(path).mtimeMs);
+        const mtime = mtimeOf(path);
+        if (mtime !== null) newest = Math.max(newest, mtime);
       }
     }
   };
   walk(dir);
   return newest;
 };
+const styleCssMtime = mtimeOf("src/css/style.css");
 const builtArtifacts = [
   { built: "dist/bundle.js", source: newestMtime("src/js", [".js", ".ts"]) },
-  { built: "src/css/style.min.css", source: fs.statSync("src/css/style.css").mtimeMs },
+  { built: "src/css/style.min.css", source: styleCssMtime === null ? 0 : styleCssMtime },
 ];
 for (const artifact of builtArtifacts) {
   if (!fs.existsSync(artifact.built)) {
     problems.push(`built artifact missing: ${artifact.built} (run npm run build)`);
     continue;
   }
-  if (fs.statSync(artifact.built).mtimeMs + 1000 < artifact.source) {
-    problems.push(
-      `${artifact.built} is older than its sources — run npm run build before shipping`
-    );
+  const builtMtime = mtimeOf(artifact.built);
+  if (builtMtime !== null && builtMtime + 1000 < artifact.source) {
+    problems.push(`${artifact.built} is older than its sources — run npm run build before shipping`);
   }
 }
 
@@ -151,13 +204,17 @@ for (const artifact of builtArtifacts) {
 // under exactly the requested URL (query included): an unprecached first-load
 // asset is a guaranteed cache miss and a hole in the offline shell. Both HTML
 // pages are checked; "/" navigations are exempt because the fetch handler
-// serves them from the cached index.html fallback.
+// serves them from the cached shell entry. Fonts and vendored libraries are
+// exempt: they are lazy stale-while-revalidate runtime entries by design
+// (see RUNTIME_SWR_PATTERNS in sw.js), verified covered below instead.
+const isLazyRuntimeRef = (ref) => /^(\.\/)?src\/(fonts|lib)\//.test(ref);
 const pageAssetRefs = (src) => [
   ...[...src.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]),
   // Scripts the inline loader injects by string, not by tag attribute.
   ...[...src.matchAll(/loadScript\('([^']+)'\)/g)].map((m) => m[1]),
 ];
 let shellRefs = 0;
+const lazyRuntimeRefs = [];
 for (const [page, pageSrc] of [
   ["index.html", html],
   ["404.html", read("404.html") || ""],
@@ -168,6 +225,13 @@ for (const [page, pageSrc] of [
     if (!path || path === "/" || path === "./") continue;
     const disk = path.replace(/^\/+/, "");
     if (!fs.existsSync(disk)) problems.push(`${page} references missing file: ${ref}`);
+    if (isLazyRuntimeRef(ref)) {
+      // Existence is still required; precache coverage is replaced by the
+      // SWR-coverage check below.
+      lazyRuntimeRefs.push(ref);
+      shellRefs++;
+      continue;
+    }
     const wanted = [ref, "./" + ref, "./" + ref.replace(/^\/+/, "")];
     if (!wanted.some((candidate) => precacheEntries.includes(candidate))) {
       problems.push(`${page} asset not precached: ${ref}`);
@@ -185,10 +249,13 @@ for (const [page, pageSrc] of [
 // ("mirrors ... robots.txt") must not count as a fetch.
 function walkSources(dir) {
   let out = "";
-  for (const dirent of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const dirent of listDir(dir)) {
     const source = dir + "/" + dirent.name;
     if (dirent.isDirectory()) out += walkSources(source);
-    else if (/\.(js|ts)$/.test(dirent.name)) out += "\n" + fs.readFileSync(source, "utf8");
+    else if (/\.(js|ts)$/.test(dirent.name)) {
+      const content = read(source);
+      if (content !== null) out += "\n" + content;
+    }
   }
   return out;
 }
@@ -203,7 +270,7 @@ const addRef = (value, from) => {
     if (path) referenced.add(path);
   } catch (_err) {}
 };
-const notFoundHtml = read("404.html") || "";
+const notFoundHtml = notFoundHtmlEarly;
 for (const match of html.matchAll(/(?:href|src)="([^"]+)"/g)) addRef(match[1], "index.html");
 for (const match of html.matchAll(/loadScript\('([^']+)'\)/g)) addRef(match[1], "index.html");
 for (const match of notFoundHtml.matchAll(/(?:href|src)="([^"]+)"/g)) addRef(match[1], "404.html");
@@ -218,8 +285,9 @@ try {
     } else if (value && typeof value === "object") stack.push(...Object.values(value));
   }
 } catch (_err) {}
-const cssSrc = read("src/css/style.css") || "";
-for (const match of cssSrc.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)) addRef(match[1], "src/css/style.css");
+const cssSrc = [read("src/css/style.css") || ""].join("\n");
+for (const match of cssSrc.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g))
+  addRef(match[1], "src/css/style.css");
 const jsSources = walkSources("src/js");
 const isFallbackPage = (path) => path === "index.html" || path === "404.html";
 for (const entry of precacheEntries) {
@@ -232,6 +300,45 @@ for (const entry of precacheEntries) {
   const quoted = [`"${path}"`, `'${path}'`];
   if (referenced.has(path) || quoted.some((needle) => jsSources.includes(needle))) continue;
   problems.push("precache entry never referenced by the app shell: " + entry);
+}
+
+// 4c-ii. Lazy runtime refs (fonts, vendored libs) skip the precache but must
+// be covered by the worker's stale-while-revalidate set: an entry in neither
+// is offline-dead the first time it is needed.
+const swrMatch = src.match(/const RUNTIME_SWR_PATTERNS = \[([\s\S]*?)\];/);
+let swrPatterns = [];
+if (!swrMatch) {
+  problems.push("sw.js: RUNTIME_SWR_PATTERNS not found");
+} else {
+  try {
+    const compiled = new Function(`return [${swrMatch[1]}];`)();
+    if (!Array.isArray(compiled) || compiled.some((p) => !(p instanceof RegExp))) {
+      problems.push("sw.js: RUNTIME_SWR_PATTERNS must be an array of RegExp");
+    } else {
+      swrPatterns = compiled;
+    }
+  } catch (err) {
+    problems.push("sw.js: RUNTIME_SWR_PATTERNS unparseable: " + err.message);
+  }
+}
+if (swrPatterns.length) {
+  for (const ref of lazyRuntimeRefs) {
+    const path = ref.replace(/^\.\//, "").replace(/[?#].*$/, "");
+    if (!swrPatterns.some((pattern) => pattern.test("/" + path))) {
+      problems.push(`lazy runtime asset has no SWR coverage in sw.js: ${ref}`);
+    }
+  }
+  // Runtime-injected stylesheet (theme @font-face sheet loaded by
+  // theme-runtime.js, never referenced from HTML): same coverage requirement,
+  // or non-default themes lose their fonts on repeat offline visits.
+  if (jsSources.includes("src/css/fonts.css")) {
+    if (!swrPatterns.some((pattern) => pattern.test("/src/css/fonts.css"))) {
+      problems.push("src/css/fonts.css is loaded at runtime but has no SWR coverage in sw.js");
+    }
+    if (!fs.existsSync("src/css/fonts.css")) {
+      problems.push("theme-runtime.js loads src/css/fonts.css but it is missing on disk");
+    }
+  }
 }
 
 // 4d. Self-hosted typography has two consumers: @font-face rules (theme UI)
@@ -248,11 +355,12 @@ if (fontFaces.length === 0) problems.push("style.css: no self-hosted @font-face 
 for (const face of fontFaces) {
   if (!fs.existsSync(face.file)) problems.push(`@font-face "${face.family}" missing font file: ${face.file}`);
 }
-const frameFonts = [...(read("src/js/frames.ts") || "").matchAll(/family:\s*"([^"]+)"[\s\S]{0,80}?file:\s*"([^"]+)"/g)].map(
-  (m) => ({ family: m[1], file: m[2] })
-);
+const frameFonts = [
+  ...(read("src/js/frames.ts") || "").matchAll(/family:\s*"([^"]+)"[\s\S]{0,80}?file:\s*"([^"]+)"/g),
+].map((m) => ({ family: m[1], file: m[2] }));
 for (const font of frameFonts) {
-  if (!fs.existsSync(font.file)) problems.push(`frames.ts font "${font.family}" missing on disk: ${font.file}`);
+  if (!fs.existsSync(font.file))
+    problems.push(`frames.ts font "${font.family}" missing on disk: ${font.file}`);
   if (!fontFaces.some((face) => face.family === font.family)) {
     problems.push(`frames.ts font "${font.family}" has no @font-face in style.css`);
   }
@@ -323,7 +431,9 @@ for (const face of fontFaces) {
   }
 }
 const diskFonts = fs.existsSync("src/fonts")
-  ? fs.readdirSync("src/fonts").filter((name) => name.endsWith(".woff2"))
+  ? listDir("src/fonts")
+      .filter((dirent) => dirent.isFile() && dirent.name.endsWith(".woff2"))
+      .map((dirent) => dirent.name)
   : [];
 for (const file of diskFonts) {
   if (!fontFaces.some((face) => face.file === "src/fonts/" + file)) {
@@ -358,8 +468,23 @@ if (!/networkResponse\.ok/.test(src)) {
   problems.push("sw.js: no network response.ok gating found");
 }
 if (!src.includes("caches.delete")) problems.push("sw.js: stale caches are never deleted");
+if (!/name\.startsWith\(APP_CACHE_PREFIX\)/.test(src)) {
+  problems.push("sw.js: activation must only delete caches under APP_CACHE_PREFIX");
+}
+if (!/const APP_CACHE_PREFIX = "[a-z0-9-]+-"/.test(src)) {
+  problems.push('sw.js: APP_CACHE_PREFIX must be a quoted app prefix (e.g. "midas-qr-")');
+}
 if (!/new Request\([\s\S]{0,80}?cache:\s*"no-cache"/.test(src)) {
   problems.push('sw.js: precache fetches must revalidate with the HTTP cache (cache: "no-cache")');
+}
+if (!/PRECACHE_IMMUTABLE\.map\(\(entry\) => new Request\(entry\)\)/.test(src)) {
+  problems.push("sw.js: immutable precache entries must install without forced revalidation");
+}
+if (!/request\.cache === "no-store"/.test(src)) {
+  problems.push('sw.js: requests with cache "no-store" must bypass the cache');
+}
+if (!/storeResponse\(cache, SHELL_CACHE_KEY/.test(src)) {
+  problems.push("sw.js: successful navigations must refresh the single SHELL_CACHE_KEY entry");
 }
 
 // ----------------------------------------------------------- manifest.json ---
@@ -400,16 +525,16 @@ if (manifest) {
     problems.push("manifest.json: icons[] is missing or empty");
   } else {
     manifest.icons.forEach((icon, i) => checkManifestPath(`icons[${i}].src`, icon && icon.src));
-    const sizes = new Set(
-      manifest.icons.flatMap((icon) => String((icon && icon.sizes) || "").split(/\s+/))
-    );
+    const sizes = new Set(manifest.icons.flatMap((icon) => String((icon && icon.sizes) || "").split(/\s+/)));
     for (const required of ["192x192", "512x512"]) {
-      if (!sizes.has(required)) problems.push(`manifest.json: no ${required} icon (install prompt requires it)`);
+      if (!sizes.has(required))
+        problems.push(`manifest.json: no ${required} icon (install prompt requires it)`);
     }
   }
   if (manifest.screenshots !== undefined) {
     if (!Array.isArray(manifest.screenshots)) problems.push("manifest.json: screenshots must be an array");
-    else manifest.screenshots.forEach((shot, i) => checkManifestPath(`screenshots[${i}].src`, shot && shot.src));
+    else
+      manifest.screenshots.forEach((shot, i) => checkManifestPath(`screenshots[${i}].src`, shot && shot.src));
   }
   if (manifest.shortcuts !== undefined) {
     if (!Array.isArray(manifest.shortcuts)) problems.push("manifest.json: shortcuts must be an array");
@@ -420,7 +545,8 @@ if (manifest) {
         const icons = shortcut && shortcut.icons;
         if (icons === undefined) return;
         if (!Array.isArray(icons)) problems.push(`manifest.json: shortcuts[${i}].icons must be an array`);
-        else icons.forEach((icon, j) => checkManifestPath(`shortcuts[${i}].icons[${j}].src`, icon && icon.src));
+        else
+          icons.forEach((icon, j) => checkManifestPath(`shortcuts[${i}].icons[${j}].src`, icon && icon.src));
         const hash = typeof shortcut.url === "string" ? (shortcut.url.match(/#([^#]*)$/) || [])[1] : "";
         if (hash && tabHashes.size > 0 && !tabHashes.has(`"${hash}"`)) {
           problems.push(`manifest.json: shortcuts[${i}].url targets unknown tab #${hash}`);
@@ -523,13 +649,19 @@ for (const page of ["404.html", "index.html"]) {
   if (scripts.length === 0) problems.push(`${page}: no inline script found to hash-check`);
   for (const script of scripts) {
     if (!allowed.has(script.hash)) {
-      problems.push(`${page}: inline script at line ${script.line} not allowed by its meta CSP (${script.hash})`);
+      problems.push(
+        `${page}: inline script at line ${script.line} not allowed by its meta CSP (${script.hash})`
+      );
     }
     if (headerCsp && !headerHashes.has(script.hash)) {
-      problems.push(`${page}: inline script at line ${script.line} blocked by serve.json's CSP header (${script.hash})`);
+      problems.push(
+        `${page}: inline script at line ${script.line} blocked by serve.json's CSP header (${script.hash})`
+      );
     }
   }
-  cspChecks.push(`${page} (${scripts.length} inline script hash${scripts.length === 1 ? "" : "es"} allowed by its meta CSP)`);
+  cspChecks.push(
+    `${page} (${scripts.length} inline script hash${scripts.length === 1 ? "" : "es"} allowed by its meta CSP)`
+  );
 }
 
 // ------------------------------------------------------- HTML tag balance ---
@@ -604,7 +736,13 @@ for (const page of ["index.html", "404.html"]) {
 
 // Browsers hash inline script text after CRLF -> LF normalization.
 function inlineScripts(path) {
-  const buf = fs.readFileSync(path);
+  let buf;
+  try {
+    buf = fs.readFileSync(path);
+  } catch (err) {
+    problems.push("cannot read " + path + ": " + err.message);
+    return [];
+  }
   const out = [];
   let pos = 0;
   while (true) {
@@ -617,11 +755,13 @@ function inlineScripts(path) {
     const tag = buf.slice(start, tagEnd).toString("utf8");
     pos = close + 9;
     if (/\bsrc\s*=/.test(tag)) continue;
-    const text = buf.slice(tagEnd + 1, close).toString("utf8").replace(/\r\n/g, "\n");
-    if (text.trim().length === 0) continue;
+    // Hash the raw bytes as the browser sees them (no CRLF normalisation),
+    // so the check agrees with csp-hashes.mjs and with the real CSP engine.
+    const bytes = buf.slice(tagEnd + 1, close);
+    if (bytes.toString("utf8").trim().length === 0) continue;
     out.push({
       line: buf.slice(0, start).toString("utf8").split("\n").length,
-      hash: "sha256-" + crypto.createHash("sha256").update(text, "utf8").digest("base64"),
+      hash: "sha256-" + crypto.createHash("sha256").update(bytes).digest("base64"),
     });
   }
   return out;
@@ -634,9 +774,13 @@ if (problems.length) {
   for (const p of problems) console.error("  - " + p);
   process.exit(1);
 }
-console.log(`sw.js OK (${src.length} bytes, ${precacheEntries.length} precache entries, cache v${cacheVersion})`);
+console.log(
+  `sw.js OK (${src.length} bytes, ${precacheEntries.length} precache entries, cache v${cacheVersion})`
+);
 console.log(`shell assets OK (${shellRefs} references across index.html/404.html exist and are precached)`);
-console.log(`fonts OK (${fontFaces.length} @font-face files on disk, ${frameFonts.length} frame fonts verified)`);
+console.log(
+  `fonts OK (${fontFaces.length} @font-face files on disk, ${frameFonts.length} frame fonts verified)`
+);
 console.log(`manifest.json OK (${manifestRefs} icon/screenshot paths verified on disk)`);
 console.log(`serve.json OK (CSP header + hashes, Permissions-Policy camera=(self))`);
 for (const line of cspChecks) console.log(line);

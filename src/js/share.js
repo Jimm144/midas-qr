@@ -68,7 +68,9 @@ function encodeGradient(g) {
 }
 
 /**
- * Parse "type,rotation,#color2"; null when invalid.
+ * Parse "type,rotation,#color2"; null when invalid. Empty rotation is
+ * rejected (strict): `Number("")` is 0, so an explicit empty check is needed
+ * — encodeGradient never emits that shape.
  * @param {unknown} raw
  * @returns {GradientSpec | null}
  */
@@ -77,10 +79,9 @@ function decodeGradient(raw) {
   const parts = raw.split(",");
   if (parts.length !== 3) return null;
   const [type, rot, color2] = parts;
-  // Number() here (not toFiniteNumber) deliberately preserves the historical
-  // accept of an empty rotation as 0; encodeGradient never emits that shape.
-  const rotation = Number(rot);
-  if (!Number.isFinite(rotation) || rotation < 0 || rotation > 360) return null;
+  if (typeof rot !== "string" || rot.trim() === "") return null;
+  const rotation = toFiniteNumber(rot);
+  if (rotation === null || rotation < 0 || rotation > 360) return null;
   const spec = parseGradient({ type, rotation, color2 });
   if (!spec) return null;
   return { type: spec.type, rotation: Math.round(rotation), color2: spec.color2 };
@@ -152,8 +153,20 @@ export function encodeStateToUrl() {
   }
   if (isSafeImageSource(g.logoDataUrl, { maxLength: SHARE_LOGO_MAX_BYTES, allowHttp: true }))
     params.set("logo", /** @type {string} */ (g.logoDataUrl));
+  else if (typeof g.logoDataUrl === "string" && g.logoDataUrl.length > SHARE_LOGO_MAX_BYTES) {
+    // A share URL cannot carry a multi-KB logo: warn instead of silently
+    // dropping it so the sender knows the recipient gets no logo.
+    console.warn(
+      `[share] Logo omitted from share URL (${g.logoDataUrl.length} chars > ${SHARE_LOGO_MAX_BYTES}).`
+    );
+  }
   if (isSafeImageSource(g.bgImageDataUrl, { maxLength: SHARE_LOGO_MAX_BYTES }))
     params.set("bgImage", /** @type {string} */ (g.bgImageDataUrl));
+  else if (typeof g.bgImageDataUrl === "string" && g.bgImageDataUrl.length > SHARE_LOGO_MAX_BYTES) {
+    console.warn(
+      `[share] Background image omitted from share URL (${g.bgImageDataUrl.length} chars > ${SHARE_LOGO_MAX_BYTES}).`
+    );
+  }
   if (Number.isFinite(g.logoSizeProportion) && g.logoSizeProportion !== DEFAULT_GENERATOR.logoSizeProportion)
     params.set("logoSize", String(g.logoSizeProportion));
   if (Number.isFinite(g.imageMargin) && g.imageMargin !== DEFAULT_GENERATOR.imageMargin)
@@ -252,9 +265,55 @@ function confirmRemoteLogo(url) {
 }
 
 /**
+ * Every query/hash key the share codec owns. A URL without any of these is
+ * not a share link (e.g. `?utm_source=…`) and must not mutate state — the
+ * old "any non-empty query decodes" cleared gradients/logo on plain marketing
+ * links.
+ */
+const RECOGNIZED_SHARE_PARAMS = new Set([
+  "type",
+  "data",
+  "ecc",
+  "w",
+  "h",
+  "margin",
+  "radius",
+  "dots",
+  "bg",
+  "bgT",
+  "cs",
+  "cd",
+  "bgGrad",
+  "dotsGrad",
+  "csGrad",
+  "cdGrad",
+  "body",
+  "outer",
+  "inner",
+  "mask",
+  "maskPath",
+  "frame",
+  "frameText",
+  "frameSize",
+  "noText",
+  "text",
+  "font",
+  "frameColor",
+  "frameTextColor",
+  "frameGrad",
+  "frameTextGrad",
+  "logo",
+  "bgImage",
+  "logoSize",
+  "logoMargin",
+]);
+
+/**
  * Decode URL search params and apply them to the generator state.
  * Returns true if any params were applied. All values are validated + clamped
  * so a crafted share URL can't push generator into a broken state.
+ * Decoding starts from fresh defaults (not the recipient's live settings) so
+ * absent values land on defaults instead of inheriting the recipient's design.
  * @returns {boolean}
  */
 export function decodeStateFromUrl() {
@@ -263,9 +322,30 @@ export function decodeStateFromUrl() {
   const params = readUrlParams();
   if (!params || params.toString() === "") return false;
   const searchParams = params;
+  let hasRecognized = false;
+  for (const key of RECOGNIZED_SHARE_PARAMS) {
+    if (searchParams.has(key)) {
+      hasRecognized = true;
+      break;
+    }
+  }
+  if (!hasRecognized) return false;
 
   try {
     const g = state.generator;
+    // Fresh-defaults base: a shared link is the whole design. Without this,
+    // a `?w=400` link would keep the recipient's gradients/logo/colors.
+    const fresh = JSON.parse(JSON.stringify(DEFAULT_GENERATOR));
+    Object.assign(g, fresh);
+    // DEFAULT_GENERATOR carries no field bag; drop any stale snapshot so a
+    // later capture starts clean instead of reusing the recipient's typing.
+    if ("fields" in g) {
+      try {
+        delete g.fields;
+      } catch {
+        g.fields = undefined;
+      }
+    }
     /** @type {(key: string) => string | null} */
     const get = (key) => getSingleParam(searchParams, key);
 
@@ -273,6 +353,9 @@ export function decodeStateFromUrl() {
     if (isAllowedValue(ALLOWED_DATA_TYPES, dataType)) g.dataType = dataType;
     const data = get("data");
     if (data !== null && data.length <= MAX_SHARE_DATA_LEN) g.dataString = data;
+    else if (data !== null && data.length > MAX_SHARE_DATA_LEN) {
+      console.warn(`[share] Shared payload omitted (${data.length} chars > ${MAX_SHARE_DATA_LEN}).`);
+    }
 
     const ecc = get("ecc");
     if (isAllowedValue(ALLOWED_ECC, ecc)) g.ecc = ecc;
@@ -316,6 +399,8 @@ export function decodeStateFromUrl() {
 
     const frame = get("frame");
     if (isAllowedValue(ALLOWED_FRAMES, frame)) g.frameStyle = frame;
+    // Absent frameText stays on the fresh-default value (cleared relative to
+    // any recipient text); only an explicit param overwrites it.
     const frameText = get("frameText");
     if (frameText !== null) g.frameText = truncateSafe(frameText, MAX_FRAME_TEXT_LEN);
     for (const [key, field] of QR_GRADIENT_PARAMS) {
@@ -325,8 +410,12 @@ export function decodeStateFromUrl() {
     }
     const frameSize = get("frameSize");
     if (frameSize !== null) {
-      // Old links carry the string presets; map them before numeric clamping.
-      const legacy = LEGACY_FRAME_TEXT_SIZES[frameSize];
+      // Old links carry string presets ("small"/"medium"/"large"); only those
+      // exact keys migrate. Anything else is a numeric percent to clamp —
+      // unknown strings (e.g. "huge") keep the fresh default via the fallback.
+      const hasLegacy =
+        Object.prototype.hasOwnProperty.call(LEGACY_FRAME_TEXT_SIZES, frameSize);
+      const legacy = hasLegacy ? LEGACY_FRAME_TEXT_SIZES[frameSize] : undefined;
       g.frameTextSize =
         typeof legacy === "number" ? legacy : clampParam(frameSize, BOUNDS.frameTextSize, g.frameTextSize);
     }
@@ -352,6 +441,13 @@ export function decodeStateFromUrl() {
     // Bitmap data: URLs are inert and apply directly; a remote http(s) logo is
     // only applied after the recipient explicitly confirms the fetch. An absent
     // (or rejected) logo clears the recipient's own: the link is the design.
+    // (Base is already fresh defaults, so absent stays cleared.)
+    if (
+      logo !== null &&
+      !isSafeImageSource(logo, { maxLength: SHARE_LOGO_MAX_BYTES, allowHttp: true })
+    ) {
+      console.warn(`[share] Shared logo omitted (unsafe or > ${SHARE_LOGO_MAX_BYTES} chars).`);
+    }
     const sharedLogo =
       logo !== null &&
       isSafeImageSource(logo, { maxLength: SHARE_LOGO_MAX_BYTES, allowHttp: true }) &&
@@ -369,6 +465,9 @@ export function decodeStateFromUrl() {
       g.imageMargin = clampParam(logoMargin, BOUNDS.imageMargin, g.imageMargin);
     }
     const bgImage = get("bgImage");
+    if (bgImage !== null && !isSafeImageSource(bgImage, { maxLength: SHARE_LOGO_MAX_BYTES })) {
+      console.warn(`[share] Shared background image omitted (unsafe or > ${SHARE_LOGO_MAX_BYTES} chars).`);
+    }
     g.bgImageDataUrl =
       bgImage !== null && isSafeImageSource(bgImage, { maxLength: SHARE_LOGO_MAX_BYTES }) ? bgImage : null;
 
@@ -388,13 +487,15 @@ export function decodeStateFromUrl() {
 
 /**
  * Restore the payload decoded from a share URL after the init flow has run
- * its recompiles. Safe no-op when no share URL was present.
+ * its recompiles. Safe no-op when no share URL was present. Validity is NOT
+ * forced: the post-decode recompile from hydrated fields already set isValid,
+ * and forcing true would mark a crafted invalid payload as scannable.
  * @returns {void}
  */
 export function applyHydratedPayload() {
   if (!hydratedPayload) return;
   state.generator.dataString = hydratedPayload.dataString;
-  state.generator.isValid = true;
+  state.generator.dataType = hydratedPayload.dataType;
   hydratedPayload = null;
 }
 

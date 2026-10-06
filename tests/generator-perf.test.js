@@ -188,21 +188,30 @@ describe("generateQR render economy", () => {
       expect.stringContaining("<svg"),
       expect.any(Number),
       expect.any(Number),
-      expect.any(Number)
+      expect.any(Number),
+      expect.any(String)
     );
 
-    // A failed decode is the whole verdict: no cause is guessed at.
+    // A failed decode is the whole verdict: no cause is guessed at. A new
+    // render is needed: the badge is only re-checked for fresh markup, never
+    // for a memo-reused SVG whose verdict is already known.
     svgDecodes.mockResolvedValue(false);
+    state.generator.dotsColor = "#123456";
     generateQR(true);
     await flushRender();
     expect(DOM.qrReadabilityBadge.className).toBe("status-warning");
     expect(DOM.qrReadabilityBadge.title).toContain("does not decode");
 
-    // No verdict available (no canvas/decoder): say nothing rather than guess.
+    // No verdict available (no canvas/decoder): report Unknown explicitly
+    // rather than hiding the badge. A new render is needed: the badge is only
+    // re-checked for fresh markup, never for a memo-reused SVG whose verdict
+    // is already known.
     svgDecodes.mockResolvedValue(null);
+    state.generator.dotsColor = "#654321";
     generateQR(true);
     await flushRender();
-    expect(DOM.qrReadabilityBadge.classList.contains("hidden")).toBe(true);
+    expect(DOM.qrReadabilityBadge.className).toBe("status-unknown");
+    expect(DOM.qrReadabilityBadge.classList.contains("hidden")).toBe(false);
   });
 
   it("ignores a decode that finishes after a newer render", async () => {

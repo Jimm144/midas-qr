@@ -103,7 +103,10 @@ document.addEventListener("app:localechange", refreshThemeToggleTranslations);
 
 /** Build the CSS custom-property map for the active theme variant. */
 function buildCssVarMap(themeName, isDark) {
-  const themeFamily = themes[themeName] || themes.default;
+  // `themes` has exactly the seven shipped families — no "default" key ever
+  // existed, so an unknown/corrupt saved value fell through to undefined and
+  // crashed on the first token read. Unknown names fall back to neutral.
+  const themeFamily = themes[themeName] || themes.neutral;
   const activeThemeObj = isDark ? themeFamily.dark : themeFamily.light;
   const t = activeThemeObj;
   const styles = {

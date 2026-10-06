@@ -45,7 +45,9 @@ describe("applyLogoToDoc", () => {
 
     const image = group.querySelector(".qr-logo-image");
     expect(image.getAttribute("href")).toBe(LOGO);
-    expect(image.getAttributeNS("http://www.w3.org/1999/xlink", "href")).toBe(LOGO);
+    // Single href: the data URL is not duplicated as xlink:href (which used to
+    // double the serialized SVG for image-heavy codes).
+    expect(image.hasAttributeNS("http://www.w3.org/1999/xlink", "href")).toBe(false);
     expect(image.getAttribute("x")).toBe("90");
     expect(image.getAttribute("width")).toBe("120");
   });

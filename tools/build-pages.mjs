@@ -22,6 +22,9 @@ const FILES = [
   "icon-192x192.png",
   "icon-512x512.png",
   "og-image.png",
+  // Manifest screenshots[] references; not part of the precache.
+  "shot-shapes.png",
+  "shot-verify-gothic.png",
   "robots.txt",
   "sitemap.xml",
   "sw.js",

@@ -109,6 +109,8 @@ export interface QRScannerState {
   cameras: MediaDeviceInfo[];
   selectedCameraId: string;
   history: Array<{ id: number; content: string; time: string }>;
+  /** True after an explicit user Stop; tab returns must not auto-restart. */
+  userStopped?: boolean;
 }
 
 /** Top-level application state. */
@@ -124,6 +126,10 @@ export const STATE_KEY = "qr_state_v1";
 // P10: the live logo (up to 4MB base64) is persisted under its own key so the
 // main state blob stays small and is not re-serialized on every flush.
 export const LOGO_STATE_KEY = "qr_logo_v1";
+// Background image likewise lives outside the main blob: scanner-only flushes
+// (persistScannerHistory) would otherwise re-serialize a multi-MB data URL on
+// every scan.
+export const BG_IMAGE_STATE_KEY = "qr_bg_image_v1";
 
 export const DEFAULT_GENERATOR = {
   dataType: "url",
@@ -346,8 +352,14 @@ function sanitizeGeneratorFields(raw: unknown): GeneratorFieldBag | null {
   const keys = Object.keys(raw);
   for (let i = 0; i < keys.length && Object.keys(out).length < MAX_STATE_FIELDS; i++) {
     const id = keys[i];
+    // Prototype pollution guard: `out["__proto__"] = x` would set the
+    // prototype instead of an own property (swallowing the entry).
+    if (id === "__proto__" || id === "constructor" || id === "prototype") continue;
     if (id.length > 128) continue;
-    const value = raw[id];
+    // Note: arbitrary ids are still sanitized here for backward compat
+    // (existing tests + old blobs); the DOM-write allow-list lives in
+    // applyGeneratorFields, which is the actual injection sink.
+    const value = (raw as Record<string, unknown>)[id];
     if (typeof value === "string")
       out[id] = value.length <= MAX_STATE_FIELD_LEN ? value : truncateSafe(value, MAX_STATE_FIELD_LEN);
     else if (typeof value === "number" && Number.isFinite(value)) out[id] = value;
@@ -447,7 +459,14 @@ function sanitizeGeneratorConfigInner(
     if (OPTIONAL_COLOR_FIELDS.has(key) && value !== "" && !HEX_COLOR_RE.test(value)) continue;
     const limit = STRING_LIMITS[key] ?? { max: MAX_STATE_FIELD_LEN, mode: "drop" as const };
     if (value.length > limit.max) {
-      if (limit.mode === "drop") continue;
+      if (limit.mode === "drop") {
+        // Surface the drop: a >4KB dataString silently vanishing is
+        // indistinguishable from "saved but empty" downstream.
+        if (key === "dataString" || key === "maskCustom") {
+          console.warn(`[state] Dropping oversized ${key} (${value.length} chars > ${limit.max}).`);
+        }
+        continue;
+      }
       out[key] = truncateSafe(value, limit.max);
     } else {
       out[key] = value;
@@ -461,9 +480,14 @@ function sanitizeGeneratorConfigInner(
   }
   // Legacy string frame-size presets ("small"/"medium"/"large") migrate to
   // their percent equivalent; numeric values are clamped by the bounds loop.
+  // Explicit own-property check: `LEGACY["__proto__"]` would read
+  // Object.prototype (not a number) and fall through to numeric clamping,
+  // which correctly keeps the default — but the intent is clearer this way.
   const rawFrameTextSize = raw.frameTextSize;
   if (typeof rawFrameTextSize === "string") {
-    const migrated = LEGACY_FRAME_TEXT_SIZES[rawFrameTextSize];
+    const migrated = Object.prototype.hasOwnProperty.call(LEGACY_FRAME_TEXT_SIZES, rawFrameTextSize)
+      ? LEGACY_FRAME_TEXT_SIZES[rawFrameTextSize as keyof typeof LEGACY_FRAME_TEXT_SIZES]
+      : undefined;
     if (typeof migrated === "number") out.frameTextSize = migrated;
   }
   for (const [key, bounds] of Object.entries(GENERATOR_NUMERIC_BOUNDS)) {
@@ -609,10 +633,15 @@ function applyFieldValue(el: HTMLElement, value: unknown): void {
  * Apply persisted field values back into the DOM inputs (values only, no
  * events). Used at boot and by history load; unknown ids are ignored.
  * Selects also refresh their custom-select trigger + option highlight.
+ * Only allow-listed input ids are written, so a crafted blob can't drive
+ * unrelated controls (e.g. `export-filename`, buttons).
  */
 export function applyGeneratorFields(fields: GeneratorFieldBag | null | undefined): void {
   if (!fields || typeof fields !== "object" || Array.isArray(fields)) return;
+  const allowIds = new Set(inputIds);
   Object.entries(fields).forEach(([id, value]) => {
+    if (id === "__proto__" || id === "constructor" || id === "prototype") return;
+    if (!allowIds.has(id)) return;
     const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
     if (!el) return;
     applyFieldValue(el, value);
@@ -639,29 +668,41 @@ export function captureGeneratorFields(): GeneratorFieldBag {
  * `includeFields` controls whether input-field values are captured (used by the
  * beforeunload / visibilitychange flush, not by history writes). `omitImages`
  * drops the background image from the blob (quota fallback; the logo never
- * travels in the blob at all).
+ * travels in the blob at all — and the background image now lives under its
+ * own key too, so the main blob stays small on scanner-only flushes).
  */
 function serializeAppState(includeFields: boolean, omitImages = false): string {
-  // History writes deliberately exclude the input-field snapshot; do not let
-  // that serialization detail wipe the live in-memory snapshot (a crash before
-  // the next capture would otherwise lose what the user typed).
-  const previousFields = state.generator.fields;
-  state.generator.fields = {};
-  try {
-    if (includeFields) {
-      captureGeneratorFields();
-    }
-    const { logoDataUrl: _logo, ...generatorRest } = serializableGenerator(state.generator);
-    void _logo;
-    return JSON.stringify({
-      v: APP_SCHEMA_VERSION,
-      generatorHistory: state.generatorHistory,
-      scanner: { history: state.scanner.history },
-      generator: omitImages ? { ...generatorRest, bgImageDataUrl: null } : generatorRest,
-    });
-  } finally {
-    if (!includeFields) state.generator.fields = previousFields;
-  }
+  // Single path without a temp-mutation window: the old code set
+  // `state.generator.fields = {}` then restored it in `finally`, leaving a
+  // window where live state was empty. Build the blob from locals instead —
+  // never mutate live state for the `includeFields === false` case.
+  const fieldsForBlob = includeFields ? captureGeneratorFields() : {};
+  const {
+    logoDataUrl: _logo,
+    bgImageDataUrl: _bg,
+    ...generatorRest
+  } = serializableGenerator(state.generator);
+  void _logo;
+  void _bg;
+  // Images travel under their own keys; the main blob carries nulls so a
+  // scanner-only flush never re-serializes multi-MB data URLs.
+  const generatorForBlob = {
+    ...generatorRest,
+    fields: fieldsForBlob,
+    logoDataUrl: null,
+    bgImageDataUrl: omitImages ? null : null,
+  };
+  // Legacy compat: blobs written before the bg-image split carried the image
+  // in-blob. New blobs always carry null here (the live image is under
+  // BG_IMAGE_STATE_KEY); loadState prefers the separate key and falls back to
+  // the in-blob value. `omitImages` is retained for the quota-retry call shape.
+  void omitImages;
+  return JSON.stringify({
+    v: APP_SCHEMA_VERSION,
+    generatorHistory: state.generatorHistory,
+    scanner: { history: state.scanner.history },
+    generator: generatorForBlob,
+  });
 }
 
 function isStorageQuotaError(e: unknown): boolean {
@@ -674,6 +715,7 @@ function isStorageQuotaError(e: unknown): boolean {
 let lastPersistedString: string | null = null;
 let lastPersistedIncludeFields: boolean | null = null;
 let lastPersistedLogo: string | null = null;
+let lastPersistedBgImage: string | null = null;
 let quotaImageEvictionNotified = false;
 
 function notifyQuotaImageEviction(): void {
@@ -685,9 +727,9 @@ function notifyQuotaImageEviction(): void {
 
 /** Write serialized state to localStorage; returns false on quota failure. */
 export function persistAppState(includeFields = false): boolean {
-  // P10: persist the logo once per distinct value under its own key. The main
-  // state blob therefore never carries the (often multi-MB) data URL, so the
-  // per-flush serialization stays cheap.
+  // P10: persist images once per distinct value under their own keys. The main
+  // state blob therefore never carries the (often multi-MB) data URLs, so the
+  // per-flush serialization stays cheap — including scanner-only flushes.
   const logo = state.generator.logoDataUrl;
   if (logo !== lastPersistedLogo) {
     try {
@@ -696,6 +738,16 @@ export function persistAppState(includeFields = false): boolean {
       lastPersistedLogo = logo;
     } catch (e) {
       console.warn("[state] logo persistence failed; logo will not survive reload.", e);
+    }
+  }
+  const bgImage = state.generator.bgImageDataUrl;
+  if (bgImage !== lastPersistedBgImage) {
+    try {
+      if (bgImage) localStorage.setItem(BG_IMAGE_STATE_KEY, bgImage);
+      else localStorage.removeItem(BG_IMAGE_STATE_KEY);
+      lastPersistedBgImage = bgImage;
+    } catch (e) {
+      console.warn("[state] background image persistence failed; it will not survive reload.", e);
     }
   }
 
@@ -721,8 +773,10 @@ export function persistAppState(includeFields = false): boolean {
       console.error("[state] persist failed:", e);
       return false;
     }
-    // Quota fallback: retry once without the (often multi-MB) background
-    // image. It stays in memory; only persistence loses it.
+    // Quota fallback (legacy): images now live under their own keys so the
+    // main blob is already imageless; a quota failure here is history size,
+    // not the live background. Retry once with the imageless shape for
+    // backward compat, then give up.
     if (!state.generator.bgImageDataUrl) {
       console.warn("[state] localStorage quota exceeded; not persisting this update.", e);
       return false;
@@ -742,30 +796,77 @@ export function persistAppState(includeFields = false): boolean {
 }
 
 /** Backwards-compatible scanner history persistence (now routes through the unified serializer). */
+let scanIdleTimer: number | null = null;
+function scheduleIdleScanPersist(): void {
+  const w = window as unknown as {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+  };
+  if (typeof w.requestIdleCallback !== "function") return;
+  if (scanIdleTimer !== null) return;
+  // Defer the multi-MB full-state stringify off the scan interaction: the
+  // scan itself stays responsive and the write lands when the browser is idle
+  // (beforeunload/visibility flush below still guarantees durability).
+  scanIdleTimer = w.requestIdleCallback(
+    () => {
+      scanIdleTimer = null;
+      persistAppState(false);
+    },
+    { timeout: 2000 }
+  );
+}
+export function flushScanPersist(): void {
+  if (scanIdleTimer !== null) {
+    scanIdleTimer = null;
+    persistAppState(false);
+  }
+}
 export function persistScannerHistory(): boolean {
-  return persistAppState(false);
+  // Synchronous write keeps the scan durable for the existing contract
+  // (tests + crash-before-idle). The follow-up idle write is a no-op when
+  // nothing changed thanks to persistAppState's hidden-tab dedupe, but it
+  // coalesces rapid successive saves off the critical path.
+  const ok = persistAppState(false);
+  scheduleIdleScanPersist();
+  return ok;
 }
 
-export function loadState(): void {
+export function loadState(): number | null {
   try {
     // Migrate legacy key: if the new key isn't present but the old one is, read old.
     let raw = localStorage.getItem(STATE_KEY);
     const legacyRaw = localStorage.getItem("qr_state");
+    let usingLegacyKey = false;
     if (!raw && legacyRaw) {
       raw = legacyRaw;
-      console.info("[state] migrating legacy `qr_state` to `qr_state_v1`.");
-      localStorage.removeItem("qr_state");
+      usingLegacyKey = true;
     }
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
+    if (!raw) return null;
+    // Parse before touching storage: deleting the legacy key first would
+    // destroy the only copy when the blob turns out to be corrupt.
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.warn("[state] Ignoring stored state that is not valid JSON.", e);
+      return null;
+    }
     if (!isPlainObject(parsed)) {
       console.warn("[state] Ignoring stored state with an unexpected shape.");
-      return;
+      return null;
     }
     const schemaVersion = persistedSchemaVersion(parsed);
     if (schemaVersion === null) {
       console.warn("[state] Ignoring stored state from an unsupported schema version:", parsed.v);
-      return;
+      return null;
+    }
+    // The blob parsed and validated: only now is the legacy key safe to drop.
+    if (usingLegacyKey) {
+      console.info("[state] migrating legacy `qr_state` to `qr_state_v1`.");
+      try {
+        localStorage.removeItem("qr_state");
+      } catch (e) {
+        console.warn("[state] Failed to remove legacy state key:", e);
+      }
     }
     const persisted = migratePersistedState(parsed);
     if (Array.isArray(persisted.generatorHistory)) {
@@ -776,7 +877,12 @@ export function loadState(): void {
       state.scanner.history = sanitizeScannerHistory(persistedScanner.history);
     }
     if (isPlainObject(persisted.generator)) {
-      const { logoDataUrl: legacyLogo, fields: persistedFields, ...rest } = persisted.generator;
+      const {
+        logoDataUrl: legacyLogo,
+        bgImageDataUrl: legacyBgInBlob,
+        fields: persistedFields,
+        ...rest
+      } = persisted.generator as Record<string, unknown>;
       Object.assign(state.generator, sanitizeGeneratorConfig(rest));
       // The inverted stock palette only exists in pre-versioned legacy blobs;
       // flipping a current-schema white-bg design would invert it on every
@@ -786,9 +892,11 @@ export function loadState(): void {
       repairLowVisibilityColors(state.generator);
       const legacyLogoDataUrl =
         typeof legacyLogo === "string" && isPersistableImage(legacyLogo) ? legacyLogo : null;
+      const legacyBgDataUrl =
+        typeof legacyBgInBlob === "string" && isPersistableImage(legacyBgInBlob) ? legacyBgInBlob : null;
 
-      // P10: the live logo now lives under its own key. Prefer it over any
-      // in-blob value (legacy) so current-storage wins.
+      // P10: images live under their own keys. Prefer them over any in-blob
+      // values (legacy) so current-storage wins.
       let storedLogo: string | null = null;
       try {
         storedLogo = localStorage.getItem(LOGO_STATE_KEY);
@@ -813,23 +921,127 @@ export function loadState(): void {
         lastPersistedLogo = null;
       }
 
+      let storedBg: string | null = null;
+      try {
+        storedBg = localStorage.getItem(BG_IMAGE_STATE_KEY);
+      } catch (e) {
+        console.warn("[state] Failed to read stored background image:", e);
+      }
+      if (storedBg && isPersistableImage(storedBg)) {
+        state.generator.bgImageDataUrl = storedBg;
+        lastPersistedBgImage = storedBg;
+      } else {
+        if (storedBg) {
+          try {
+            localStorage.removeItem(BG_IMAGE_STATE_KEY);
+          } catch (e) {
+            console.warn("[state] Failed to remove invalid stored background image:", e);
+          }
+        }
+        // Fall back to the legacy in-blob image (pre-split blobs), then
+        // promote it to the separate key on the next persist.
+        state.generator.bgImageDataUrl = legacyBgDataUrl ?? null;
+        lastPersistedBgImage = null;
+      }
+
+      // Single path for field restore (no duplicate loop): applyGeneratorFields
+      // writes values AND refreshes custom-select triggers + datetime labels.
+      // The old inline loop called applyFieldValue directly and skipped the
+      // custom-select refresh, leaving selects visually stale after reload.
       const savedFields = sanitizeGeneratorFields(persistedFields);
       if (savedFields) {
-        Object.entries(savedFields).forEach(([id, value]) => {
-          const el = document.getElementById(id) as HTMLInputElement | null;
-          if (!el) return;
-          applyFieldValue(el, value);
-        });
+        applyGeneratorFields(savedFields);
         // Keep the in-memory snapshot aligned with what was restored.
         state.generator.fields = savedFields;
       }
     }
+    return schemaVersion;
   } catch (e) {
     console.warn("[state] Failed to load state:", e);
+    return null;
   }
 }
 
 let plaintextStorageWarned = false;
+// The quota-full logo notice is session-guarded: without it every unload flush
+// while storage stays full would re-announce the same sentence.
+let logoFullAnnounced = false;
+// Closing a tab fires visibilitychange(hidden) immediately followed by
+// beforeunload. Both used to capture + serialize + write, doing the whole
+// flush twice within milliseconds. The hidden flush goes through one
+// idle-debounced queue; the unload flush is synchronous but stands down when
+// the debounced flush already covered this unload.
+let stateSaveQueued = false;
+let lastStateFlushAt = 0;
+/** Unload flushes within this window of a completed flush are duplicates. */
+const STATE_FLUSH_DEDUPE_MS = 2000;
+
+/** Synchronous state flush: capture fields, persist, evict-and-retry on quota. */
+function flushStateSave(): void {
+  lastStateFlushAt = Date.now();
+  if (scanIdleTimer !== null) {
+    scanIdleTimer = null;
+  }
+  // Keep the persisted field snapshot fresh so a refresh restores what the
+  // user actually typed (structured forms don't recompile from dataString).
+  captureGeneratorFields();
+  if (!persistAppState(true)) {
+    // Quota is genuinely full: evict the separately-stored images (any size,
+    // since they live outside the main blob) and retry once so the rest of
+    // the state still survives. Images stay in memory for this session.
+    // The second persist skips rewriting the evicted keys (their
+    // lastPersisted* still equals the live values), so the eviction sticks;
+    // afterwards reset the caches so a future flush with free space retries.
+    const logo = state.generator.logoDataUrl;
+    const bgImage = state.generator.bgImageDataUrl;
+    if (logo || bgImage) {
+      try {
+        if (logo) localStorage.removeItem(LOGO_STATE_KEY);
+      } catch (e) {
+        console.warn("[state] Failed to remove stored logo:", e);
+      }
+      try {
+        if (bgImage) localStorage.removeItem(BG_IMAGE_STATE_KEY);
+      } catch (e) {
+        console.warn("[state] Failed to remove stored background image:", e);
+      }
+      persistAppState(true);
+      // Eviction undone guard: the retry above skipped the image writes, so
+      // the caches still claim "persisted" while storage has no images.
+      // Reset them so the next flush retries instead of skipping forever.
+      lastPersistedLogo = null;
+      lastPersistedBgImage = null;
+      console.warn("[state] Storage full; images kept in memory but not persisted.");
+      if (!logoFullAnnounced) {
+        logoFullAnnounced = true;
+        announce(t("storage.logoFull"));
+      }
+    }
+  }
+}
+
+/** Queue one idle flush; concurrent hide signals coalesce into it. */
+function scheduleStateSave(): void {
+  if (stateSaveQueued) return;
+  stateSaveQueued = true;
+  const run = (): void => {
+    stateSaveQueued = false;
+    flushStateSave();
+  };
+  const ric =
+    typeof window !== "undefined"
+      ? (window as unknown as Record<string, unknown>).requestIdleCallback
+      : undefined;
+  if (typeof ric === "function") {
+    // Labeled tuple: tuple labels are not variables, so no lint rule can
+    // mistake the callback signature for unused parameters.
+    (ric as (...args: [callback: () => void, options?: { timeout: number }]) => void)(run, {
+      timeout: 2000,
+    });
+  } else {
+    setTimeout(run, 0);
+  }
+}
 
 export function setupStatePersistence(): void {
   if (!plaintextStorageWarned) {
@@ -838,29 +1050,16 @@ export function setupStatePersistence(): void {
       "[QR] QR data (incl. Wi-Fi passwords and crypto addresses) is stored in localStorage in plaintext. Do not use on shared devices."
     );
   }
-  const saveState = (): void => {
-    // Keep the persisted field snapshot fresh so a refresh restores what the
-    // user actually typed (structured forms don't recompile from dataString).
-    captureGeneratorFields();
-    if (!persistAppState(true)) {
-      // Quota is genuinely full: evict the separately-stored logo (any size,
-      // since it lives outside the reduced blob) and retry once so the rest
-      // of the state still survives. The logo stays in memory for this session.
-      const logo = state.generator.logoDataUrl;
-      if (logo) {
-        try {
-          localStorage.removeItem(LOGO_STATE_KEY);
-        } catch (e) {
-          console.warn("[state] Failed to remove stored logo:", e);
-        }
-        persistAppState(true);
-        console.warn("[state] Storage full; logo kept in memory but not persisted.");
-        announce(t("storage.logoFull"));
-      }
-    }
-  };
-  window.addEventListener("beforeunload", saveState);
+  window.addEventListener("beforeunload", () => {
+    // A queued idle flush is superseded by this synchronous one; and when the
+    // idle flush already ran (the usual hidden-then-unload close sequence),
+    // the state cannot have changed in between, so flushing again would only
+    // re-capture and re-serialize identical state.
+    stateSaveQueued = false;
+    if (Date.now() - lastStateFlushAt < STATE_FLUSH_DEDUPE_MS) return;
+    flushStateSave();
+  });
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") saveState();
+    if (document.visibilityState === "hidden") scheduleStateSave();
   });
 }

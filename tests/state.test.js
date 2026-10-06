@@ -106,6 +106,22 @@ describe("loadState — migration from legacy key", () => {
   it("does not throw when storage is empty", () => {
     expect(() => loadState()).not.toThrow();
   });
+
+  it("returns the schema version of what it loaded", () => {
+    localStorage.setItem(
+      STATE_KEY,
+      JSON.stringify({ v: 1, generator: { dataType: "text" }, scanner: { history: [] } })
+    );
+    expect(loadState()).toBe(1);
+    localStorage.clear();
+    expect(loadState()).toBeNull();
+  });
+
+  it("keeps the legacy key when its blob is corrupt", () => {
+    localStorage.setItem("qr_state", "{not-json");
+    expect(loadState()).toBeNull();
+    expect(localStorage.getItem("qr_state")).toBe("{not-json");
+  });
 });
 
 describe("loadState — restores saved input fields", () => {

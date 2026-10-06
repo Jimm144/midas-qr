@@ -27,6 +27,17 @@ let cpSpectrumTouchMoveHandler = null;
 let cpSpectrumKeyHandler = null;
 let cpHideTimer = null;
 let cpResizeTimer = null;
+// Per-section wiring guards: module-level booleans broke re-init against a
+// fresh DOM (tests) and stacked listeners on the same elements (app). Each
+// guard remembers the exact element it wired, so re-init rebinds only when
+// the element identity changed and never double-binds the same node.
+let cpWiredHexEl = null;
+let cpWiredGradientEl = null;
+let cpRepositionHandlers = null;
+// Cached hue layer: the saturated-hue base + white wash depend only on hue
+// (and canvas size), so they are painted once per hue into an offscreen canvas
+// instead of as two full fills on every frame.
+let cpHueCache = { h: null, w: 0, hgt: 0, canvas: null };
 
 // Resolved in initColorPicker() so we don't touch the DOM before initDOM has run.
 let cpPopup = null;
@@ -556,9 +567,49 @@ function syncUI() {
   }
   if (cpHue) {
     cpHue.value = String(Math.round(cpHsv.h) % 360);
+    cpHue.setAttribute("aria-valuenow", String(Math.round(cpHsv.h) % 360));
+    cpHue.setAttribute("aria-valuetext", `${Math.round(cpHsv.h) % 360} degrees`);
+  }
+  const hueReadout = document.getElementById("cp-hue-value");
+  if (hueReadout) hueReadout.textContent = `${Math.round(cpHsv.h) % 360}°`;
+  const gradPreview = document.getElementById("cp-gradient-preview");
+  if (gradPreview && cpActiveTarget) {
+    const g = state.generator[gradientKey(cpActiveTarget)];
+    const start = state.generator[`${cpActiveTarget}Color`] || cpColor.hex;
+    if (g && g.color2) {
+      const stops = `${start}, ${g.color2}`;
+      gradPreview.style.background =
+        g.type === "radial"
+          ? `radial-gradient(circle, ${stops})`
+          : `linear-gradient(${90 - (Number(g.rotation) || 0)}deg, ${stops})`;
+    } else {
+      gradPreview.style.background = cpColor.hex;
+    }
   }
   scheduleSpectrumPaint();
   syncGradientUI();
+}
+
+function paintHueCache(W, H) {
+  const key = Math.round(cpHsv.h) % 360;
+  if (cpHueCache.canvas && cpHueCache.h === key && cpHueCache.w === W && cpHueCache.hgt === H) {
+    return cpHueCache.canvas;
+  }
+  const off = document.createElement("canvas");
+  off.width = W;
+  off.height = H;
+  const ctx = off.getContext("2d");
+  if (!ctx) return null;
+  const base = hsvToRgb(key, 1, 1);
+  ctx.fillStyle = rgbToHex(base.r, base.g, base.b);
+  ctx.fillRect(0, 0, W, H);
+  const gradS = ctx.createLinearGradient(0, 0, W, 0);
+  gradS.addColorStop(0, "rgba(255,255,255,1)");
+  gradS.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = gradS;
+  ctx.fillRect(0, 0, W, H);
+  cpHueCache = { h: key, w: W, hgt: H, canvas: off };
+  return off;
 }
 
 function drawSpectrum() {
@@ -571,18 +622,23 @@ function drawSpectrum() {
   if (W === 0 || H === 0) return;
 
   // Saturation (left to right) x value (bottom to top) field for the current
-  // hue: a fully saturated hue base, white toward the left and black at the
-  // bottom — the standard picker layout.
-  const base = hsvToRgb(cpHsv.h, 1, 1);
-  ctx.fillStyle = rgbToHex(base.r, base.g, base.b);
-  ctx.fillRect(0, 0, W, H);
+  // hue: the cached hue layer (base + white wash) is blitted, then only the
+  // black wash is a per-frame fill.
+  const cached = paintHueCache(W, H);
+  if (cached) {
+    ctx.drawImage(cached, 0, 0);
+  } else {
+    const base = hsvToRgb(cpHsv.h, 1, 1);
+    ctx.fillStyle = rgbToHex(base.r, base.g, base.b);
+    ctx.fillRect(0, 0, W, H);
 
-  // White wash: opaque at the left (zero saturation), clear at the right.
-  const gradS = ctx.createLinearGradient(0, 0, W, 0);
-  gradS.addColorStop(0, "rgba(255,255,255,1)");
-  gradS.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = gradS;
-  ctx.fillRect(0, 0, W, H);
+    // White wash: opaque at the left (zero saturation), clear at the right.
+    const gradS = ctx.createLinearGradient(0, 0, W, 0);
+    gradS.addColorStop(0, "rgba(255,255,255,1)");
+    gradS.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = gradS;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // Black wash: clear at the top (full value), opaque at the bottom.
   const gradV = ctx.createLinearGradient(0, 0, 0, H);
@@ -611,6 +667,7 @@ function drawSpectrum() {
 
 function closeCpPopup() {
   if (!cpPopup) return;
+  unbindPickerReposition();
   cpPopup.classList.add("opacity-0", "scale-95");
   closePopover(cpPopup);
   if (cpDragDebounceTimer) {
@@ -688,6 +745,12 @@ function clearHexError() {
   if (cpInputHex) {
     cpInputHex.classList.remove("border-red-500", "cp-hex-shake");
     cpInputHex.removeAttribute("aria-invalid");
+    cpInputHex.removeAttribute("aria-describedby");
+  }
+  const err = document.getElementById("cp-hex-error");
+  if (err) {
+    err.textContent = "";
+    err.classList.add("hidden");
   }
 }
 
@@ -703,6 +766,12 @@ function showHexError() {
     cpInputHex.classList.remove("border-red-500", "cp-hex-shake");
     cpInputHex.classList.add("border-red-500", "cp-hex-shake");
     cpInputHex.setAttribute("aria-invalid", "true");
+    cpInputHex.setAttribute("aria-describedby", "cp-hex-error");
+  }
+  const err = document.getElementById("cp-hex-error");
+  if (err) {
+    err.textContent = t("color.invalidHex");
+    err.classList.remove("hidden");
   }
   cpHexErrorTimer = setTimeout(() => {
     cpHexErrorTimer = null;
@@ -732,6 +801,10 @@ function commitHexInput() {
 
 /** Gradient toggle, stop chips, type, angle and end-color hex field. */
 function wireGradientControls() {
+  // Gradient section identity: re-init against a fresh popup must rebind.
+  const key = cpGradientControls || cpModeSolid || cpModeGradient || cpGradColor2;
+  if (key && cpWiredGradientEl === key) return;
+  cpWiredGradientEl = key;
   const clearGradEndError = () => {
     if (cpGradHexErrorTimer) {
       clearTimeout(cpGradHexErrorTimer);
@@ -923,7 +996,8 @@ function wireSpectrumInteraction() {
 
 /** Wire hex input validation, commit and error-shake behaviour. */
 function wireHexInput() {
-  if (!cpInputHex) return;
+  if (!cpInputHex || cpWiredHexEl === cpInputHex) return;
+  cpWiredHexEl = cpInputHex;
   cpInputHex.addEventListener("input", () => {
     // Live-commit full 6-digit values only: auto-expanding a 3-digit value
     // while the user is still typing rewrote the field and corrupted the
@@ -948,23 +1022,32 @@ function wireHexInput() {
 
 /** Wire the hue slider, close/reset/OK buttons and preset swatches. */
 function wirePresetButtons() {
-  if (cpHue) {
-    cpHue.addEventListener("input", (e) => {
+  // Per-element bind guards: a same-DOM re-init must not stack duplicate
+  // handlers, while a fresh-DOM re-init (new element identities) rebinds.
+  const bindOnce = (el, key, add) => {
+    if (!el || el.dataset[key] === "true") return;
+    el.dataset[key] = "true";
+    add(el);
+  };
+  bindOnce(cpHue, "cpHueBound", (hueEl) => {
+    hueEl.addEventListener("input", (e) => {
       const val = parseInt(e.target.value, 10);
       cpHsv.h = (((isNaN(val) ? 0 : val) % 360) + 360) % 360;
       // Keep saturation and value: the hue slider only rotates the color.
       applyHsv();
     });
-  }
+  });
 
-  if (cpCloseBtn) {
-    cpCloseBtn.addEventListener("click", (e) => {
+  bindOnce(cpCloseBtn, "cpCloseBound", (closeBtn) => {
+    closeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       cancelColorSelection();
     });
-  }
+  });
 
   document.querySelectorAll(".cp-preset").forEach((btn) => {
+    if (btn.dataset.cpPresetBound === "true") return;
+    btn.dataset.cpPresetBound = "true";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const hex = btn.dataset.hex;
@@ -972,8 +1055,8 @@ function wirePresetButtons() {
     });
   });
 
-  if (cpResetBtn) {
-    cpResetBtn.addEventListener("click", (e) => {
+  bindOnce(cpResetBtn, "cpResetBound", (resetBtn) => {
+    resetBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (cpActiveTarget) {
         state.generator[gradientKey(cpActiveTarget)] = originalGradient ? { ...originalGradient } : null;
@@ -989,10 +1072,10 @@ function wirePresetButtons() {
         repaintTargetSwatches(cpActiveTarget, state.generator[`${cpActiveTarget}Color`]);
       }
     });
-  }
+  });
 
-  if (cpOkBtn) {
-    cpOkBtn.addEventListener("click", (e) => {
+  bindOnce(cpOkBtn, "cpOkBound", (okBtn) => {
+    okBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       // An invalid hex field must not silently commit the previous color.
       if (cpInputHex && !commitHexInput()) return;
@@ -1001,7 +1084,7 @@ function wirePresetButtons() {
       }
       closeCpPopup();
     });
-  }
+  });
 }
 
 /** Show and populate the popup anchored to a `.btn-custom-color` trigger. */
@@ -1023,6 +1106,8 @@ function openPickerForButton(btn) {
   wireSpectrumInteraction();
   const target = btn.dataset.target;
   cpActiveTarget = target;
+  // A stop selection must never leak across targets/sessions.
+  cpActiveStop = 0;
   if (target === "bg") originalColor = state.generator.bgColor;
   else if (target === "dots") originalColor = state.generator.dotsColor;
   else if (target === "cornersSquare") originalColor = state.generator.cornersSquareColor;
@@ -1035,40 +1120,16 @@ function openPickerForButton(btn) {
   }
   const existingGradient = state.generator[gradientKey(target)];
   originalGradient = existingGradient ? { ...existingGradient } : null;
-  cpActiveStop = 0;
   updateFromHex(originalColor);
-  const rect = btn.getBoundingClientRect();
-  let topVal = rect.bottom + window.scrollY + 8;
-  let leftVal = rect.left + window.scrollX;
-  // Match the Tailwind `w-[300px]` class on #color-picker-popup, not 340.
-  const popupWidth = 300;
-  if (leftVal + popupWidth > window.innerWidth) {
-    leftVal = window.innerWidth - popupWidth - 16;
-  }
-  if (leftVal < 8) leftVal = 8;
+  positionPickerForButton(btn);
   if (cpPopup) {
-    cpPopup.style.top = topVal + "px";
-    cpPopup.style.left = leftVal + "px";
     cpPopup.classList.remove("hidden");
     cpPopup.classList.add("flex");
     // Remove the fade-out classes synchronously: rAF can be throttled in
     // background tabs, which would leave the popup stuck at opacity 0.
     cpPopup.classList.remove("opacity-0", "scale-95");
-    // Clamp into the viewport so the popup never clips off-screen nor
-    // grows the document's scrollable area.
-    const popupH = cpPopup.offsetHeight;
-    const popupW = cpPopup.offsetWidth || popupWidth;
-    const vpTop = window.scrollY + 8;
-    const vpBottom = window.scrollY + window.innerHeight - 12;
-    if (topVal + popupH > vpBottom) {
-      topVal = Math.max(vpTop, vpBottom - popupH);
-    }
-    cpPopup.style.top = topVal + "px";
-    if (leftVal + popupW > window.innerWidth - 8) {
-      leftVal = window.innerWidth - popupW - 8;
-    }
-    if (leftVal < 8) leftVal = 8;
-    cpPopup.style.left = leftVal + "px";
+    positionPickerForButton(btn);
+    bindPickerReposition(btn);
     cpPreviousFocus = document.activeElement;
     // Re-registering the same root drops the previous entry (and its trap)
     // instead of stacking listeners. Clicks on any color trigger are anchor
@@ -1104,6 +1165,77 @@ function openPickerForButton(btn) {
   }, 50);
 }
 
+/** Anchor the popup to a trigger with viewport clamping + fallback placement. */
+function positionPickerForButton(btn) {
+  if (!cpPopup || !btn || !btn.isConnected) {
+    // Anchor is gone (re-render): fall back to a centered fixed dialog.
+    if (cpPopup) {
+      cpPopup.style.position = "fixed";
+      cpPopup.style.top = "50%";
+      cpPopup.style.left = "50%";
+      cpPopup.style.transform = "translate(-50%, -50%)";
+    }
+    return;
+  }
+  cpPopup.style.transform = "";
+  cpPopup.style.position = "absolute";
+  const rect = btn.getBoundingClientRect();
+  // Fixed 300px width matches the popup class; absolute positioning here is
+  // the anchored case, fixed is only the fallback above.
+  const popupWidth = 300;
+  let topVal = rect.bottom + window.scrollY + 8;
+  let leftVal = rect.left + window.scrollX;
+  if (leftVal + popupWidth > window.scrollX + window.innerWidth - 8) {
+    leftVal = window.scrollX + window.innerWidth - popupWidth - 8;
+  }
+  if (leftVal < window.scrollX + 8) leftVal = window.scrollX + 8;
+  cpPopup.style.top = `${topVal}px`;
+  cpPopup.style.left = `${leftVal}px`;
+  // Clamp into the viewport so the popup never clips off-screen nor
+  // grows the document's scrollable area.
+  const popupH = cpPopup.offsetHeight;
+  const popupW = cpPopup.offsetWidth || popupWidth;
+  const vpTop = window.scrollY + 8;
+  const vpBottom = window.scrollY + window.innerHeight - 12;
+  if (topVal + popupH > vpBottom) {
+    const above = rect.top + window.scrollY - popupH - 8;
+    topVal = above >= vpTop ? above : Math.max(vpTop, vpBottom - popupH);
+    cpPopup.style.top = `${topVal}px`;
+  }
+  if (leftVal + popupW > window.scrollX + window.innerWidth - 8) {
+    leftVal = window.scrollX + window.innerWidth - popupW - 8;
+  }
+  if (leftVal < window.scrollX + 8) leftVal = window.scrollX + 8;
+  cpPopup.style.left = `${leftVal}px`;
+}
+
+/** Keep the open popup anchored across resize/scroll; cleaned up on close. */
+function bindPickerReposition(btn) {
+  unbindPickerReposition();
+  const reposition = () => {
+    if (!cpPopup || cpPopup.classList.contains("hidden")) return;
+    positionPickerForButton(btn);
+  };
+  const onResize = () => {
+    if (cpSpectrum) {
+      cpSpectrum.width = cpSpectrum.clientWidth;
+      cpSpectrum.height = cpSpectrum.clientHeight;
+    }
+    reposition();
+    syncUI();
+  };
+  window.addEventListener("resize", onResize);
+  window.addEventListener("scroll", reposition, true);
+  cpRepositionHandlers = { onResize, reposition };
+}
+
+function unbindPickerReposition() {
+  if (!cpRepositionHandlers) return;
+  window.removeEventListener("resize", cpRepositionHandlers.onResize);
+  window.removeEventListener("scroll", cpRepositionHandlers.reposition, true);
+  cpRepositionHandlers = null;
+}
+
 export function refreshColorPickerTranslations() {
   if (cpPopup) {
     cpPopup.setAttribute("role", "dialog");
@@ -1111,9 +1243,25 @@ export function refreshColorPickerTranslations() {
     cpPopup.setAttribute("aria-modal", "true");
   }
   if (cpSpectrum) {
-    cpSpectrum.setAttribute("role", "img");
+    // The field is keyboard-operated (arrows move s/v, Ctrl+arrows move hue),
+    // so expose slider semantics instead of a static image role.
+    cpSpectrum.setAttribute("role", "slider");
     cpSpectrum.setAttribute("aria-label", t("color.spectrumKeyboard"));
     cpSpectrum.setAttribute("tabindex", "0");
+    cpSpectrum.setAttribute("aria-valuemin", "0");
+    cpSpectrum.setAttribute("aria-valuemax", "360");
+    cpSpectrum.setAttribute("aria-valuenow", String(Math.round(cpHsv.h) % 360));
+    cpSpectrum.setAttribute(
+      "aria-valuetext",
+      `${cpColor.hex} ${Math.round(cpHsv.h) % 360} degrees`
+    );
+  }
+  if (cpHue) {
+    cpHue.setAttribute("role", "slider");
+    cpHue.setAttribute("aria-label", t("color.hue"));
+    cpHue.setAttribute("aria-valuemin", "0");
+    cpHue.setAttribute("aria-valuemax", "360");
+    cpHue.setAttribute("aria-valuenow", String(Math.round(cpHsv.h) % 360));
   }
   if (cpInputHex) {
     cpInputHex.setAttribute("aria-label", t("color.hexValue"));
@@ -1137,6 +1285,10 @@ document.addEventListener("app:localechange", refreshColorPickerTranslations);
 
 /** Resolve picker elements, set static aria attributes, then wire all interactions. */
 export function initColorPicker() {
+  // Re-init (locale/partial re-render) must drop the previous canvas listeners
+  // before rebinding so drags do not apply twice.
+  unbindSpectrumInteraction();
+  unbindPickerReposition();
   cpPopup = document.getElementById("color-picker-popup");
   cpCloseBtn = document.getElementById("btn-close-cp");
   cpOkBtn = document.getElementById("cp-ok-btn");

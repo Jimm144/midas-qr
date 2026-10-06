@@ -27,8 +27,18 @@ export function loadVendoredScript(src, globalName) {
   if (globalName && typeof g[globalName] !== "undefined") {
     return Promise.resolve(true);
   }
-  const pending = inFlight.get(src);
-  if (pending) return pending;
+  // Deduping on src alone is wrong when the same file can satisfy different
+  // globals: a second caller asking for another global would share the first
+  // promise, which only verifies the first global. Key on both.
+  const key = `${src}\0${globalName || ""}`;
+  const pending = inFlight.get(key);
+  if (pending) {
+    // A shared in-flight load may have been started for this exact global, so
+    // the global check below still applies; if the global appeared meanwhile
+    // (e.g. another loader defined it), resolve immediately.
+    if (globalName && typeof g[globalName] !== "undefined") return Promise.resolve(true);
+    return pending;
+  }
 
   const promise = new Promise((resolve) => {
     const script = document.createElement("script");
@@ -65,9 +75,9 @@ export function loadVendoredScript(src, globalName) {
     }, LOAD_TIMEOUT_MS);
     document.head.appendChild(script);
   }).finally(() => {
-    if (inFlight.get(src) === promise) inFlight.delete(src);
+    if (inFlight.get(key) === promise) inFlight.delete(key);
   });
 
-  inFlight.set(src, promise);
+  inFlight.set(key, promise);
   return promise;
 }

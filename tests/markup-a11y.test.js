@@ -123,10 +123,12 @@ describe("index.html accessibility invariants", () => {
     expect(doc.getElementById("qr-frame-text").getAttribute("maxlength")).toBe(String(MAX_FRAME_TEXT_LEN));
   });
 
-  it("gives the spectrum canvas keyboard access", () => {
+  it("gives the spectrum canvas keyboard access as a slider", () => {
     const spectrum = doc.getElementById("cp-spectrum");
-    expect(spectrum.getAttribute("role")).toBe("img");
+    expect(spectrum.getAttribute("role")).toBe("slider");
     expect(spectrum.getAttribute("aria-label")).toBeTruthy();
     expect(spectrum.getAttribute("tabindex")).toBe("0");
+    expect(spectrum.getAttribute("aria-valuemin")).toBe("0");
+    expect(spectrum.getAttribute("aria-valuemax")).toBe("360");
   });
 });

@@ -1,0 +1,4 @@
+# Keep line endings deterministic: CSP hashes are computed over the exact
+# bytes of inline scripts, so a CRLF working tree and an LF CI checkout would
+# otherwise produce different hashes and silently block the app's inline JS.
+* text=auto eol=lf

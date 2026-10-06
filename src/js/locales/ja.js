@@ -32,6 +32,7 @@ export default {
   "color.apply": "色を適用して閉じる",
   "color.ok": "OK",
   "color.hue": "色相",
+  "color.invalidHex": "無効な16進カラー",
   "color.solid": "単色",
   "color.gradient": "グラデーション",
   "color.angle": "角度",
@@ -96,8 +97,6 @@ export default {
   "tabs.switched": "{tab}タブに切り替えました",
   "tabs.dataType": "符号化するデータの種類",
   "content.heading": "コンテンツ",
-  "content.seo":
-    "Midas QRは、URL、テキスト、Wi-Fi、vCard連絡先、暗号資産、位置情報、カレンダー予定、SMS、電話番号のQRコードに対応した無料・オフラインQR生成・読み取りアプリです。色のカスタマイズ、グラデーション、ドットの形状、角のスタイル、全体のマスク、フレーム、背景画像、ロゴオーバーレイ、PNG／SVG／JPEG／WebP／TXTのエクスポート、CSV／TSV／TXTによる一括生成、誤り訂正レベルに対応しています。",
   "data.url": "URL",
   "data.text": "テキスト",
   "data.wifi": "Wi-Fi",
@@ -349,6 +348,8 @@ export default {
   "search.options": "オプション",
   "search.noMatches": "一致なし",
   "search.match_one": "1件一致",
+  "search.match_few": "{count}件一致",
+  "search.match_many": "{count}件一致",
   "search.match_other": "{count}件一致",
   "datetime.selectDate": "日付を選択",
   "datetime.timePlaceholder": "午後2:30",
@@ -423,6 +424,7 @@ export default {
   "generator.dataTooLargeGeneric": "データが現在のQRコード設定に対して大きすぎます",
   "generator.marginTooLarge": "余白が大きすぎます — 最大値は{max}です",
   "generator.scannable": "読み取り可能",
+  "generator.unknownReadability": "読み取り可否不明",
   "generator.scannableOk": "読み取り可能：{count}×{count} モジュール、各 {size}px（現在のサイズ）。",
   "generator.lowReadability": "読み取り性が低い",
   "generator.doesNotDecode":

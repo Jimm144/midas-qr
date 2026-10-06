@@ -60,10 +60,34 @@ export function parseCsv(text, delimiter = ",") {
 
 let batchBusy = false;
 let batchStatusKey = "";
+let batchAbort = null;
+
+// Input bounds: a hostile or accidental 100k-line file must not queue 100k
+// library renders and downloads. Rows past the cap (and bytes past the
+// budget) are skipped and reported instead of rendered.
+const MAX_BATCH_ROWS = 200;
+const MAX_BATCH_VALUE_LEN = 4096;
+const MAX_BATCH_BYTES = 2 * 1024 * 1024;
+// Gap between downloads so browsers don't drop back-to-back saves.
+const BATCH_ROW_GAP_MS = 250;
+let batchStatusParams = {};
 
 function setBatchStatus(key, params = {}) {
   batchStatusKey = key;
+  batchStatusParams = params;
   if (DOM.batchStatus) DOM.batchStatus.textContent = t(key, params);
+}
+
+// A locale change mid-run (or while the "Done" line is still up) would leave
+// the status in the old language: the key + params are preserved so the line
+// re-renders in the new locale instead of going stale.
+function refreshBatchStatus() {
+  if (!batchStatusKey || !DOM.batchStatus) return;
+  DOM.batchStatus.textContent = t(batchStatusKey, batchStatusParams);
+}
+
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("app:localechange", refreshBatchStatus);
 }
 
 function setBatchStatusText(text) {
@@ -82,6 +106,55 @@ function isBatchExportRunning() {
   return batchBusy;
 }
 
+/** Cancel the in-flight batch export; the current row finishes, the rest are skipped. */
+export function cancelBatchExport() {
+  if (batchAbort) batchAbort.abort();
+}
+
+/** Abortable sleep: cancellation wakes the gap immediately instead of idling it out. */
+function abortableSleep(ms, signal) {
+  return new Promise((resolve) => {
+    if (!signal || signal.aborted) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/** Apply the input bounds, returning the rows to render plus skip counts. */
+function boundBatchValues(values) {
+  const rows = [];
+  let bytes = 0;
+  let skipped = 0;
+  for (const raw of values) {
+    if (typeof raw !== "string") {
+      skipped++;
+      continue;
+    }
+    const value = raw.length > MAX_BATCH_VALUE_LEN ? raw.slice(0, MAX_BATCH_VALUE_LEN) : raw;
+    if (value === "") {
+      skipped++;
+      continue;
+    }
+    if (rows.length >= MAX_BATCH_ROWS || bytes + value.length > MAX_BATCH_BYTES) {
+      skipped++;
+      continue;
+    }
+    rows.push(value);
+    bytes += value.length;
+  }
+  return { rows, skipped };
+}
+
 /**
  * Render every parsed data string and download one file per row.
  * Rows are streamed one at a time with live progress; a row that fails to
@@ -93,27 +166,64 @@ export async function runBatchExport(values) {
   // them back before resolving; claim the busy flag first so a failure can
   // never strand it set.
   batchBusy = true;
+  batchAbort = new AbortController();
+  const signal = batchAbort.signal;
+  // Snapshot the export settings once: every row renders with the settings
+  // that were live when the run started, not with edits made mid-run.
   const ext = (DOM.exportFormat && DOM.exportFormat.value) || "png";
+  const snapEcc = state.generator.ecc;
+  const snapBgTransparent = state.generator.bgTransparent;
+  const snapBgColor = state.generator.bgColor;
+  const { rows, skipped } = boundBatchValues(values);
+  if (skipped > 0) {
+    console.warn(`[QR] batch export: skipped ${skipped} row(s) past the input bounds.`);
+  }
   // Re-entry guard: the button is disabled for the whole run and the busy flag
   // rejects a second invocation even if the DOM is bypassed.
   const button = DOM.btnBatch;
   const buttonWasDisabled = button ? button.disabled : true;
   if (button) button.disabled = true;
-  const total = values.length;
+  const total = rows.length;
   let done = 0;
   let failed = 0;
+  let cancelled = false;
   try {
+    if (total === 0) {
+      announce(t("batch.noDataRows"));
+      return 0;
+    }
     setBatchStatusText(`0/${total}`);
     announce(t("batch.started", { count: total }));
     for (let i = 0; i < total; i++) {
-      const value = values[i];
+      if (signal.aborted) {
+        cancelled = true;
+        break;
+      }
+      const value = rows[i];
       try {
         // One-off render: the overrides are applied and restored by renderOnce,
-        // so the live config is never clobbered mid-run.
-        await renderOnce({ dataType: "text", dataString: value, isValid: true });
+        // so the live config is never clobbered mid-run. The returned artifact
+        // is exported directly — never the published global, which a
+        // concurrent live render may have replaced.
+        const rendered = (await renderOnce({ dataType: "text", dataString: value, isValid: true })) || {};
+        if (signal.aborted) {
+          cancelled = true;
+          break;
+        }
         // The live payload is restored before this resolves, so hand the
-        // exporter the row's own payload/ECC for the TXT (Unicode) branch.
-        const blob = await exportRenderedBlob(ext, null, { dataString: value, ecc: state.generator.ecc });
+        // exporter the row's own payload plus the snapshotted settings for
+        // the TXT (Unicode) branch and the opaque-fill decision.
+        const blob = await exportRenderedBlob(
+          ext,
+          {
+            svg: rendered.svg,
+            w: rendered.w,
+            h: rendered.h,
+            moduleCount: rendered.moduleCount,
+            userMarginPx: rendered.userMarginPx,
+          },
+          { dataString: value, ecc: snapEcc, bgTransparent: snapBgTransparent, bgColor: snapBgColor }
+        );
         if (!blob) throw new Error("render unavailable");
         downloadBlob(blob, `${sanitizeFilename(value, "qr")}.${ext}`);
         done++;
@@ -122,7 +232,12 @@ export async function runBatchExport(values) {
         console.warn(`[QR] batch row ${i + 1} ("${value.slice(0, 40)}") failed:`, err);
       }
       setBatchStatusText(`${done + failed}/${total}`);
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await abortableSleep(BATCH_ROW_GAP_MS, signal);
+    }
+    if (cancelled) {
+      announce(t("batch.finished", { done, total }));
+      setBatchStatusText(`${done + failed}/${total}`);
+      return done;
     }
     const finishedKey = failed === 0 ? "batch.finished" : "batch.finishedFailed";
     announce(t(finishedKey, { done, total, failed }));
@@ -135,6 +250,7 @@ export async function runBatchExport(values) {
     // Free the busy flag and the button before the repaint: if the repaint
     // itself threw, the run would otherwise stay locked for the session.
     batchBusy = false;
+    batchAbort = null;
     if (button) button.disabled = buttonWasDisabled;
     // renderOnce restored the live config itself; just repaint the preview.
     generateQR(true);

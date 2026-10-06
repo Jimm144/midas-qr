@@ -23,6 +23,12 @@ let retryTimer = null;
 let retryAttempts = 0;
 let requestSeq = 0;
 let pendingUploadId = 0;
+// Live-path correlation: the single in-flight webcam frame's id + session.
+// A reply carrying any other pair is stale (superseded session or an older
+// frame that already timed out) and must not clear the live timer or reset
+// the recycle counter.
+let pendingFrameId = 0;
+let pendingFrameSession = 0;
 let fallbackTimer = null;
 let uploadTimer = null;
 let frameInFlight = false;
@@ -84,6 +90,7 @@ function recycle() {
   worker = null;
   frameInFlight = false;
   pendingUploadId = 0;
+  pendingFrameId = 0;
   consecutiveTimeouts = 0;
   clearFallback();
   clearUploadTimer();
@@ -115,9 +122,14 @@ function handleMessage(e) {
   }
 
   if (result.mode !== "webcam") return;
-  // Accept a late frame from the current camera session, but never one from a
-  // session that has been stopped or restarted in the meantime.
+  // Both halves must match the live frame: the session rejects a stopped or
+  // restarted camera, the id rejects an older frame that already timed out.
+  // Either stale reply must leave the live timer and the recycle counter
+  // alone, or one late frame would disarm the hung-worker detector.
   if (result.session !== hooks.getSession()) return;
+  if (requestId === 0 || requestId !== pendingFrameId) return;
+  if (result.session !== pendingFrameSession) return;
+  pendingFrameId = 0;
   frameInFlight = false;
   consecutiveTimeouts = 0;
   retryAttempts = 0;
@@ -134,6 +146,7 @@ function handleError(crashed, err) {
   worker = null;
   frameInFlight = false;
   pendingUploadId = 0;
+  pendingFrameId = 0;
   consecutiveTimeouts = 0;
   clearFallback();
   clearUploadTimer();
@@ -150,7 +163,15 @@ export function initWorker() {
   if (worker) return worker;
   if (!window.Worker) return null;
   try {
-    const created = new Worker("src/js/scanner/worker.js");
+    let created = null;
+    try {
+      // new URL(..., import.meta.url) resolves under any subpath/base href;
+      // the plain relative string breaks when the app is served from /sub/.
+      const workerUrl = new URL("./worker.js", import.meta.url);
+      created = new Worker(workerUrl);
+    } catch (_urlErr) {
+      created = new Worker("src/js/scanner/worker.js");
+    }
     created.onmessage = handleMessage;
     created.onerror = (err) => handleError(created, err);
     worker = created;
@@ -173,18 +194,22 @@ export function frameBusy() {
 /**
  * Post one webcam frame. Returns true when the buffer was transferred to the
  * worker; false means the caller should decode it on the main thread.
+ * The live path uses a single inversion attempt: attemptBoth doubles the
+ * per-frame work for a stream that already retries 5x per second.
  */
 export function decodeFrame({ imageData, width, height, session }) {
   if (!worker) return false;
   frameInFlight = true;
   const requestId = ++requestSeq;
+  pendingFrameId = requestId;
+  pendingFrameSession = session;
   try {
     worker.postMessage(
       {
         imageData,
         width,
         height,
-        inversionAttempts: "attemptBoth",
+        inversionAttempts: "dontInvert",
         mode: "webcam",
         id: requestId,
         session,
@@ -201,6 +226,7 @@ export function decodeFrame({ imageData, width, height, session }) {
     // the main thread for this frame instead of wedging.
     console.warn("[Scanner] Worker post failed, using main thread fallback:", err);
     frameInFlight = false;
+    pendingFrameId = 0;
     discard();
     return false;
   }
@@ -247,16 +273,47 @@ export function clearPendingUpload() {
 /** A ended camera session must not leave its in-flight frame blocking a new one. */
 export function resetFrameGate() {
   frameInFlight = false;
+  pendingFrameId = 0;
   consecutiveTimeouts = 0;
   clearFallback();
+}
+
+/**
+ * Single place for main-thread jsQR policy: the live path tries one
+ * inversion (the stream retries anyway), uploads try both. Returns the
+ * decoded string or null; never throws out of the caller.
+ */
+export function decodeFallbackPixels(data, width, height, forUpload) {
+  try {
+    if (!data || !width || !height) return null;
+    const fn = globalThis.jsQR;
+    if (typeof fn !== "function") return null;
+    const result = fn(data, width, height, {
+      inversionAttempts: forUpload ? "attemptBoth" : "dontInvert",
+    });
+    return result && typeof result.data === "string" ? result.data : null;
+  } catch (err) {
+    console.error("[Scanner] jsQR error:", err);
+    return null;
+  }
 }
 
 /** Terminate and forget the current worker, then schedule a rebuild. */
 function discard() {
   const dying = worker;
+  const hadPendingUpload = pendingUploadId !== 0;
   worker = null;
+  frameInFlight = false;
+  pendingFrameId = 0;
+  pendingUploadId = 0;
+  clearFallback();
+  clearUploadTimer();
   terminate(dying);
   scheduleRetry();
+  // A queued upload can no longer be answered; fail it like handleError does
+  // instead of leaving the panel pending. Callers that already fell back to
+  // the main thread cleared the id first, so this does not double-notify.
+  if (hadPendingUpload) hooks.onUploadError();
 }
 
 /**
@@ -268,6 +325,7 @@ function onFrameTimeout() {
   fallbackTimer = null;
   if (!frameInFlight) return;
   frameInFlight = false;
+  pendingFrameId = 0;
   consecutiveTimeouts++;
   if (consecutiveTimeouts >= 3) {
     console.warn("[Scanner] Decode worker unresponsive; recycling it.");

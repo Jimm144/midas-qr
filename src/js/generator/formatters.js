@@ -91,22 +91,36 @@ export function formatUrl(value) {
   return checkUrlValid(str) ? { str, isValid: true } : invalid(str, "data.urlInvalid");
 }
 
+/** UTF-8 byte length (SSID limit is 32 bytes, not 32 UTF-16 units). */
+function utf8ByteLength(str) {
+  try {
+    if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(str).length;
+  } catch {
+    // ignore and fall through to the encodeURIComponent estimate
+  }
+  return encodeURIComponent(str).replace(/%[0-9A-F]{2}/gi, "x").length;
+}
+
 /** Format WIFI: payload from {ssid, pass, enc, hidden}. */
 export function formatWifi({ ssid, pass, enc, hidden }) {
-  const s = (ssid || "").trim();
+  // SSIDs may legitimately start/end with spaces — preserve them verbatim and
+  // only use the trimmed form to detect "missing". Length is enforced in
+  // UTF-8 bytes (the spec caps the SSID at 32 bytes).
+  const s = typeof ssid === "string" ? ssid : ssid || "";
+  const sTrimmed = s.trim();
   const p = pass || "";
   const encryption = enc || "WPA";
   const hasInput = s || p || encryption !== "WPA" || hidden;
 
-  if (hasInput && !s) {
+  if (hasInput && !sTrimmed) {
     return invalid("", "validation.ssidRequired");
   }
-  if (!s) {
+  if (!sTrimmed) {
     return { str: "", isValid: true };
   }
   // The WIFI: payload grammar caps the SSID at 32 bytes; longer values are
   // silently truncated (or rejected) by scanners, so refuse them up front.
-  if (s.length > 32) {
+  if (utf8ByteLength(s) > 32) {
     return invalid("", "validation.ssidLong");
   }
 
@@ -253,49 +267,70 @@ export function formatVCard(c) {
 }
 
 /**
- * Fold a content line at 75 chars (RFC 2426 / RFC 5545). Continuation lines
- * lead with one space, and that space counts toward the limit, so subsequent
- * chunks carry at most 74 chars. Never splits a surrogate pair.
+ * Fold a content line at 75 octets (RFC 2426 / RFC 5545, UTF-8 bytes — not
+ * UTF-16 units). Continuation lines lead with one space, and that space
+ * counts toward the limit, so subsequent chunks carry at most 74 content
+ * bytes. Iterates by code point so surrogate pairs / multi-byte chars are
+ * never split.
  */
 function foldLine(line) {
-  if (line.length <= 75) return line;
+  if (utf8ByteLength(line) <= 75) return line;
   const chunks = [];
-  let rest = line;
-  let limit = 75;
-  while (rest.length > limit) {
-    let sliceLen = limit;
-    const lastCode = rest.charCodeAt(sliceLen - 1);
-    if (lastCode >= 0xd800 && lastCode <= 0xdbff) {
-      sliceLen -= 1;
+  let buf = "";
+  let bufBytes = 0;
+  let curLimit = 75;
+  const charBytes = (ch) => {
+    try {
+      if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(ch).length;
+    } catch {
+      // ignore
     }
-    chunks.push(rest.slice(0, sliceLen));
-    rest = rest.slice(sliceLen);
-    limit = 74;
+    return encodeURIComponent(ch).replace(/%[0-9A-F]{2}/gi, "x").length;
+  };
+  for (const ch of line) {
+    const cb = charBytes(ch);
+    if (bufBytes + cb > curLimit && buf) {
+      chunks.push(buf);
+      buf = "";
+      bufBytes = 0;
+      curLimit = 74;
+    }
+    buf += ch;
+    bufBytes += cb;
   }
-  chunks.push(rest);
+  if (buf) chunks.push(buf);
   return chunks.join("\r\n ");
 }
 
 // Loose but useful per-coin address validators. These reject obviously
 // wrong-network addresses (e.g. a Bitcoin address selected under "ethereum")
 // which would otherwise silently generate a QR that misdirects funds.
+// Raw 64-char hex (a private key / tx hash, not an address) is rejected.
 const CRYPTO_VALIDATORS = {
   // P2PKH/P2SH/Bech32 (BC1...)
-  bitcoin: (a) => /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(a) || /^[A-F0-9]{64}$/.test(a),
-  litecoin: (a) => /^(L|M|ltc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(a) || /^[A-F0-9]{64}$/.test(a),
+  bitcoin: (a) => /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(a),
+  litecoin: (a) => /^(L|M|ltc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(a),
   bitcoincash: (a) => /^bitcoincash:q[a-z0-9]{41}$/.test(a) || /^q[a-z0-9]{41}$/.test(a),
   dash: (a) => /^X[1-9A-HJ-NP-Za-km-z]{33}$/.test(a),
-  // EIP-55 checksum or all-lowercase / all-uppercase (no mixed unless checksummed)
+  // Basic format check only (0x + 40 hex): EIP-55 checksum is NOT verified,
+  // so mixed-case non-checksummed addresses are accepted.
   ethereum: (a) => /^0x[a-fA-F0-9]{40}$/.test(a),
   // Monero: standard addresses are 95 base58 chars, optionally 8-base58 leading "Address is invalid"
   monero: (a) => /^[1-9A-HJ-NP-Za-km-z]{95}$/.test(a) || /^[1-9A-HJ-NP-Za-km-z]{106}$/.test(a),
 };
 
-/** Format crypto URI (e.g. bitcoin:<addr>?amount=<amount>). */
+/**
+ * Format crypto URI (e.g. bitcoin:<addr>?amount=<amount>).
+ * Amount is in coin units (BTC, ETH, … — not satoshis/wei) as a plain
+ * decimal string. Encoded as `?amount=` (`?value=` for ethereum,
+ * `?tx_amount=` for monero).
+ */
 export function formatCrypto({ coin, address, amount }) {
   const amountVal = (amount || "").trim();
-  // A payment amount must be a strictly positive finite number: reject `0`,
-  // `0.0`, a leading `+`, and anything the decimal regex doesn't cover.
+  // A payment amount must be a strictly positive finite number in plain
+  // decimal notation: reject `0`, `0.0`, a leading `+`/`-`, and exponent
+  // forms like `1e3` (write `1000` instead) — anything the decimal regex
+  // doesn't cover.
   const amountNum = /^\d*\.?\d+$/.test(amountVal) ? Number(amountVal) : NaN;
   const isAmountInvalid = Boolean(amountVal) && (!Number.isFinite(amountNum) || amountNum <= 0);
   const hasAnyCrypto = (address || "").trim() || amountVal;
@@ -381,16 +416,39 @@ export function formatEvent({ title, start, end, location, description }) {
   if (!isRealLocalDateTime(start) || (end && !isRealLocalDateTime(end))) {
     return invalid("", "validation.invalidDate");
   }
-  if (end && start && end < start) {
-    return invalid("", "validation.endAfterStart");
+  // Compare as parsed timestamps, not lexicographically: date-only and
+  // date-time inputs share a prefix ordering that happens to agree most of
+  // the time, but explicit parsing is unambiguous across mixed formats.
+  const toTime = (v) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/.exec(v || "");
+    if (!m) return NaN;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], m[4] !== undefined ? +m[4] : 0, m[5] !== undefined ? +m[5] : 0);
+  };
+  if (end && start) {
+    const sT = toTime(start);
+    const eT = toTime(end);
+    if (Number.isFinite(sT) && Number.isFinite(eT) ? eT < sT : end < start) {
+      return invalid("", "validation.endAfterStart");
+    }
   }
   const fmtDate = (d) => {
     const clean = d.replace(/[-:]/g, "");
     return /^\d{8}T\d{4}$/.test(clean) ? clean + "00" : clean;
   };
+  const isDateOnly = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
   const esc = escapeVCard;
-  const uid = `qr-${Date.now()}@qrcodestudio`;
-  const now = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+  // Stable UID/DTSTAMP: Date.now()/new Date() made every keystroke compile a
+  // different payload, which broke configSignature dedup (the Save button never
+  // settled) and re-keyed every render. Both derive from the content now, so
+  // identical inputs compile byte-identical payloads.
+  const uidSeed = [title, start, end || "", location || "", description || ""].join("");
+  let uidHash = 2166136261;
+  for (let i = 0; i < uidSeed.length; i++) {
+    uidHash = Math.imul(uidHash ^ uidSeed.charCodeAt(i), 16777619);
+  }
+  const uid = `qr-${(uidHash >>> 0).toString(16).padStart(8, "0")}@qrcodestudio`;
+  const stamp = fmtDate(start);
+  const now = stamp.length === 8 ? `${stamp}T000000Z` : `${stamp}Z`;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -399,9 +457,11 @@ export function formatEvent({ title, start, end, location, description }) {
     `UID:${uid}`,
     `DTSTAMP:${now}`,
     `SUMMARY:${esc(title)}`,
-    `DTSTART:${fmtDate(start)}`,
+    // Date-only values require an explicit VALUE=DATE (RFC 5545 §3.3.4);
+    // a bare `DTSTART:20240101` is a floating DATE-TIME, not a DATE.
+    `DTSTART${isDateOnly(start) ? ";VALUE=DATE" : ""}:${fmtDate(start)}`,
   ];
-  if (end) lines.push(`DTEND:${fmtDate(end)}`);
+  if (end) lines.push(`DTEND${isDateOnly(end) ? ";VALUE=DATE" : ""}:${fmtDate(end)}`);
   if (location) lines.push(`LOCATION:${esc(location)}`);
   if (description) lines.push(`DESCRIPTION:${esc(description)}`);
   lines.push("END:VEVENT", "END:VCALENDAR");
@@ -440,10 +500,11 @@ export function formatSms({ phone, message }) {
   if (messageVal.length > 1600) {
     return invalid("", "validation.smsMessageTooLong");
   }
-  // Encode only the characters that would break URI parsing (? = query start,
-  // & = parameter separator, # = fragment start). Spaces and newlines stay
-  // human-readable — decoders expect them raw in SMSTO bodies.
-  const safeBody = messageVal.replace(/[?&#]/g, (c) => encodeURIComponent(c));
+  // Encode every URI-breaking char including `%` itself: a raw `%` followed
+  // by hex (e.g. a literal "100%3F") would otherwise decode into a different
+  // body on hydrate. Spaces and newlines stay human-readable — decoders
+  // expect them raw in SMSTO bodies.
+  const safeBody = messageVal.replace(/[%?&#]/g, (c) => encodeURIComponent(c));
   return { str: `SMSTO:${phoneVal}:${safeBody}`, isValid: true };
 }
 
@@ -457,6 +518,8 @@ export function formatPhone(phone) {
   if (!phoneVal) {
     return { str: "", isValid: true };
   }
+  // Note: raw spaces are preserved here for backward compat (existing QR
+  // readers accept them); the scanner action href strips them for dialing.
   return { str: `tel:${phoneVal}`, isValid: true };
 }
 

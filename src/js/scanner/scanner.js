@@ -3,7 +3,7 @@ import { state } from "../state";
 import { t } from "../i18n.js";
 import { copyTextToClipboard } from "../utils.js";
 import { MAX_SCAN_UPLOAD_BYTES, SCAN_COOLDOWN_MS } from "../constants.js";
-import { flashButton, refreshCustomSelect } from "../ui/components.js";
+import { flashButton, refreshCustomSelect, closeOpenCustomSelects } from "../ui/components.js";
 import { openModal, closeModal } from "../ui/modal.js";
 import { addToScanHistory, removeScanHistoryAt, clearScanHistory } from "./history.js";
 import {
@@ -13,6 +13,7 @@ import {
   frameBusy,
   decodeFrame,
   decodeStill,
+  decodeFallbackPixels,
   clearPendingUpload,
   resetFrameGate,
 } from "./decoder.js";
@@ -40,6 +41,40 @@ let uploadSession = 0;
 // True while getUserMedia is still pending; a second toggle click cancels it.
 let webcamStartPending = false;
 
+// The live FileReader/Image/load-timeout trio of the current upload. Kept
+// module-global so a superseded upload can abort the reader, drop the image
+// callbacks and clear the timer instead of pinning a 15MB data URL for 30s.
+let activeUploadReader = null;
+let activeUploadImg = null;
+let activeUploadTimer = null;
+
+function abortActiveUpload() {
+  uploadSession++;
+  clearPendingUpload();
+  if (activeUploadTimer) {
+    clearTimeout(activeUploadTimer);
+    activeUploadTimer = null;
+  }
+  if (activeUploadReader) {
+    try {
+      if (typeof activeUploadReader.abort === "function") activeUploadReader.abort();
+    } catch {
+      // Already settled; the session bump already invalidated its callbacks.
+    }
+    activeUploadReader = null;
+  }
+  if (activeUploadImg) {
+    try {
+      activeUploadImg.onload = null;
+      activeUploadImg.onerror = null;
+      activeUploadImg.src = "";
+    } catch {
+      // Detached test doubles may not support src clearing.
+    }
+    activeUploadImg = null;
+  }
+}
+
 // Decode policy (worker lifecycle, retries, timeouts, jsQR fallback) lives in
 // decoder.js; it reports back through these hooks.
 initDecoder({
@@ -54,16 +89,81 @@ const ALLOWED_SCAN_IMAGE_TYPES = [
   "image/webp",
   "image/gif",
   "image/bmp",
-  "image/svg+xml",
 ];
+// SVG is intentionally rejected: an SVG document can carry external
+// references (beacons) and script-bearing content that must never be
+// rendered into the preview <img> or drawn to the shared decode canvas.
+const BLOCKED_SCAN_IMAGE_TYPES = ["image/svg+xml"];
+
+let scannerWired = false;
+let teardownWired = false;
+let deviceChangeWired = false;
+let scannerVisible = true;
+let intersectionWired = false;
+// Set when the user explicitly stops the camera; resume paths (tab return)
+// must not restart it behind their back.
+function setUserStopped(value) {
+  try {
+    state.scanner.userStopped = value;
+  } catch {
+    // state unavailable in isolated unit contexts.
+  }
+}
 
 export function initScanner() {
   initScannerWorker();
-  wireScannerModeTabs();
-  wireDropZone();
-  wireScanResultButtons();
-  wireHistoryDelegation();
+  if (!scannerWired) {
+    scannerWired = true;
+    wireScannerModeTabs();
+    wireDropZone();
+    wireScanResultButtons();
+    wireHistoryDelegation();
+    wireScannerTeardown();
+    wireDeviceChange();
+    wireScannerVisibility();
+  }
   populateCameras();
+}
+
+function wireScannerTeardown() {
+  if (teardownWired) return;
+  teardownWired = true;
+  // bfcache keeps a live MediaStream otherwise: release the camera when the
+  // page is hidden for cache or frozen. stopWebcamScan is idempotent.
+  window.addEventListener("pagehide", () => stopWebcamScan());
+  document.addEventListener("freeze", () => stopWebcamScan());
+}
+
+function wireDeviceChange() {
+  if (deviceChangeWired) return;
+  if (!navigator.mediaDevices || typeof navigator.mediaDevices.addEventListener !== "function") return;
+  deviceChangeWired = true;
+  navigator.mediaDevices.addEventListener("devicechange", () => {
+    if (state.activeTab !== "scanner") return;
+    populateCameras();
+  });
+}
+
+function wireScannerVisibility() {
+  if (intersectionWired) return;
+  if (typeof IntersectionObserver !== "function") return;
+  const target = DOM.panelScanner || DOM.webcamVideo;
+  if (!target) return;
+  intersectionWired = true;
+  try {
+    const io = new IntersectionObserver(
+      (entries) => {
+        scannerVisible = entries.some((e) => e.isIntersecting);
+        if (scannerVisible && state.scanner.stream && !state.scanner.animationFrameId && !document.hidden) {
+          state.scanner.animationFrameId = requestAnimationFrame(scanTick);
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(target);
+  } catch {
+    intersectionWired = false;
+  }
 }
 
 /** Create the decode worker when the platform supports it, with fallback. */
@@ -76,12 +176,18 @@ function wireScannerModeTabs() {
   DOM.btnScanWebcam.addEventListener("click", () => {
     if (state.scanner.mode === "webcam") return;
     state.scanner.mode = "webcam";
+    setUserStopped(false);
     DOM.btnScanWebcam.className = "tab-btn is-active";
     DOM.btnScanUpload.className = "tab-btn";
     DOM.scannerViewCamera.classList.remove("hidden");
     DOM.scannerViewUpload.classList.add("hidden");
+    // Switching sources clears a stale camera error: it described the other
+    // mode's failure, not the newly shown view.
+    if (DOM.cameraErrorState) DOM.cameraErrorState.classList.add("hidden");
+    if (DOM.cameraErrorMsg) DOM.cameraErrorMsg.textContent = "";
     // The mode actually changed: cancel any upload decode still in flight and
     // drop an upload result that no longer matches the visible camera source.
+    abortActiveUpload();
     clearPendingUpload();
     uploadSession++;
     if (!DOM.uploadedPreviewContainer.classList.contains("hidden")) {
@@ -97,8 +203,12 @@ function wireScannerModeTabs() {
     DOM.btnScanWebcam.className = "tab-btn";
     DOM.scannerViewUpload.classList.remove("hidden");
     DOM.scannerViewCamera.classList.add("hidden");
+    // Same rule in reverse: a camera denial must not linger over uploads.
+    if (DOM.cameraErrorState) DOM.cameraErrorState.classList.add("hidden");
+    if (DOM.cameraErrorMsg) DOM.cameraErrorMsg.textContent = "";
     // The mode actually changed: cancel any upload decode still in flight and
     // drop a webcam result that no longer matches the upload source.
+    abortActiveUpload();
     clearPendingUpload();
     uploadSession++;
     const wasWebcamActive = Boolean(state.scanner.stream);
@@ -123,18 +233,50 @@ function wireScannerModeTabs() {
 
   DOM.btnToggleCamera.addEventListener("click", () => {
     if (state.scanner.stream) {
+      setUserStopped(true);
       stopWebcamScan();
       clearScannerOutput();
     } else if (webcamStartPending) {
       // A second click while permission is still pending cancels the start
       // instead of stacking another getUserMedia request.
+      setUserStopped(true);
       stopWebcamScan();
       DOM.cameraLoadingState.classList.add("hidden");
       DOM.cameraErrorState.classList.add("hidden");
     } else {
+      setUserStopped(false);
       startWebcamScan();
     }
   });
+
+  // Preview mirror toggle (display only; decode is unaffected).
+  const mirrorBtn = document.getElementById("btn-mirror-video");
+  if (mirrorBtn && !mirrorBtn.dataset.mirrorBound) {
+    mirrorBtn.dataset.mirrorBound = "true";
+    mirrorBtn.addEventListener("click", () => {
+      const pressed = mirrorBtn.getAttribute("aria-pressed") !== "false";
+      mirrorBtn.setAttribute("aria-pressed", pressed ? "false" : "true");
+      if (DOM.webcamVideo) DOM.webcamVideo.classList.toggle("scale-x-[-1]", !pressed);
+    });
+  }
+}
+
+/**
+ * Pasted pixels share the live decode canvas: when the camera is running,
+ * resizing it races the rAF loop. Move to the upload view first (stops the
+ * camera) so the upload owns the canvas.
+ */
+function ensureUploadModeForPaste() {
+  if (state.scanner.mode === "upload") return;
+  if (DOM.btnScanUpload && typeof DOM.btnScanUpload.click === "function") {
+    DOM.btnScanUpload.click();
+  } else {
+    state.scanner.mode = "upload";
+    abortActiveUpload();
+    clearPendingUpload();
+    uploadSession++;
+    stopWebcamScan();
+  }
 }
 
 /** Wire the upload drop zone, file picker and drag-and-drop validation. */
@@ -142,7 +284,10 @@ function wireDropZone() {
   DOM.dropZone.addEventListener("click", () => DOM.scanFileInput.click());
 
   // Keyboard support for the drop zone: Enter or Space opens the file picker.
+  // Guarded: the handler assumes a focusable zone, so ensure it is one.
+  if (DOM.dropZone && !DOM.dropZone.hasAttribute("tabindex")) DOM.dropZone.setAttribute("tabindex", "0");
   DOM.dropZone.addEventListener("keydown", (e) => {
+    if (document.activeElement !== DOM.dropZone) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       DOM.scanFileInput.click();
@@ -207,7 +352,16 @@ function wireDropZone() {
   document.addEventListener("paste", (e) => {
     if (state.activeTab !== "scanner") return;
     const active = document.activeElement;
-    if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
+    // Never steal pastes from text editing contexts, including contenteditable.
+    if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable))
+      return;
+    if (
+      active &&
+      typeof active.getAttribute === "function" &&
+      active.getAttribute("contenteditable") !== null &&
+      active.getAttribute("contenteditable") !== "false"
+    )
+      return;
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
     for (let i = 0; i < items.length; i++) {
@@ -216,6 +370,7 @@ function wireDropZone() {
         const file = item.getAsFile();
         if (file) {
           e.preventDefault();
+          ensureUploadModeForPaste();
           processUploadFile(file);
           return;
         }
@@ -242,6 +397,7 @@ function wireDropZone() {
           const blob = await item.getType(type);
           const ext = type === "image/jpeg" ? "jpg" : type.split("/")[1];
           // Same validation/decode path as a picked or dropped file.
+          ensureUploadModeForPaste();
           processUploadFile(new File([blob], `clipboard.${ext}`, { type }));
           return;
         }
@@ -264,10 +420,9 @@ function wireScanResultButtons() {
 
   DOM.btnClearUpload.addEventListener("click", (e) => {
     e.stopPropagation();
-    uploadSession++;
-    // Cancel the in-flight worker decode so its result can't repaint the
-    // preview after the user removed it.
-    clearPendingUpload();
+    // Abort the reader/timer/image as well as the worker decode so a
+    // superseded upload can't repaint the preview after removal.
+    abortActiveUpload();
     DOM.scanFileInput.value = "";
     DOM.uploadedPreviewContainer.classList.add("hidden");
     DOM.uploadedPreview.src = "";
@@ -388,6 +543,7 @@ function describeCameraError(err) {
 export async function startWebcamScan() {
   stopWebcamScan();
   const session = ++scanSession;
+  setUserStopped(false);
   DOM.cameraLoadingState.classList.remove("hidden");
   DOM.cameraErrorState.classList.add("hidden");
   setScanStatus("scanning", t("scanner.statusStarting"));
@@ -418,12 +574,28 @@ export async function startWebcamScan() {
   } catch (err) {
     // A superseded session must not overwrite the UI the user has moved on to.
     if (session !== scanSession) return;
-    webcamStartPending = false;
-    DOM.cameraLoadingState.classList.add("hidden");
-    DOM.cameraErrorState.classList.remove("hidden");
-    DOM.cameraErrorMsg.textContent = describeCameraError(err);
-    setScanStatus("error", t("scanner.statusError"));
-    return;
+    // An exact deviceId that no longer exists is terminal for those
+    // constraints: fall back to any camera once instead of stranding the UI.
+    if (err && err.name === "OverconstrainedError" && selectedDeviceId) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      } catch (fallbackErr) {
+        if (session !== scanSession) return;
+        webcamStartPending = false;
+        DOM.cameraLoadingState.classList.add("hidden");
+        DOM.cameraErrorState.classList.remove("hidden");
+        DOM.cameraErrorMsg.textContent = describeCameraError(fallbackErr);
+        setScanStatus("error", t("scanner.statusError"));
+        return;
+      }
+    } else {
+      webcamStartPending = false;
+      DOM.cameraLoadingState.classList.add("hidden");
+      DOM.cameraErrorState.classList.remove("hidden");
+      DOM.cameraErrorMsg.textContent = describeCameraError(err);
+      setScanStatus("error", t("scanner.statusError"));
+      return;
+    }
   }
   if (session === scanSession) webcamStartPending = false;
 
@@ -479,6 +651,16 @@ export async function startWebcamScan() {
   const trackFacingMode = trackSettings.facingMode;
   const isFront = trackFacingMode !== undefined ? trackFacingMode === "user" : selectedDeviceId === "user";
   DOM.webcamVideo.classList.toggle("scale-x-[-1]", isFront);
+  // User mirror preference (preview only): decode always uses the unmirrored
+  // frame. Persisted on the button so a camera restart keeps the choice.
+  try {
+    const mirrorBtn = document.getElementById("btn-mirror-video");
+    if (mirrorBtn && mirrorBtn.getAttribute("aria-pressed") === "false") {
+      DOM.webcamVideo.classList.remove("scale-x-[-1]");
+    }
+  } catch {
+    /* ignore */
+  }
   DOM.btnToggleCamera.textContent = t("common.stop");
   DOM.btnToggleCamera.setAttribute("aria-pressed", "true");
 
@@ -500,13 +682,16 @@ async function populateCameras() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter((device) => device.kind === "videoinput");
     state.scanner.cameras = videoDevices;
-    DOM.cameraSelect.innerHTML = "";
+    // Close any open dropdown before rebuilding options: refreshCustomSelect
+    // rewrites the option nodes, which would otherwise destroy the open list.
+    closeOpenCustomSelects();
+    while (DOM.cameraSelect.firstChild) DOM.cameraSelect.removeChild(DOM.cameraSelect.firstChild);
 
     if (videoDevices.length === 0) {
-      DOM.cameraSelect.innerHTML =
-        `<option value="user">${t("common.front")}</option>` +
-        `<option value="environment">${t("common.back")}</option>`;
-      state.scanner.selectedCameraId = DOM.cameraSelect.value || "";
+      // No enumerated cameras: keep the existing options (typically the
+      // static Front/Back entries) instead of inventing devices that do not
+      // exist. A facingMode request may still succeed once permission is
+      // granted, so the current selection stays valid.
       refreshCustomSelect(DOM.cameraSelect);
       return;
     }
@@ -611,7 +796,14 @@ function scanTick(timestamp) {
     ensureVisibilityResume();
     return;
   }
-  if (DOM.webcamVideo.readyState === DOM.webcamVideo.HAVE_ENOUGH_DATA) {
+  if (!scannerVisible) {
+    // Offscreen (IntersectionObserver): keep the stream but drop the decode
+    // work until the panel is visible again.
+    state.scanner.animationFrameId = requestAnimationFrame(scanTick);
+    return;
+  }
+  const HAVE_CURRENT = DOM.webcamVideo.HAVE_CURRENT_DATA ?? 2;
+  if (DOM.webcamVideo.readyState >= HAVE_CURRENT) {
     if (timestamp - lastScanTime > 200 && !frameBusy()) {
       lastScanTime = timestamp;
 
@@ -620,10 +812,13 @@ function scanTick(timestamp) {
         bufferCtx = canvasBuffer ? canvasBuffer.getContext("2d", { willReadFrequently: true }) : null;
       }
       if (!canvasBuffer || !bufferCtx) {
-        // Without a drawing buffer there is nothing to decode; stop the loop
-        // instead of throwing out of every frame and leaving the camera on.
+        // Without a drawing buffer the camera must not be left running with
+        // a stuck "Scanning..." pill: stop cleanly and surface the failure.
         console.error("[Scanner] decode canvas unavailable; stopping scan loop");
-        state.scanner.animationFrameId = null;
+        stopWebcamScan();
+        DOM.cameraErrorState.classList.remove("hidden");
+        DOM.cameraErrorMsg.textContent = t("scanner.streamFailed");
+        setScanStatus("error", t("scanner.statusError"));
         return;
       }
 
@@ -634,12 +829,20 @@ function scanTick(timestamp) {
           state.scanner.animationFrameId = requestAnimationFrame(scanTick);
           return;
         }
-        if (width > 800) {
-          height = Math.round(height * (800 / width));
-          width = 800;
+        // Cap the longest side: a 1080p frame is ~2MB per getImageData and
+        // portrait video leaves height uncapped when only width is limited.
+        const MAX_LIVE_DIM = 640;
+        const longest = Math.max(width, height);
+        if (longest > MAX_LIVE_DIM) {
+          const scale = MAX_LIVE_DIM / longest;
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
         }
         if (canvasBuffer.width !== width) canvasBuffer.width = width;
         if (canvasBuffer.height !== height) canvasBuffer.height = height;
+        // Prefer createImageBitmap -> OffscreenCanvas (worker) when available
+        // to avoid this main-thread getImageData entirely; the ImageData path
+        // below is the fallback for platforms without those APIs.
         bufferCtx.drawImage(DOM.webcamVideo, 0, 0, width, height);
 
         let imageData = bufferCtx.getImageData(0, 0, width, height);
@@ -649,20 +852,16 @@ function scanTick(timestamp) {
           imageData = null;
         }
         if (!frameBusy() && imageData) {
-          // Main-thread fallback (no worker, or the post above failed).
-          try {
-            const decodedResult = jsQR(imageData.data, width, height, {
-              inversionAttempts: "attemptBoth",
-            });
-            if (decodedResult) {
-              handleScanSuccess(decodedResult.data);
-              // Keep the camera session alive for the next code without
-              // decoding every frame on the main thread.
-              scheduleFallbackResume();
-              return;
-            }
-          } catch (err) {
-            console.error("[Scanner] jsQR error:", err);
+          // Main-thread fallback with a single inversion attempt (decoder.js
+          // owns the policy); the stream retries every 200ms anyway.
+          const text = decodeFallbackPixels(imageData.data, width, height, false);
+          imageData = null;
+          if (text) {
+            handleScanSuccess(text);
+            // Keep the camera session alive for the next code without
+            // decoding every frame on the main thread.
+            scheduleFallbackResume();
+            return;
           }
         }
       } catch (err) {
@@ -676,7 +875,7 @@ function scanTick(timestamp) {
 
 function processUploadFile(file) {
   if (!file) return;
-  if (file.type && !ALLOWED_SCAN_IMAGE_TYPES.includes(file.type)) {
+  if (BLOCKED_SCAN_IMAGE_TYPES.includes(file.type) || (file.type && !ALLOWED_SCAN_IMAGE_TYPES.includes(file.type))) {
     DOM.errorModalMsg.textContent = t("scanner.invalidFileType");
     openModal(DOM.errorModal, document.body);
     return;
@@ -689,25 +888,51 @@ function processUploadFile(file) {
   DOM.uploadedFilename.textContent = file.name;
   DOM.uploadedFilesize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
 
+  // Supersede any previous upload: abort its reader, drop its image
+  // callbacks and clear its timer so it can't pin a 15MB data URL.
+  abortActiveUpload();
   const session = ++uploadSession;
   const isCurrent = () => session === uploadSession;
   const reader = new FileReader();
+  activeUploadReader = reader;
   reader.onload = (e) => {
     if (!isCurrent()) return;
+    activeUploadReader = null;
     DOM.uploadedPreview.src = e.target.result;
     DOM.uploadedPreviewContainer.classList.remove("hidden");
 
     const img = new Image();
+    activeUploadImg = img;
     let loaded = false;
     const loadTimeout = setTimeout(() => {
       if (loaded || !isCurrent()) return;
-      img.src = "";
+      // Invalidate this session so a late onload can't paint success over
+      // the timeout error.
+      loaded = true;
+      uploadSession++;
+      clearPendingUpload();
+      if (activeUploadTimer === loadTimeout) activeUploadTimer = null;
+      activeUploadImg = null;
+      try {
+        img.onload = null;
+        img.onerror = null;
+        img.src = "";
+      } catch {
+        // Ignore test doubles without src support.
+      }
       handleScanError();
     }, 30000);
+    activeUploadTimer = loadTimeout;
     img.onload = () => {
       if (!isCurrent()) return;
       loaded = true;
-      clearTimeout(loadTimeout);
+      if (activeUploadTimer === loadTimeout) {
+        clearTimeout(loadTimeout);
+        activeUploadTimer = null;
+      } else {
+        clearTimeout(loadTimeout);
+      }
+      if (activeUploadImg === img) activeUploadImg = null;
       const MAX_DIM = 1024;
       let w = img.width;
       let h = img.height;
@@ -747,15 +972,11 @@ function processUploadFile(file) {
         workerPosted = true;
       }
       if (!workerPosted) {
-        try {
-          const result = jsQR(imageData.data, w, h, { inversionAttempts: "attemptBoth" });
-          if (result) {
-            handleScanSuccess(result.data);
-          } else {
-            handleScanError();
-          }
-        } catch (e) {
-          console.error("[Scanner] jsQR error:", e);
+        // Uploads try both inversions (decoder.js owns the policy).
+        const text = decodeFallbackPixels(imageData ? imageData.data : null, w, h, true);
+        if (text) {
+          handleScanSuccess(text);
+        } else {
           handleScanError();
         }
       }
@@ -763,15 +984,25 @@ function processUploadFile(file) {
     img.onerror = () => {
       if (!isCurrent()) return;
       loaded = true;
-      clearTimeout(loadTimeout);
+      if (activeUploadTimer === loadTimeout) {
+        clearTimeout(loadTimeout);
+        activeUploadTimer = null;
+      } else {
+        clearTimeout(loadTimeout);
+      }
+      if (activeUploadImg === img) activeUploadImg = null;
       handleScanError();
     };
     img.src = e.target.result;
   };
   reader.onerror = () => {
+    if (activeUploadReader === reader) activeUploadReader = null;
     if (isCurrent()) handleScanError();
   };
   reader.onabort = () => {
+    if (activeUploadReader === reader) activeUploadReader = null;
+    // An abort from supersede/clear is intentional: only report it when this
+    // session is still current.
     if (isCurrent()) handleScanError();
   };
   reader.readAsDataURL(file);

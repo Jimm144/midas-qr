@@ -59,7 +59,7 @@ describe("svgDecodes", () => {
     });
   }
 
-  it("decodes the raster and reports the result", async () => {
+  it("decodes the unmodified raster and reports the result", async () => {
     stubCanvas();
     loadVendoredScript.mockResolvedValue(true);
     drawSvgBitmap.mockResolvedValue(true);
@@ -68,12 +68,39 @@ describe("svgDecodes", () => {
 
     await expect(svgDecodes("<svg/>", 300, 300)).resolves.toBe(true);
     expect(decode).toHaveBeenCalledTimes(1);
-    // The code is padded back out to the standard's quiet zone before decoding:
-    // the export is cropped to the configured margin, and a decoder handed that
+    // The verdict describes the exact artifact: no quiet-zone padding is
+    // painted when the unmodified raster already decodes.
+    const ctx = getContextSpy.mock.results[0].value;
+    expect(ctx.fillRect).not.toHaveBeenCalled();
+  });
+
+  it("retries with a quiet-zone pad when the exact artifact does not decode", async () => {
+    stubCanvas();
+    loadVendoredScript.mockResolvedValue(true);
+    drawSvgBitmap.mockResolvedValue(true);
+    const decode = vi
+      .fn()
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce({ data: "payload" });
+    globalThis.jsQR = decode;
+
+    await expect(svgDecodes("<svg/>", 300, 300)).resolves.toBe(true);
+    expect(decode).toHaveBeenCalledTimes(2);
+    // The fallback pads the crop back out to the standard's quiet zone: the
+    // export is cropped to the configured margin, and a decoder handed that
     // crop can't find the finder patterns.
     const ctx = getContextSpy.mock.results[0].value;
     expect(ctx.fillRect).toHaveBeenCalled();
     expect(ctx.drawImage).toHaveBeenCalled();
+  });
+
+  it("rejects a decode whose payload differs from the rendered one", async () => {
+    stubCanvas();
+    loadVendoredScript.mockResolvedValue(true);
+    drawSvgBitmap.mockResolvedValue(true);
+    globalThis.jsQR = vi.fn(() => ({ data: "something-else" }));
+
+    await expect(svgDecodes("<svg/>", 300, 300, 21, "expected-payload")).resolves.toBe(false);
   });
 
   it("reports false when the decoder finds nothing", async () => {

@@ -4,20 +4,38 @@
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/__SITE_URL_PLACEHOLDER__",
-      "headers": [
-        {
-          "key": "X-Site-Url-Placeholder",
-          "value": "__SITE_URL__ = https://midasqr.is-local.org/ - REPLACE-ME: replace this placeholder with the production domain before deploying (mirrors markers in index.html, 404.html, sitemap.xml, robots.txt, manifest.json). This route is never served."
-        }
-      ]
-    },
-    {
       "source": "**/sw.js",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "**/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "**/404.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "**/dist/bundle.js*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
@@ -31,11 +49,47 @@
       ]
     },
     {
+      "source": "**/src/lib/**",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "**/src/fonts/**",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "**/favicon.svg*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "**/*.png",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "**",
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-i3e6+6Zpyta0K+VZw2LD87buYZYELWbuRjkhsA6fzPk=' 'sha256-tWnZ4Nnti1gHrwRu2e2mtkbADTnK7GfvsdEfyoSLSmg=' 'sha256-ySgJi+o4tJbtQXeFuau29Dd7GoByuc34qmvHiUBP0aQ=' 'sha256-9q19l1PjYUY/uton+Jal6swEFsdhxaJ2W+ZIiDWVG6Y=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-fKYInz/G0tq/oTXzmmJyHOipSejWJ3DaI/c/MJY/PPk=' 'sha256-fAcjQk4X9VztV5V9qj2VTna62hA+33pucyn6xFxqj/E=' 'sha256-OH8qWNleY9zSZs2A/r1sRMWrjJhNjQFkHiSmIkD/zuY=' 'sha256-T/V7/zy03jOVD07ysQ0zVReoWYEAtC5eAHYTOBZjS7o=' https://analytics.open-domains.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://analytics.open-domains.com; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         },
         {
           "key": "X-Content-Type-Options",

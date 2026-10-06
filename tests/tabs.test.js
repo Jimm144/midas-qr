@@ -144,6 +144,20 @@ describe("tablist keyboard navigation", () => {
     expect(document.getElementById("tab-btn-generator").getAttribute("aria-selected")).toBe("true");
   });
 
+  it("switches tabs on popstate (Back/Forward across pushState entries)", async () => {
+    const { state } = await setupTablist();
+    document.getElementById("tab-btn-scanner").click();
+    expect(state.activeTab).toBe("scanner");
+    // Back: the history entry switchTab pushed carries its tab in state.
+    window.dispatchEvent(new PopStateEvent("popstate", { state: { tab: "generator" } }));
+    expect(state.activeTab).toBe("generator");
+    expect(document.getElementById("panel-generator").classList.contains("hidden")).toBe(false);
+    // Forward without state (older entries): the location hash decides.
+    window.history.replaceState(null, "", "#history");
+    window.dispatchEvent(new PopStateEvent("popstate", { state: null }));
+    expect(state.activeTab).toBe("history");
+  });
+
   it("preserves extra classes on tab buttons across switches", async () => {
     await setupTablist();
     const scanner = document.getElementById("tab-btn-scanner");

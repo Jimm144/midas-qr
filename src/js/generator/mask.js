@@ -132,8 +132,14 @@ function runsToPathData(runs) {
  * pixel-identical and removes the AA seams between adjacent modules.
  * Returns the input untouched when there is nothing to convert.
  */
+// One-entry cache: the pipeline asks about the same raw SVG twice per render
+// (string fast-path, then DOM pass), so the clip scan runs once per render.
+let lastOptimizeFp = null;
+let lastOptimizeOut = null;
 export function optimizeSvgRects(svgText) {
   if (typeof svgText !== "string" || svgText.indexOf("clip-path-dot-color") === -1) return svgText;
+  const fp = `${svgText.length}|${svgText.slice(0, 128)}|${svgText.slice(-128)}`;
+  if (fp === lastOptimizeFp) return /** @type {string} */ (lastOptimizeOut);
   let changed = false;
   const out = svgText.replace(DOT_CLIP_RE, (clipMarkup) => {
     const openEnd = clipMarkup.indexOf(">") + 1;
@@ -144,7 +150,10 @@ export function optimizeSvgRects(svgText) {
     changed = true;
     return clipMarkup.slice(0, openEnd) + merged + clipMarkup.slice(closeStart);
   });
-  return changed ? out : svgText;
+  const result = changed ? out : svgText;
+  lastOptimizeFp = fp;
+  lastOptimizeOut = result;
+  return result;
 }
 
 export const HEART_PATH_D =
@@ -501,6 +510,26 @@ function prepareDocForMask(svgEl, w, h, targetDx, targetDy) {
  * Both the surround fill and the stepped silhouette use it, so they always
  * agree on which module cells lie inside the shape.
  */
+// Shared 1x1 probe context: isPointInPath never paints, so its verdict does
+// not depend on the canvas size — one tiny context serves every render
+// instead of allocating a canvas per render for a pure hit test.
+let sharedProbeCtx = null;
+let sharedProbeFailed = false;
+function maskProbeContext() {
+  if (sharedProbeCtx || sharedProbeFailed) return sharedProbeCtx;
+  try {
+    const cvs = document.createElement("canvas");
+    cvs.width = 1;
+    cvs.height = 1;
+    sharedProbeCtx = cvs.getContext("2d");
+    if (!sharedProbeCtx) sharedProbeFailed = true;
+  } catch {
+    sharedProbeCtx = null;
+    sharedProbeFailed = true;
+  }
+  return sharedProbeCtx;
+}
+
 function createMaskProbe({ w, h, userMarginPx, moduleSize, shapeW, shapeH }) {
   const maskType = state.generator.maskType;
   const scaleX = shapeW / 24;
@@ -512,15 +541,15 @@ function createMaskProbe({ w, h, userMarginPx, moduleSize, shapeW, shapeH }) {
         ? safeMaskPathD(state.generator.maskCustom)
         : BUILT_IN_MASK_PATHS[maskType];
   let path2d = null;
-  let canvasCtx = null;
-  if (pathD && typeof Path2D !== "undefined") {
+  // The shared context is a pure hit-test surface (nothing is ever drawn, so
+  // its 1x1 size is irrelevant); only the Path2D itself is per-render.
+  const canvasCtx = pathD && typeof Path2D !== "undefined" ? maskProbeContext() : null;
+  if (pathD && typeof Path2D !== "undefined" && canvasCtx) {
     try {
       path2d = new Path2D(pathD);
-      const cvs = document.createElement("canvas");
-      cvs.width = shapeW;
-      cvs.height = shapeH;
-      canvasCtx = cvs.getContext("2d");
-    } catch {}
+    } catch {
+      path2d = null;
+    }
   }
   // The ±moduleSize edge probes are the neighbouring cells' own centre probes,
   // so the same lattice point is tested up to 5 times per render. Cache the

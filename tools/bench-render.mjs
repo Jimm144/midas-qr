@@ -49,7 +49,16 @@ class FakeImage {
   }
 }
 dom.window.Image = FakeImage;
-for (const key of ["Image", "window", "document", "DOMParser", "XMLSerializer", "Blob", "URL", "HTMLCanvasElement"]) {
+for (const key of [
+  "Image",
+  "window",
+  "document",
+  "DOMParser",
+  "XMLSerializer",
+  "Blob",
+  "URL",
+  "HTMLCanvasElement",
+]) {
   globalThis[key] = dom.window[key];
 }
 const qrCodeSrc = fs.readFileSync(path.join(ROOT, "src/lib/qrcode.min.js"), "utf8");
@@ -120,7 +129,7 @@ function configure({ mask, frame, gradient, bgImage, corners }) {
   g.bgImageDataUrl = bgImage ? BG_IMAGE : null;
 }
 
-async function renderOnce({ mask, frame }) {
+async function renderOnce({ mask, frame: _frame }) {
   const requestedW = WIDTH;
   const matrix = globalThis.qrcode(0, "H");
   matrix.addData(DATA);
@@ -174,7 +183,14 @@ function median(values) {
 }
 
 const scenarios = [
-  { label: "plain (no mask/frame)", mask: "none", frame: "none", gradient: false, bgImage: false, corners: false },
+  {
+    label: "plain (no mask/frame)",
+    mask: "none",
+    frame: "none",
+    gradient: false,
+    bgImage: false,
+    corners: false,
+  },
   {
     label: "worst (mask + frame + logo)",
     mask: "circle",

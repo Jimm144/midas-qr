@@ -34,7 +34,20 @@ function showUpdateBanner() {
 
 document.addEventListener("app:localechange", refreshPwaTranslations);
 
-if ("serviceWorker" in navigator) {
+// Dev server only: an installed worker would keep serving the *previous*
+// build's shell, so a rebuild can look like it never applied (and the SW hides
+// it behind a cache even when nothing is listening). Skip registration on the
+// dev port and drop any existing registration; production is untouched.
+const IS_DEV_PORT = location.port === "5173";
+
+if ("serviceWorker" in navigator && IS_DEV_PORT) {
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((regs) => regs.forEach((reg) => reg.unregister()))
+    .catch(() => {});
+}
+
+if ("serviceWorker" in navigator && !IS_DEV_PORT) {
   // First-time visitors get a controller from clients.claim() — that is not an
   // update and must not trigger the "new version" banner. The flag flips once
   // the tab is actually controlled, so a later update does surface the banner.

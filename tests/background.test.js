@@ -39,7 +39,7 @@ describe("applyBackgroundImage", () => {
 
     const image = images[0];
     expect(image.getAttribute("href")).toBe(BG_IMAGE);
-    expect(image.getAttributeNS("http://www.w3.org/1999/xlink", "href")).toBe(BG_IMAGE);
+    expect(image.hasAttributeNS("http://www.w3.org/1999/xlink", "href")).toBe(false);
     expect(image.getAttribute("x")).toBe("0");
     expect(image.getAttribute("y")).toBe("0");
     expect(image.getAttribute("width")).toBe("300");

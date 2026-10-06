@@ -24,7 +24,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
       - run: npm run build
+      - run: node tools/check-placeholders.mjs
+      - run: node tools/csp-hashes.mjs --check
       - run: node tools/build-pages.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

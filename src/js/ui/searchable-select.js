@@ -200,6 +200,7 @@ function buildField(field, select) {
   field.appendChild(popover);
 
   let activeIndex = -1;
+  let statusTimer = null;
 
   /** @returns {HTMLElement[]} */
   const visibleOptions = () =>
@@ -234,7 +235,12 @@ function buildField(field, select) {
     empty.classList.toggle("hidden", matches > 0);
     // Announce the result count only while a query is active, so the
     // aria-live region stays quiet when the list is simply reopened.
-    status.textContent = key ? tp("search.match", matches) : "";
+    // Debounced: without this every keystroke queued a live-region update.
+    if (statusTimer) clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => {
+      statusTimer = null;
+      status.textContent = key ? tp("search.match", matches) : "";
+    }, 200);
     setActive(-1);
   };
 

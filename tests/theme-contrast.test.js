@@ -6,7 +6,11 @@ function parseHex(color) {
   const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(color).trim());
   if (!match) return null;
   let hex = match[1];
-  if (hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
+  if (hex.length === 3)
+    hex = hex
+      .split("")
+      .map((c) => c + c)
+      .join("");
   return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
 }
 
@@ -30,7 +34,9 @@ function contrastRatio(foreground, background) {
 
 /** Mix `color` at `weight` over `base`, mirroring CSS color-mix(in srgb, ...). */
 function mixHex(color, weight, base) {
-  const mixed = parseHex(color).map((value, i) => Math.round(value * weight + parseHex(base)[i] * (1 - weight)));
+  const mixed = parseHex(color).map((value, i) =>
+    Math.round(value * weight + parseHex(base)[i] * (1 - weight))
+  );
   return "#" + mixed.map((value) => value.toString(16).padStart(2, "0")).join("");
 }
 
@@ -83,6 +89,28 @@ describe("theme text contrast (WCAG AA)", () => {
     );
     const sectionHex = "#" + section.map((v) => v.toString(16).padStart(2, "0")).join("");
     expect(contrastRatio(variant.danger, sectionHex)).toBeGreaterThanOrEqual(WCAG_AA);
+  });
+
+  it.each(variants)("%s: status colors meet 4.5:1 on the elevated surface too", (_label, variant) => {
+    // Regression: matcha/light status colors passed on bg/surface but fell to
+    // ~4.1-4.4:1 on bgElevated, where status text also renders.
+    for (const status of ["danger", "success", "warning"]) {
+      expect(
+        contrastRatio(variant[status], variant.bgElevated),
+        `${status} on bgElevated: ${contrastRatio(variant[status], variant.bgElevated).toFixed(2)}`
+      ).toBeGreaterThanOrEqual(WCAG_AA);
+    }
+  });
+
+  it("neutral/light: strong borders meet 3:1 on surfaces", () => {
+    // Regression: neutral/light borderStrong (#A6A6A6) managed only 2.43:1 on
+    // white, below the 3:1 floor for non-text UI chrome. Scoped to the reported
+    // token; re-tuning every family's border ramp is a separate visual change.
+    const light = themes.neutral.light;
+    for (const background of ["surface", "bg"]) {
+      const ratio = contrastRatio(light.borderStrong, light[background]);
+      expect(ratio, `borderStrong on ${background}: ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it.each(variants)("%s: the error badge's copy stays 4.5:1 on its tint", (_label, variant) => {

@@ -259,17 +259,20 @@ describe("decodeStateFromUrl — hostile input fuzzing", () => {
   });
 
   it("rejects or safely clamps hostile numeric params", () => {
+    // Decode starts from fresh defaults (not the recipient's live settings),
+    // so invalid numerics fall back to defaults (300/300/4/0), not to the
+    // 321/322/7/9 sentinel values resetGenerator() installs to detect inherit.
     const cases = [
-      ["?w=NaN", () => expect(state.generator.width).toBe(321)],
-      ["?w=", () => expect(state.generator.width).toBe(321)],
-      ["?w=Infinity", () => expect(state.generator.width).toBe(321)],
-      ["?w=50abc", () => expect(state.generator.width).toBe(321)],
+      ["?w=NaN", () => expect(state.generator.width).toBe(300)],
+      ["?w=", () => expect(state.generator.width).toBe(300)],
+      ["?w=Infinity", () => expect(state.generator.width).toBe(300)],
+      ["?w=50abc", () => expect(state.generator.width).toBe(300)],
       ["?w=-5", () => expect(state.generator.width).toBe(50)],
       ["?w=1e21", () => expect(state.generator.width).toBe(2000)],
       ["?h=99999", () => expect(state.generator.height).toBe(2000)],
-      ["?margin=abc", () => expect(state.generator.margin).toBe(7)],
+      ["?margin=abc", () => expect(state.generator.margin).toBe(4)],
       ["?margin=-10", () => expect(state.generator.margin).toBe(0)],
-      ["?radius=NaN", () => expect(state.generator.qrRadius).toBe(9)],
+      ["?radius=NaN", () => expect(state.generator.qrRadius).toBe(0)],
       ["?radius=999999", () => expect(state.generator.qrRadius).toBe(1000)],
     ];
     for (const [query, assert] of cases) {
@@ -336,11 +339,13 @@ describe("decodeStateFromUrl — hostile input fuzzing", () => {
   });
 
   it("decodes removed frame styles to the previous value without throwing", () => {
+    // Fresh-defaults decode: an unknown ?frame= lands on the default "none",
+    // not on the recipient's live "badge".
     for (const removed of ["bottom", "top", "swoop", "crop", "squircle"]) {
       resetGenerator();
       state.generator.frameStyle = "badge";
       decode(`?frame=${removed}`);
-      expect(state.generator.frameStyle, removed).toBe("badge");
+      expect(state.generator.frameStyle, removed).toBe("none");
     }
     resetGenerator();
     decode("?frame=swoop&frameText=Hi");
@@ -368,8 +373,10 @@ describe("decodeStateFromUrl — hostile input fuzzing", () => {
   });
 
   it("rejects overlong dataString and maskCustom payloads", () => {
+    // Fresh defaults: an overlong ?data= keeps the default payload, not the
+    // recipient's "previous-data".
     decode("?data=" + "A".repeat(5000));
-    expect(state.generator.dataString).toBe("previous-data");
+    expect(state.generator.dataString).toBe("https://example.com");
     // An unusable mask path is dropped rather than kept: the link defines the
     // whole design, so a rejected value must not leave the recipient's own.
     decode("?maskPath=" + "M".repeat(5000));
@@ -479,12 +486,14 @@ describe("decodeStateFromUrl — hostile input fuzzing", () => {
   });
 
   it("ignores duplicated scalar params instead of guessing first/last", () => {
+    // Duplicated keys are dropped entirely, so fresh defaults survive (300 /
+    // default payload), not the 321 / "previous-data" sentinels.
     decode("?w=99999&w=100");
-    expect(state.generator.width).toBe(321);
+    expect(state.generator.width).toBe(300);
     decode("?ecc=L&ecc=H");
     expect(state.generator.ecc).toBe("H");
     decode("?data=one&data=two");
-    expect(state.generator.dataString).toBe("previous-data");
+    expect(state.generator.dataString).toBe("https://example.com");
     decode("?bgT=1&bgT=0&bgT=true");
     expect(state.generator.bgTransparent).toBe(false);
     decode("?logo=" + encodeURIComponent("https://a.test/x.png") + "&logo=javascript:alert(1)");

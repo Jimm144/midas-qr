@@ -46,6 +46,43 @@ function safeDecodeURIComponent(value) {
   }
 }
 
+/** Known coin ids (must match the #crypto-coin options + formatters). */
+const KNOWN_COINS = new Set(["bitcoin", "ethereum", "litecoin", "bitcoincash", "dash", "monero"]);
+
+/** Unfold folded content lines (RFC 2426/5545: CRLF followed by SP/HT is removed). */
+function unfoldContentLines(data) {
+  return String(data || "")
+    .replace(/\r\n[ \t]/g, "")
+    .split(/\r\n|\n/);
+}
+
+/** Unescape vCard/iCal TEXT values (\n -> newline, \, \; \\ unescaped). */
+function unescapeTextValue(value) {
+  return String(value || "")
+    .replace(/\\n/gi, "\n")
+    .replace(/\\([\\,;])/g, "$1");
+}
+
+/** Split on unescaped `;` (a `\;` stays inside the field). */
+function splitUnescaped(value) {
+  const parts = [];
+  let buf = "";
+  for (let i = 0; i < String(value).length; i++) {
+    const ch = value[i];
+    if (ch === "\\" && i + 1 < value.length) {
+      buf += ch + value[i + 1];
+      i++;
+    } else if (ch === ";") {
+      parts.push(buf);
+      buf = "";
+    } else {
+      buf += ch;
+    }
+  }
+  parts.push(buf);
+  return parts;
+}
+
 const WIFI_PASSWORD_ERROR_KEYS = new Set([
   "validation.wpaPasswordRequired",
   "validation.wpaPasswordShort",
@@ -158,7 +195,57 @@ export const DATA_TYPES = {
     },
     // No vCard parser exists: structured contact fields are restored from the
     // persisted field bag, so a decoded payload leaves the form untouched.
-    hydrate: () => undefined,
+    hydrate: (data, { field }) => {
+      if (typeof data !== "string" || !data.includes("BEGIN:VCARD")) return;
+      const lines = unfoldContentLines(data);
+      const byPrefix = (prefix) => {
+        const line = lines.find((l) => l.startsWith(prefix));
+        return line ? unescapeTextValue(line.slice(prefix.length)) : "";
+      };
+      const byName = (name) => {
+        // Property may carry params (TEL;TYPE=CELL:...): match NAME or NAME;…
+        const line = lines.find((l) => l === name || l.startsWith(`${name}:`) || l.startsWith(`${name};`));
+        if (!line) return "";
+        const colon = line.indexOf(":");
+        return colon === -1 ? "" : unescapeTextValue(line.slice(colon + 1));
+      };
+      const set = (id, value) => {
+        const el = field(id);
+        if (el) el.value = value;
+      };
+      // N:ln;fn;;; — split on unescaped ';' so an escaped "\;" in a name survives.
+      const nRaw = byPrefix("N:");
+      if (nRaw !== "") {
+        const rawParts = splitUnescaped(lines.find((l) => l.startsWith("N:"))?.slice(2) || "");
+        set("contactLast", unescapeTextValue(rawParts[0] || ""));
+        set("contactFirst", unescapeTextValue(rawParts[1] || ""));
+      }
+      const org = byPrefix("ORG:");
+      if (org !== "" || nRaw !== "") set("contactOrg", org);
+      set("contactTitle", byName("TITLE"));
+      const cell = lines.find((l) => l.startsWith("TEL;TYPE=CELL:") || l.startsWith("TEL;TYPE=CELL,VOICE:"));
+      set(
+        "contactPhone",
+        cell ? unescapeTextValue(cell.slice(cell.indexOf(":") + 1)) : byName("TEL")
+      );
+      const work = lines.find((l) => l.startsWith("TEL;TYPE=WORK,VOICE:"));
+      if (work) set("contactWork", unescapeTextValue(work.slice(work.indexOf(":") + 1)));
+      const fax = lines.find((l) => l.startsWith("TEL;TYPE=WORK,FAX:"));
+      if (fax) set("contactFax", unescapeTextValue(fax.slice(fax.indexOf(":") + 1)));
+      set("contactEmail", byName("EMAIL"));
+      set("contactUrl", byName("URL"));
+      const adrLine = lines.find((l) => l.startsWith("ADR"));
+      if (adrLine) {
+        const colon = adrLine.indexOf(":");
+        const parts = splitUnescaped(colon === -1 ? "" : adrLine.slice(colon + 1)).map(unescapeTextValue);
+        // ADR:po;ext;street;city;region;zip;country
+        set("contactStreet", parts[2] || "");
+        set("contactCity", parts[3] || "");
+        set("contactState", parts[4] || "");
+        set("contactZip", parts[5] || "");
+        set("contactCountry", parts[6] || "");
+      }
+    },
   },
   crypto: {
     fields: ["cryptoCoin", "cryptoAddress", "cryptoAmount"],
@@ -192,7 +279,19 @@ export const DATA_TYPES = {
             amount = q.get("amount") || q.get("value") || q.get("tx_amount") || "";
           }
           const coinEl = field("cryptoCoin");
-          if (coinEl) coinEl.value = coin;
+          // An unvalidated coin would set a <select> to a missing option
+          // (selectedIndex -1, value "") so the next compile sees no
+          // validator and emits `:addr` as valid. Validate + fall back.
+          let finalCoin = KNOWN_COINS.has(coin) ? coin : "bitcoin";
+          if (coinEl) {
+            if (coinEl instanceof HTMLSelectElement) {
+              const values = Array.from(coinEl.options).map((o) => o.value);
+              if (!values.includes(finalCoin)) {
+                finalCoin = values.includes("bitcoin") ? "bitcoin" : values[0] || "bitcoin";
+              }
+            }
+            coinEl.value = finalCoin;
+          }
           // Malformed percent sequences must not abort the whole decode.
           address.value = safeDecodeURIComponent(addr);
           const amountEl = field("cryptoAmount");
@@ -256,7 +355,40 @@ export const DATA_TYPES = {
     },
     // No VEVENT parser exists (and the payload carries generated UID/time
     // fields), so a decoded event payload leaves the form untouched.
-    hydrate: () => undefined,
+    hydrate: (data, { field }) => {
+      if (typeof data !== "string" || !data.includes("BEGIN:VEVENT")) return;
+      const lines = unfoldContentLines(data);
+      const getProp = (name) => {
+        // DTSTART may carry ";VALUE=DATE": match "NAME" or "NAME;…".
+        const line = lines.find((l) => l === name || l.startsWith(`${name}:`) || l.startsWith(`${name};`));
+        if (!line) return null;
+        const colon = line.indexOf(":");
+        return colon === -1 ? "" : line.slice(colon + 1);
+      };
+      const toInputDateTime = (raw) => {
+        if (!raw) return "";
+        // DATE: 20240101 -> 2024-01-01; DATE-TIME: 20240101T100000 -> 2024-01-01T10:00
+        let m = /^(\d{4})(\d{2})(\d{2})$/.exec(raw);
+        if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+        m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/.exec(raw);
+        if (m) return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`;
+        return "";
+      };
+      const set = (id, value) => {
+        const el = field(id);
+        if (el) el.value = value;
+      };
+      const summary = getProp("SUMMARY");
+      if (summary !== null) set("eventTitle", unescapeTextValue(summary));
+      const dtStart = getProp("DTSTART");
+      if (dtStart !== null) set("eventStart", toInputDateTime(dtStart));
+      const dtEnd = getProp("DTEND");
+      if (dtEnd !== null) set("eventEnd", toInputDateTime(dtEnd));
+      const loc = getProp("LOCATION");
+      if (loc !== null) set("eventLocation", unescapeTextValue(loc));
+      const desc = getProp("DESCRIPTION");
+      if (desc !== null) set("eventDesc", unescapeTextValue(desc));
+    },
   },
   sms: {
     fields: ["smsPhone", "smsMsg"],
@@ -281,6 +413,25 @@ export const DATA_TYPES = {
         phone.value = parts[0] || "";
         const msg = field("smsMsg");
         if (msg) msg.value = safeDecodeURIComponent(parts.slice(1).join(":") || "");
+      } else if (phone && /^sms:/i.test(data)) {
+        // Alternate `sms:<number>?body=<text>` form (e.g. from scanners).
+        const rest = data.slice(4);
+        const qIdx = rest.indexOf("?");
+        const msg = field("smsMsg");
+        if (qIdx === -1) {
+          phone.value = rest;
+          if (msg) msg.value = "";
+        } else {
+          phone.value = rest.slice(0, qIdx);
+          if (msg) {
+            try {
+              const q = new URLSearchParams(rest.slice(qIdx + 1));
+              msg.value = q.get("body") ?? safeDecodeURIComponent(rest.slice(qIdx + 1));
+            } catch {
+              msg.value = rest.slice(qIdx + 1);
+            }
+          }
+        }
       }
     },
   },

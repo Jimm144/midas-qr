@@ -7,18 +7,23 @@
   "scripts": {
     "build:js": "esbuild src/js/main.js --bundle --outfile=dist/bundle.js --minify --target=es2020",
     "build:css": "esbuild src/css/style.css --bundle --external:*.woff2 --minify --outfile=src/css/style.min.css",
-    "build": "npm run build:js && npm run build:css && node tools/stamp-assets.mjs && node tools/check-sw.mjs",
+    "build": "npm run build:js && npm run build:css && node tools/stamp-assets.mjs && node tools/csp-hashes.mjs && node tools/check-placeholders.mjs && node tools/check-sw.mjs",
     "check:sw": "node tools/check-sw.mjs",
-    "start": "npx -y serve -l 5000 .",
-    "dev": "npm run build && npx -y serve -l 5000 .",
-    "lint": "eslint src/js",
-    "lint:fix": "eslint src/js --fix",
-    "format": "prettier --write \"src/js/**/*.js\" \"src/js/**/*.ts\" \"*.{js,json,md}\"",
-    "format:check": "prettier --check \"src/js/**/*.js\" \"src/js/**/*.ts\" \"*.{js,json,md}\"",
+    "check:placeholders": "node tools/check-placeholders.mjs",
+    "check:csp": "node tools/csp-hashes.mjs --check",
+    "sync:csp": "node tools/csp-hashes.mjs",
+    "start": "npx -y serve -p 5173 .",
+    "dev": "npm run build && npx -y serve -p 5173 .",
+    "lint": "eslint src/js tools tests sw.js",
+    "lint:fix": "eslint src/js tools tests sw.js --fix",
+    "format": "prettier --write \"src/js/**/*.js\" \"src/js/**/*.ts\" \"src/css/**/*.css\" \"tools/**/*.mjs\" \"tests/**/*.js\" \"*.html\" \"*.{js,json,md}\"",
+    "format:check": "prettier --check \"src/js/**/*.js\" \"src/js/**/*.ts\" \"src/css/**/*.css\" \"tools/**/*.mjs\" \"tests/**/*.js\" \"*.html\" \"*.{js,json,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bench": "node tools/bench-render.mjs",
+    "clean": "node -e \"const fs=require('node:fs');for(const p of ['site','coverage'])fs.rmSync(p,{recursive:true,force:true})\""
   },
   "keywords": [
     "qr-code",
@@ -41,6 +46,7 @@
     "jsdom": "^29.1.1",
     "prettier": "^3.9.4",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0",
     "vitest": "^4.1.9"
   }
 }

@@ -77,6 +77,15 @@ export function renderHistoryList() {
   getScanHistoryList().render();
 }
 
+// Scan rows embed translated labels and locale-formatted timestamps: without
+// this, a locale change from any source other than the language select left
+// the list in the old language until the next scan.
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("app:localechange", () => {
+    renderHistoryList();
+  });
+}
+
 export function removeScanHistoryAt(idx) {
   getScanHistoryList().removeAt(idx);
 }

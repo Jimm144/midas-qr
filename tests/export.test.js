@@ -496,8 +496,11 @@ describe("exportRenderedBlob raster output", () => {
       set src(value) {
         this._src = value;
         queueMicrotask(() => {
-          if (fail) this.onerror && this.onerror();
-          else this.onload && this.onload();
+          if (fail) {
+            if (this.onerror) this.onerror();
+          } else if (this.onload) {
+            this.onload();
+          }
         });
       }
     };

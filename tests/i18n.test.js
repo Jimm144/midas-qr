@@ -59,6 +59,30 @@ describe("i18n runtime", () => {
     expect(tp("search.match", 3)).toBe(catalogs.de["search.match_other"].replace("{count}", "3"));
   });
 
+  it("uses every Intl.PluralRules category (Lithuanian one/few/many/other)", () => {
+    setLocale("lt", false);
+    expect(tp("search.match", 1)).toBe(catalogs.lt["search.match_one"]);
+    expect(tp("search.match", 3)).toBe(catalogs.lt["search.match_few"].replace("{count}", "3"));
+    expect(tp("search.match", 10)).toBe(catalogs.lt["search.match_other"].replace("{count}", "10"));
+  });
+
+  it("never leaks a computed plural key and falls back through the table", () => {
+    setLocale("en", false);
+    // Unknown table: guarded to the count instead of "table_few" on screen.
+    expect(tp("no.such.table", 3)).toBe("3");
+    // Missing keys log and return the key (debuggable, never blank).
+    expect(t("no.such.key")).toBe("no.such.key");
+  });
+
+  it("sanitizes HTML translations and escapes interpolated params", async () => {
+    const { tHtml } = await import("../src/js/i18n.js");
+    document.body.innerHTML = `<div id="html-slot" data-i18n-html="tabs.switched"></div>`;
+    applyStaticTranslations();
+    // Catalog value is plain text here; params carrying markup must not break out.
+    expect(document.getElementById("html-slot").innerHTML).not.toContain("<");
+    expect(tHtml("tabs.switched", { tab: "<img src=x onerror=alert(1)>" })).not.toContain("<img");
+  });
+
   it("applies text and attributes", () => {
     setLocale("es", false);
     expect(document.getElementById("label").textContent).toBe(catalogs.es["tabs.generate"]);

@@ -3857,3 +3857,97 @@ label[for="logo-file"],
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Re-applied on top of the original stylesheet (the redesign's markup adds a
+   `.section-inner` wrapper, so the original `grid-2` rule would otherwise make
+   the Colors fields two columns again).
+   --------------------------------------------------------------------------- */
+
+/* Colors section: two columns at 480px and up (the runtime `.section-inner`
+   wrapper injected by shell.js is the grid), matching the intended design. */
+@media (min-width: 480px) {
+  .section-body.grid-2 > .section-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Content-card data-type select back to the standard control size (matches the
+   Batch button beside it). */
+
+/* An open dropdown can extend past its card into the neighbouring column. The
+   card's entrance animation makes each card a stacking context, so without
+   this the preview card paints over the open list ("goes under"). Lift the
+   card that owns the open control above its siblings. */
+.panel-grid > .qr-card:has(.custom-select-wrapper.open),
+.panel-grid > .qr-card:has([data-searchable-select].open) {
+  z-index: 140;
+}
+
+/* Content card: let the data-type select size to its own label instead of
+   reserving a fixed width, so there is no dead gap and Batch sits further
+   right. Height stays the standard control height. */
+.card-head .custom-select-wrapper.data-type-select-wrapper {
+  min-width: 0;
+  /* The redesign let this grow to fill the header row, so on mobile it
+     stretched edge to edge. Size to its own label instead. */
+  flex: 0 1 auto;
+}
+
+/* Mobile: keep the header console content-sized and drop the language label to
+   its icon, so it no longer stretches the full width. */
+@media (max-width: 720px) {
+  .header-console {
+    width: auto;
+    max-width: 100%;
+    margin-left: auto;
+    grid-template-columns: var(--size-element-md) auto auto;
+  }
+  .header-console .custom-select-wrapper {
+    min-width: 0;
+  }
+  .header-console .language-select-wrapper .custom-select-trigger .truncate {
+    display: none;
+  }
+}
+
+/* Print: the original sheet hides every direct child of <body> and tries to
+   show #qr-preview-container — but that lives inside <main>, which is itself
+   hidden, so printing produced a blank page. generator.js fills #print-root
+   with the exact artifact, so print that instead. */
+@media print {
+  body > *:not(#print-root) {
+    display: none !important;
+  }
+  #print-root {
+    display: block !important;
+    position: static !important;
+    background: none !important;
+    border: none !important;
+  }
+  #print-root svg {
+    width: 90mm;
+    height: 90mm;
+  }
+}
+
+/* Readability badge: the JS sets `.status-unknown` when the decoder is
+   unavailable; without a rule it fell back to unstyled chrome. */
+#qr-readability-badge.status-unknown {
+  background: var(--surface);
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+@media (max-width: 720px) {
+  .tooltip-content {
+    position: absolute;
+    top: auto;
+    bottom: 100%;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(280px, calc(100vw - 32px));
+    margin: 0 0 8px;
+  }
+}

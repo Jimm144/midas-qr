@@ -46,10 +46,15 @@ function wireContainerListeners(container, hasGenerateButton = false) {
   container.addEventListener("focusout", (e) => {
     if (!container.contains(e.relatedTarget)) {
       compileDataString(!hasGenerateButton, true);
+      // Structured forms don't auto-render on focus-out, but the filename
+      // placeholder derives from the payload — refresh it so it never shows
+      // the previous type's name after the user tabs away.
+      updateExportFilenamePlaceholder();
     }
   });
   container.addEventListener("input", () => {
     compileDataString(!hasGenerateButton, false);
+    updateExportFilenamePlaceholder();
   });
   if (hasGenerateButton) {
     container.addEventListener("keydown", (e) => {
@@ -71,11 +76,20 @@ export function initInputHandlers() {
   inputHandlersReady = true;
   [DOM.inputText, DOM.phoneNumber].forEach((el) => {
     if (!el) return;
-    el.addEventListener("blur", () => compileDataString(true, true));
-    el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) compileDataString(true, true);
+    el.addEventListener("blur", () => {
+      compileDataString(true, true);
+      updateExportFilenamePlaceholder();
     });
-    el.addEventListener("input", () => compileDataString(true, false));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        compileDataString(true, true);
+        updateExportFilenamePlaceholder();
+      }
+    });
+    el.addEventListener("input", () => {
+      compileDataString(true, false);
+      updateExportFilenamePlaceholder();
+    });
   });
 
   [
@@ -127,12 +141,14 @@ export function initInputHandlers() {
         btnTogglePass.style.opacity = isNoPass ? "0.3" : DOM.wifiPass.type === "password" ? "0.7" : "1";
       }
       compileDataString(false, false);
+      updateExportFilenamePlaceholder();
     });
   }
 
   if (DOM.wifiHidden) {
     DOM.wifiHidden.addEventListener("change", () => {
       compileDataString(false, false);
+      updateExportFilenamePlaceholder();
     });
   }
 
@@ -144,7 +160,11 @@ export function initInputHandlers() {
     "btn-generate-event",
   ].forEach((id) => {
     const btn = document.getElementById(id);
-    if (btn) btn.addEventListener("click", () => compileDataString(true, true));
+    if (btn)
+      btn.addEventListener("click", () => {
+        compileDataString(true, true);
+        updateExportFilenamePlaceholder();
+      });
   });
 }
 

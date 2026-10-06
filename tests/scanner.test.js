@@ -442,7 +442,10 @@ describe("scanner camera lifecycle (deep sweep)", () => {
     async () => {
       const h = await harness();
       h.scanner.initScanner();
-      const png = new Blob(["fake-bytes"], { type: "image/png" });
+      // jsdom's FileReader converts the blob through its base64 helper, which
+      // rejects a string payload ("Expected an Uint8Array") on some jsdom
+      // builds. Feed real bytes so the read path is exercised unchanged.
+      const png = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" });
       const read = vi.fn(async () => [{ types: ["text/plain", "image/png"], getType: async () => png }]);
       const descriptor = Object.getOwnPropertyDescriptor(navigator, "clipboard");
       Object.defineProperty(navigator, "clipboard", { value: { read }, configurable: true });

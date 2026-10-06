@@ -16,3 +16,7 @@ scratch/
 .chrome-tmp*/
 swtest/
 shot-*.png
+# ...except the two the PWA manifest install prompt references (and that
+# build-pages stages), which therefore must ship.
+!shot-shapes.png
+!shot-verify-gothic.png
